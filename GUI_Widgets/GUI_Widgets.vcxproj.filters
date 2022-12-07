@@ -1,0 +1,41 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="style_element">
+      <UniqueIdentifier>{ed7a40cf-6e1e-452d-b919-ba4377cdfa34}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="thread_pool">
+      <UniqueIdentifier>{817ad926-54b2-4c4a-973a-6dc665fbbaad}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="style_element.c">
+      <Filter>style_element</Filter>
+    </ClCompile>
+    <ClCompile Include="thread_pool.c">
+      <Filter>thread_pool</Filter>
+    </ClCompile>
+    <ClCompile Include="main.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="style_element.h">
+      <Filter>style_element</Filter>
+    </ClInclude>
+    <ClInclude Include="thread_pool.h">
+      <Filter>thread_pool</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+    <None Include="style_pixel_shader.glsl">
+      <Filter>style_element</Filter>
+    </None>
+    <None Include="style_vertex_shader.glsl">
+      <Filter>style_element</Filter>
+    </None>
+    <None Include="README.md" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="LICENSE.txt" />
+  </ItemGroup>
+</Project>

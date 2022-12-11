@@ -183,22 +183,35 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="card.h" />
+    <ClInclude Include="rectangle.h" />
     <ClInclude Include="style_element.h" />
     <ClInclude Include="thread_pool.h" />
+    <ClInclude Include="widget_interface.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="card.c" />
     <ClCompile Include="main.c" />
+    <ClCompile Include="rectangle.c" />
     <ClCompile Include="style_element.c" />
     <ClCompile Include="thread_pool.c" />
+    <ClCompile Include="widget_interface.c" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+    <None Include="postdraw_pixel_shader.glsl" />
+    <None Include="postdraw_vertex_shader.glsl" />
     <None Include="README.md" />
-    <None Include="style_pixel_shader.glsl" />
-    <None Include="style_vertex_shader.glsl" />
+    <None Include="predraw_pixel_shader.glsl" />
+    <None Include="predraw_vertex_shader.glsl" />
+    <None Include="widget_pixel_shader.glsl" />
+    <None Include="widget_vertex_shader.glsl" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="LICENSE.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="res\alex.bmp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

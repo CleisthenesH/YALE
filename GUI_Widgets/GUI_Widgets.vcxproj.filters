@@ -7,6 +7,21 @@
     <Filter Include="thread_pool">
       <UniqueIdentifier>{817ad926-54b2-4c4a-973a-6dc665fbbaad}</UniqueIdentifier>
     </Filter>
+    <Filter Include="widget_interface">
+      <UniqueIdentifier>{2e26127e-8059-4506-8c1e-e5fa9f243b95}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="widget">
+      <UniqueIdentifier>{d6b945da-9595-4aff-9694-ddb4abdd2799}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="widget\rectangle">
+      <UniqueIdentifier>{9272ed0b-8a26-458c-a7b2-c9c8bb010588}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="widget\card">
+      <UniqueIdentifier>{6bb96bc3-ba09-4bb8-b029-fab321f9a4f1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="art">
+      <UniqueIdentifier>{c5780451-b52c-482d-9a48-a2e1b16d00b9}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="style_element.c">
@@ -16,6 +31,15 @@
       <Filter>thread_pool</Filter>
     </ClCompile>
     <ClCompile Include="main.c" />
+    <ClCompile Include="widget_interface.c">
+      <Filter>widget_interface</Filter>
+    </ClCompile>
+    <ClCompile Include="rectangle.c">
+      <Filter>widget\rectangle</Filter>
+    </ClCompile>
+    <ClCompile Include="card.c">
+      <Filter>widget\card</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="style_element.h">
@@ -24,18 +48,44 @@
     <ClInclude Include="thread_pool.h">
       <Filter>thread_pool</Filter>
     </ClInclude>
+    <ClInclude Include="widget_interface.h">
+      <Filter>widget_interface</Filter>
+    </ClInclude>
+    <ClInclude Include="rectangle.h">
+      <Filter>widget\rectangle</Filter>
+    </ClInclude>
+    <ClInclude Include="card.h">
+      <Filter>widget\card</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
-    <None Include="style_pixel_shader.glsl">
+    <None Include="predraw_pixel_shader.glsl">
       <Filter>style_element</Filter>
     </None>
-    <None Include="style_vertex_shader.glsl">
+    <None Include="predraw_vertex_shader.glsl">
       <Filter>style_element</Filter>
     </None>
     <None Include="README.md" />
+    <None Include="widget_vertex_shader.glsl">
+      <Filter>widget_interface</Filter>
+    </None>
+    <None Include="widget_pixel_shader.glsl">
+      <Filter>widget_interface</Filter>
+    </None>
+    <None Include="postdraw_vertex_shader.glsl">
+      <Filter>style_element</Filter>
+    </None>
+    <None Include="postdraw_pixel_shader.glsl">
+      <Filter>style_element</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Text Include="LICENSE.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="res\alex.bmp">
+      <Filter>art</Filter>
+    </Image>
   </ItemGroup>
 </Project>

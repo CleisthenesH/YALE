@@ -16,7 +16,8 @@ uniform float al_alpha_test_val;
 varying vec4 varying_color;
 varying vec2 varying_texcoord;
 
-uniform float foil_effect;
+uniform float variation;
+uniform int foiling_type;
 
 bool alpha_test_func(float x, int op, float compare);
 
@@ -36,15 +37,11 @@ void main()
     discard;
 
     // foil stripe
-    if(1)
-    {
-    float ref = (gl_FragCoord.x/1920 + gl_FragCoord.y/1080)*0.5+foil_effect*0.1;
+    float ref = (gl_FragCoord.x/1920 + gl_FragCoord.y/1080)*0.5+variation*0.1;
     ref = fract(ref);
 
     if(ref < 0.1)
         gl_FragColor.xyz = vec3(1);
-    }
-
 }
 
 bool alpha_test_func(float x, int op, float compare)

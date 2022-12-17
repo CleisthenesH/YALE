@@ -18,6 +18,7 @@ static void draw(const struct widget_interface* const widget)
 	//glStencilMask(0x80);
 	//glStencilFunc(GL_REPLACE, 0x80, 0x80);
 
+	style_element_effect(NULL, NULL);
 	al_draw_filled_rectangle(-half_width, -half_height, half_width, half_height, rectangle->color);
 	al_draw_textf(debug_font, al_map_rgb_f(0, 1, 0), 0, 0, ALLEGRO_ALIGN_CENTER, "%d", rectangle->cnt);
 }

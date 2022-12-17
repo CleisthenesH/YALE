@@ -5,22 +5,9 @@
 #pragma once
 #include <allegro5/allegro_color.h>
 
-enum effect_flags
-{
-	EFFECT_NULL = 0,
-	EFFECT_BLEND = 1,
-	EFFECT_SATURATE = 2,
-	EFFECT_FOILED = 4,
-};
-
-enum foil_effect
-{
-	FOIL_NULL,
-	FOIL_PLAIN,
-	FOIL_CIRCLE,
-	FOIL_CRESCENT,
-};
-
+// A transparent and basic keyframe struct to enable continuous animation.
+//	The "saturate" member is to fade an object to white.
+//	The "blender_color" is currently unused, planed to be used inconjunciton with the blendeder for tinting.
 struct keyframe
 {
 	double timestamp;
@@ -30,24 +17,50 @@ struct keyframe
 	ALLEGRO_COLOR blender_color;
 };
 
+void keyframe_build_transform(struct keyframe* const, ALLEGRO_TRANSFORM* const);
+
+// An obficated element struct.
+//	The obfiscation is because the internal variables of a effects can change wildly but shaders are exact.
+//	So I want to mantain the effect state where the user can't mess with it.
+//	Might add and update element method to them at later date, might not.
+struct effect_element;
+
+enum SELECTION_ID
+{
+	SELECTION_ID_FULL,
+	SELECTION_ID_COLOR_BAND,
+};
+
+enum EFFECT_ID
+{
+	EFFECT_ID_NULL,
+	EFFECT_ID_PLAIN_FOIL,
+	EFFECT_ID_RADIAL_RGB,
+/*	EFFECT_ID_SHEEN,
+	EFFECT_ID_COLOR_SELECT,
+	EFFECT_ID_TEST,
+*/
+};
+
+struct effect_element* effect_element_new(enum EFFECT_ID, enum SELECTION_ID);
+
+void effect_element_point(struct effect_element* const, double, double);
+void effect_element_color(struct effect_element* const, ALLEGRO_COLOR);
+void effect_element_cutoff(struct effect_element* const, double);
+
+void effect_element_selection_color(struct effect_element* const, ALLEGRO_COLOR);
+void effect_element_selection_cutoff(struct effect_element* const, double);
+
+// An obficated struct for managing all the style information in one place.
+//	It's maing job is to manage a queue of keyframes to output the current keyframe on each frame.
+//	Has other jobs like manage some effects and to be added drag control.
 struct style_element
 {
-	enum effect_flags effect_flags;
 	struct keyframe current;
-	enum foil_effect stencil_effects[4];
-	int blender[3];
 };
 
 struct style_element* style_element_new(size_t);
-
 void style_element_set(struct style_element* const, struct keyframe* const);
 void style_element_interupt();
 struct keyframe* style_element_new_frame(struct style_element* const);
-
-void style_element_build_transform(struct style_element* const,ALLEGRO_TRANSFORM*); // include with picker
-
-// should be removed from here
-void style_element_setup();
-void style_element_predraw(const struct style_element* const);
-void style_element_prefoiling(const struct style_element* const);
-void style_element_effect(const struct style_element* const, int);
+void style_element_effect(const struct style_element* const, struct effect_element*);

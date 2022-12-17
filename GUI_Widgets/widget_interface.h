@@ -18,7 +18,7 @@ struct widget_interface
 };
   
 struct widget_interface* widget_interface_new(
-	void*,
+	const void* const,
 	void (*)(const struct widget_interface* const),
 	void (*)(struct widget_interface* const),
 	void (*)(struct widget_interface* const),

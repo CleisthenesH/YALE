@@ -8,47 +8,82 @@
 #include <allegro5/allegro_opengl.h>
 
 extern ALLEGRO_FONT* debug_font;
+extern double mouse_x, mouse_y;
+
 static ALLEGRO_BITMAP* alex;
+
+static struct effect_element* null_effect;
+static struct effect_element* plain_foil;
+static struct effect_element* rgb_radial;
+static struct effect_element* color_pick;
 
 static void draw(const struct widget_interface* const widget_interface)
 {
 	const struct card* const card = (const struct card*)widget_interface->upcast;
 
 	glEnable(GL_STENCIL_TEST);	
-	glStencilFunc(GL_ALWAYS, 1, 0x03);
+
+	// Draw card background
+	glStencilFunc(GL_ALWAYS, 1, 0x07);
 	glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
-	style_element_effect(widget_interface->style_element, 0);
-
+	style_element_effect(widget_interface->style_element, plain_foil);
 	al_draw_filled_rounded_rectangle(-90, -127, 90, 127, 10, 10, al_color_name("forestgreen"));
 
-	glStencilFunc(GL_ALWAYS, 2, 0x03);
-	glStencilOp(GL_KEEP, GL_KEEP, GL_INCR);
+	// Stencil the art zone
+	glStencilFunc(GL_ALWAYS, 2, 0x07);
+	glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+
+	style_element_effect(widget_interface->style_element, NULL);
 
 	al_draw_filled_rounded_rectangle(-90+5, -127+5+10, 90-5, -10, 10, 10, al_map_rgb_f(1,1,1));
 
-	glStencilFunc(GL_EQUAL, 2, 0x03);
+	/*
+	// Draw the art
+	glStencilFunc(GL_EQUAL, 2, 0x07);
 	glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
 
 	al_draw_scaled_bitmap(alex, 0, 0, 255, 256, -90+5, -127+5+10, 2*(90-5), 127-5, 0);
+	*/
 
-	glStencilFunc(GL_ALWAYS, 0, 0x03);
+	// Draw other boarders
+	glStencilFunc(GL_ALWAYS, 3, 0x07);
 	glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+	effect_element_point(rgb_radial, mouse_x, mouse_y);
+	style_element_effect(widget_interface->style_element, rgb_radial);
 
-
-	al_draw_text(debug_font, al_map_rgb_f(0,0, 0), 0, -127, ALLEGRO_ALIGN_CENTER,  card->name);
-	al_draw_text(debug_font, al_map_rgb_f(0,0, 0), 0, 20, ALLEGRO_ALIGN_CENTER,  card->effect);
+	al_draw_text(debug_font, al_map_rgb_f(0, 0, 0), 0, -127, ALLEGRO_ALIGN_CENTER, card->name);
+	al_draw_text(debug_font, al_map_rgb_f(0, 0, 0), 0, 20, ALLEGRO_ALIGN_CENTER, card->effect);
 	al_draw_rounded_rectangle(-90, -127, 90, 127, 10, 10, al_color_name("gold"), 2);
 	al_draw_rounded_rectangle(-90 + 5, -127 + 5 + 10, 90 - 5, -10, 10, 10, al_color_name("gold"), 2);
 
-	style_element_effect(widget_interface->style_element, 1);
-	glStencilFunc(GL_EQUAL, 1, 0x03);
+	al_draw_textf(debug_font, al_map_rgb_f(0, 0, 0), 0, 20, ALLEGRO_ALIGN_CENTER, "%f,%f", mouse_x,mouse_y);
+
+	// Pick out the black in the art
+	glStencilFunc(GL_EQUAL, 2, 0x07);
+	glStencilOp(GL_KEEP, GL_KEEP, GL_INCR);
+	effect_element_point(color_pick, mouse_x, mouse_y);
+	style_element_effect(widget_interface->style_element, color_pick);
+
+	al_draw_scaled_bitmap(alex, 0, 0, 255, 256, -90 + 5, -127 + 5 + 10, 2 * (90 - 5), 127 - 5, 0);
+
+	/*
+	// Background foil stripe
+	style_element_effect(widget_interface->style_element, plain_foil);
+	glStencilFunc(GL_EQUAL, 1, 0x07);
 	glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
 
 	al_draw_filled_rounded_rectangle(-90, -127, 90, 127, 10, 10, al_map_rgb_f(1, 1, 1));
 
 
-	//al_draw_filled_circle(0, 0, 32, al_map_rgb_f(1, 0, 0));
+
+	// Highlight
+
+	glStencilFunc(GL_EQUAL, 3, 0x07);
+	glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
+
+	al_draw_scaled_bitmap(alex, 0, 0, 255, 256, -90 -5, -127-5, 2 * (90+5), (127+5) *2, 0);	
+	*/
 }
 
 static void mask(const struct widget_interface* const widget)
@@ -67,17 +102,19 @@ struct card* card_new(const char* name)
 	{
 		.name = name,
 		.artwork = alex ? alex : (alex = al_load_bitmap("res/alex.bmp")),
-		.effect = "Cost: Effect",
+		.effect = (char*) "Cost: Effect",
 		.widget_interface = widget_interface_new(card,draw,NULL,NULL,mask),
 	};
+	
+	if (!null_effect)
+	{
+		plain_foil = effect_element_new(EFFECT_ID_PLAIN_FOIL,SELECTION_ID_FULL);
+		rgb_radial = effect_element_new(EFFECT_ID_RADIAL_RGB,SELECTION_ID_FULL);
+		color_pick = effect_element_new(EFFECT_ID_RADIAL_RGB,SELECTION_ID_COLOR_BAND);
 
-	/*
-	rectangle->widget_interface->hover_start = hover_start;
-	rectangle->widget_interface->hover_end = hover_end;
-	rectangle->widget_interface->left_click = left_click;
-	rectangle->widget_interface->right_click = right_click;
-	*/
+		effect_element_selection_color(color_pick, al_map_rgb(0, 0, 0));
+		effect_element_selection_cutoff(color_pick, 0.1);
+	}
 
 	return card;
-
 }

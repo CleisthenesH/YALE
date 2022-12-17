@@ -199,8 +199,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
-    <None Include="postdraw_pixel_shader.glsl" />
-    <None Include="postdraw_vertex_shader.glsl" />
     <None Include="README.md" />
     <None Include="predraw_pixel_shader.glsl" />
     <None Include="predraw_vertex_shader.glsl" />

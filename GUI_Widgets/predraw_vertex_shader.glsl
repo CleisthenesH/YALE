@@ -15,7 +15,7 @@ uniform float displacement;
 varying vec4 varying_color;
 varying vec2 varying_texcoord;
 
-uniform float saturate;
+//uniform float saturate;
 
 void main()
 {
@@ -28,7 +28,7 @@ void main()
 	else
 		varying_texcoord = al_texcoord;
 
-	varying_color.xyz = max(varying_color.xyz,saturate);
+	//varying_color.xyz = max(varying_color.xyz,saturate);
 	
 	gl_Position = al_projview_matrix * al_pos;
 }

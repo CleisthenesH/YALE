@@ -8,6 +8,9 @@
 #include <allegro5/allegro_font.h>
 #include <allegro5/allegro_opengl.h>
 
+extern void style_element_setup();
+extern void style_element_predraw(const struct style_element* const);
+
 extern double mouse_x;
 extern double mouse_y;
 extern double current_timestamp;
@@ -108,13 +111,11 @@ void widget_engine_init()
 //  (Maybe add a second pass?)
 void widget_engine_draw()
 {
-    glEnable(GL_STENCIL_TEST);
     style_element_setup();
 
     for(struct widget* widget = queue_head; widget; widget = widget->next)
 	{
         const struct style_element* const style_element  = widget->style_element;
-        glDisable(GL_STENCIL_TEST);
         style_element_predraw(style_element);
         call(widget, draw);
 
@@ -202,7 +203,7 @@ static inline struct widget* widget_engine_pick(int x, int y)
         }
 
         al_set_shader_float_vector("picker_color", 3, color_buffer, 1);
-        style_element_build_transform(widget->style_element, &transform);
+        keyframe_build_transform(&widget->style_element->current, &transform);
         al_use_transform(&transform);
         call(widget, mask);
     }
@@ -345,7 +346,7 @@ static void dummy_draw(const struct widget_interface* const widget){}
 
 // Allocate a new widget interface and wire it into the widget engine.
 struct widget_interface* widget_interface_new(
-    void* upcast,
+    const void* const upcast,
     void (*draw)(const struct widget_interface* const),
     void (*update)(struct widget_interface* const),
     void (*event_handler)(struct widget_interface* const),

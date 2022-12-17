@@ -73,12 +73,6 @@
     <None Include="widget_pixel_shader.glsl">
       <Filter>widget_interface</Filter>
     </None>
-    <None Include="postdraw_vertex_shader.glsl">
-      <Filter>style_element</Filter>
-    </None>
-    <None Include="postdraw_pixel_shader.glsl">
-      <Filter>style_element</Filter>
-    </None>
   </ItemGroup>
   <ItemGroup>
     <Text Include="LICENSE.txt" />

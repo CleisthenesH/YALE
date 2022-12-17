@@ -99,17 +99,8 @@ static inline int allegro_init()
     al_set_new_display_option(ALLEGRO_SAMPLE_BUFFERS, 1, ALLEGRO_REQUIRE);
     al_set_new_display_option(ALLEGRO_SAMPLES, 8, ALLEGRO_REQUIRE);
 
-    if (1)
-    {
-        al_set_new_display_flags(ALLEGRO_PROGRAMMABLE_PIPELINE | ALLEGRO_OPENGL | ALLEGRO_FULLSCREEN);
-        display = al_create_display(1920, 1080);
-    }
-    else
-    {
-        al_set_new_display_flags(ALLEGRO_PROGRAMMABLE_PIPELINE | ALLEGRO_OPENGL | ALLEGRO_WINDOWED);// | ALLEGRO_RESIZABLE);
-        display = al_create_display(1920 / 2, 1080 / 2);
-    }
-
+    al_set_new_display_flags(ALLEGRO_PROGRAMMABLE_PIPELINE | ALLEGRO_OPENGL | ALLEGRO_FULLSCREEN);
+    display = al_create_display(1600, 1200);
 
     al_set_render_state(ALLEGRO_ALPHA_TEST, 1);
     al_set_render_state(ALLEGRO_ALPHA_FUNCTION, ALLEGRO_RENDER_NOT_EQUAL);
@@ -210,7 +201,7 @@ static inline void empty_event_queue()
 // Custom init during build testing.
 static inline void testing_init()
 {   
-    if (0)
+    if (1)
     {
         struct rectangle* test_rect = rectangle_new();
         struct style_element* const style_element = test_rect->widget_interface->style_element;
@@ -230,17 +221,20 @@ static inline void testing_init()
                 .sy = 1
             };
         }
-
-        test_rect->widget_interface->style_element->stencil_effects[0] = FOIL_PLAIN;
-        test_rect->widget_interface->style_element->effect_flags = EFFECT_FOILED;
     }
 
     struct card* card = card_new("Alex");
 
     struct keyframe card_keyframe = (struct keyframe){
-        .timestamp = current_timestamp, .x = 500, .y = 500, .sx = 1, .sy = 1, .saturate = 0
+        .timestamp = current_timestamp, .x = 800, .y = 500, .sx = 1, .sy = 1, .saturate = 0
     };
     style_element_set(card->widget_interface->style_element, &card_keyframe);
+
+    if(0)
+    *style_element_new_frame(card->widget_interface->style_element) = (struct keyframe)
+    {
+        .timestamp = current_timestamp + 6, .x = 800, .y = 500, .sx = 1, .sy = 1, .saturate = 1
+    };
 }
 
 // Main
@@ -259,5 +253,5 @@ int main()
         if (al_get_next_event(main_event_queue, &current_event))
             process_event();
         else
-            empty_event_queue();
+            empty_event_queue();    
 }

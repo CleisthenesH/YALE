@@ -19,7 +19,7 @@ struct style_element_internal
 	size_t allocated;
 	struct keyframe* keyframes;
 
-	double foil_offset;
+	double variation;
 };
 
 static struct style_element_internal* list;
@@ -97,7 +97,7 @@ void style_element_init()
 	list = malloc(allocated * sizeof(struct style_element_internal));
 
 	make_predraw_shader();
-	make_postdraw_shader();
+	//make_postdraw_shader();
 }
 
 // TEST
@@ -121,14 +121,7 @@ struct style_element* style_element_new(size_t hint)
 	style_element->used = 0;
 	style_element->allocated = hint;
 	style_element->keyframes = malloc(hint * sizeof(struct keyframe));
-	style_element->foil_offset = fmod(current_timestamp,100);
-
-	style_element->effect_flags = EFFECT_NULL;
-
-	style_element->stencil_effects[0] = FOIL_NULL;
-	style_element->stencil_effects[1] = FOIL_NULL;
-	style_element->stencil_effects[2] = FOIL_NULL;
-	style_element->stencil_effects[3] = FOIL_NULL;
+	style_element->variation = fmod(current_timestamp,100);
 
 	return (struct style_element*) style_element;
 }
@@ -224,19 +217,19 @@ struct keyframe* style_element_new_frame(struct style_element* const style_eleme
 	return output;
 }
 
-void style_element_build_transform(struct style_element* const style_element,ALLEGRO_TRANSFORM* trans)
+void keyframe_build_transform(struct keyframe* const keyframe, ALLEGRO_TRANSFORM* const trans)
 {
 	al_build_transform(trans,
-		style_element->current.x, style_element->current.y,
-		style_element->current.sx, style_element->current.sy,
-		style_element->current.t);
+		keyframe->x, keyframe->y,
+		keyframe->sx, keyframe->sy,
+		keyframe->t);
 }
 
-// Call before srawing
 void style_element_setup()
 {
-	al_use_shader(predraw_shader); // maybe keep track of what shader	
-
+	al_use_shader(predraw_shader); 
+	glDisable(GL_STENCIL_TEST);
+	al_set_shader_float("current_timestamp", current_timestamp);
 }
 
 void style_element_predraw(const struct style_element* const style_element)
@@ -244,32 +237,168 @@ void style_element_predraw(const struct style_element* const style_element)
 	struct style_element_internal* const internal = (struct style_element_internal* const)style_element;
 
 	al_set_shader_float("saturate", style_element->current.saturate);
-	al_set_shader_float("variation", ((struct style_element_internal*)style_element)->foil_offset + current_timestamp);
+	al_set_shader_float("variation", internal->variation);
 
 	ALLEGRO_TRANSFORM buffer;
-	style_element_build_transform(style_element, &buffer);
+	keyframe_build_transform(&style_element->current, &buffer);
 
 	al_use_transform(&buffer);
+
+	glDisable(GL_STENCIL_TEST);
 }
 
-void style_element_effect(const struct style_element* const style_element, int effect)
-{
-	if(effect == 0)
-		al_set_blender(ALLEGRO_ADD, ALLEGRO_ONE, ALLEGRO_INVERSE_ALPHA);
-	else
-		al_set_blender(ALLEGRO_ADD, ALLEGRO_ONE, ALLEGRO_ONE);
+// To handle the varity of effect and selection data I've implemented a very basic type system.
 
-	al_set_shader_int("effect", effect);
+struct effect_data
+{
+	enum EFFECT_ID id;
+};
+
+struct selection_data
+{
+	enum SELECTION_ID id;
+};
+
+struct effect_radial_rgb // Not implemented yet
+{
+	struct effect_data;
+	float center_x, center_y;
+};
+
+struct selection_color_band
+{
+	struct selection_data;
+	ALLEGRO_COLOR color;
+	float cutoff;
+};
+
+static inline size_t effect_data_size(enum EFFECT_ID id)
+{
+	switch (id)
+	{
+	default:
+		return sizeof(struct effect_data);
+	}
+
 }
 
-void style_element_prefoiling(const struct style_element* const style_element)
+static inline size_t selection_data_size(enum SELECTION_ID id)
 {
-	al_use_shader(postdraw_shader);
+	switch (id)
+	{
+	case SELECTION_ID_COLOR_BAND:
+		return sizeof(struct selection_color_band);
+	default:
+		return sizeof(struct selection_data);
+	}
+}
 
+static inline struct selection_data* get_selection(struct effect_element* effect_element)
+{
+	struct effect_data* const effect_data = (struct effect_data* const) effect_element;
+	return (struct selection_data* const)((char*)effect_element) + effect_data_size(effect_data->id);
+}
 
+void style_element_effect(
+	const struct style_element* const style_element, 
+	struct effect_element* effect_element)
+{
+	if (!effect_element)
+	{
+		al_set_shader_int("effect_id", EFFECT_ID_NULL);
+		al_set_shader_int("selection_id", SELECTION_ID_FULL);
+		return;
+	}
 
-	glEnable(GL_STENCIL_TEST);
-	glStencilMask(0xF0);
+	struct effect_data* const effect_data = (struct effect_data* const) effect_element;
+	struct selection_data* const selection_data = get_selection(effect_element);
 
+	al_set_shader_int("effect_id", effect_data->id);
+	al_set_shader_int("selection_id", selection_data->id);
 
+	al_set_blender(ALLEGRO_ADD, ALLEGRO_ONE, ALLEGRO_INVERSE_ALPHA);
+
+	switch (effect_data->id)
+	{
+	case EFFECT_ID_RADIAL_RGB:
+		al_set_shader_float_vector("point", 2,
+			(float[]) {
+				((struct effect_radial_rgb*)effect_data)->center_x,
+				((struct effect_radial_rgb*)effect_data)->center_y
+			}, 1);
+		return;
+	}
+
+	/*
+	switch (selection_data->id)
+	{
+	case SELECTION_ID_COLOR_BAND:
+		((struct selection_color_band*)selection_data)->color = ;
+		return;
+	}
+	*/
+}
+
+struct effect_element* effect_element_new(
+	enum EFFECT_ID effect_id,
+	enum SELECTION_ID selection_id)
+{
+	const size_t selection_block = selection_data_size(selection_id);
+	const size_t effect_block = effect_data_size(effect_id);
+
+	struct effect_element* const output = malloc(selection_block+ effect_block);
+	if (!output)
+		return NULL;
+
+	struct effect_data* const effect_data = (struct effect_data* const) output;
+	struct selection_data* const selection_data = get_selection(output);
+
+	effect_data->id = effect_id;
+	selection_data->id = selection_id;
+	
+	return output;
+}
+
+void effect_element_selection_color(struct effect_element* const element, ALLEGRO_COLOR color)
+{
+	struct selection_data* const selection_data = get_selection(element);
+
+	switch (selection_data->id)
+	{
+	case SELECTION_ID_COLOR_BAND:
+		((struct selection_color_band*)selection_data)->color = color;
+		return;
+	default:
+		; // throw error
+	}
+
+}
+
+void effect_element_selection_cutoff(struct effect_element* const element, double cutoff)
+{
+	struct selection_data* const selection_data = get_selection(element);
+
+	switch (selection_data->id)
+	{
+	case SELECTION_ID_COLOR_BAND:
+		((struct selection_color_band*)selection_data)->cutoff = cutoff;
+		return;
+	default:
+		; // throw error
+	}
+}
+
+void effect_element_point(struct effect_element* const element, double x, double y)
+{
+	struct effect_data* const effect_data = (struct effect_data*)element;
+
+	switch (effect_data->id)
+	{
+	case EFFECT_ID_RADIAL_RGB:
+		((struct effect_radial_rgb*) effect_data)->center_x = x;
+		((struct effect_radial_rgb*) effect_data)->center_y = y;
+		return;
+	default:
+		; //throw error
+	}
 }

@@ -6,3 +6,11 @@ The core of this engine is a stack of widgets and the custom callback for updati
 
 This will be my first public project in a long time and will also serve as a my reeducation in git, licencing, and making regular commits.
 So please be pacience with the mess and any "works on my machine" responces.
+
+## Effects
+There are several different types of effect:
+First or Second drawing pass.
+Blender mode.
+Trump other effects.
+
+Need a structure for managing this.

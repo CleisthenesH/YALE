@@ -22,7 +22,7 @@ uniform float saturate;
 
 void main()
 {
-	varying_color.xyz = picker_color;
+	varying_color = vec4(picker_color,1);
 
 	if (al_use_tex_matrix) {
 		vec4 uv = al_tex_matrix * vec4(al_texcoord, 0, 1);

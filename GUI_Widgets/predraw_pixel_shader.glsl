@@ -103,7 +103,7 @@ void main()
 	break;
 
 	case 2: // Radial rgb
-		vec2 displacement = gl_FragCoord.xy - vec2(-point.x,point.y);
+		vec2 displacement = gl_FragCoord.xy - vec2(point.x,1200-point.y);
 		float angle = atan(displacement.y, displacement.x);
 		//angle = angle/3.14159265*2+1;
 		//angle += variation;

@@ -28,7 +28,7 @@ static size_t used;
 
 extern double current_timestamp;
 
-static inline int make_predraw_shader()
+static inline int make_shader()
 {
 	predraw_shader = al_create_shader(ALLEGRO_SHADER_GLSL);
 
@@ -38,18 +38,6 @@ static inline int make_predraw_shader()
 		return 0;
 	}
 
-	if(0)
-	al_attach_shader_source(predraw_shader, ALLEGRO_VERTEX_SHADER, 
-		al_get_default_shader_source(ALLEGRO_SHADER_GLSL, ALLEGRO_VERTEX_SHADER));
-
-	if(0)
-	al_attach_shader_source(predraw_shader, ALLEGRO_PIXEL_SHADER,
-		al_get_default_shader_source(ALLEGRO_SHADER_GLSL, ALLEGRO_PIXEL_SHADER));
-
-	if(0)
-	printf(al_get_default_shader_source(ALLEGRO_SHADER_GLSL, ALLEGRO_PIXEL_SHADER));
-
-	if(1)
 	if (!al_attach_shader_source_file(predraw_shader, ALLEGRO_PIXEL_SHADER, "predraw_pixel_shader.glsl"))
 	{
 		fprintf(stderr, "Failed to attach predraw pixel shader.\n%s\n", al_get_shader_log(predraw_shader));
@@ -65,39 +53,13 @@ static inline int make_predraw_shader()
 	return 1;
 }
 
-static inline int make_postdraw_shader()
-{
-	postdraw_shader = al_create_shader(ALLEGRO_SHADER_GLSL);
-
-	if (!al_attach_shader_source_file(postdraw_shader, ALLEGRO_VERTEX_SHADER, "postdraw_vertex_shader.glsl"))
-	{
-		fprintf(stderr, "Failed to attach postdraw vertex shader.\n%s\n", al_get_shader_log(postdraw_shader));
-		return 0;
-	}
-
-	if (!al_attach_shader_source_file(postdraw_shader, ALLEGRO_PIXEL_SHADER, "postdraw_pixel_shader.glsl"))
-	{
-		fprintf(stderr, "Failed to attach postdraw pixel shader.\n%s\n", al_get_shader_log(postdraw_shader));
-		return 0;
-	}
-
-	if (!al_build_shader(postdraw_shader))
-	{
-		fprintf(stderr, "Failed to build postdraw shader.\n%s\n", al_get_shader_log(postdraw_shader));
-		return 0;
-	}
-
-	return 1;
-}
-
 void style_element_init()
 {
 	used = 0;
 	allocated = 100;
 	list = malloc(allocated * sizeof(struct style_element_internal));
 
-	make_predraw_shader();
-	//make_postdraw_shader();
+	make_shader();
 }
 
 // TEST
@@ -126,7 +88,8 @@ struct style_element* style_element_new(size_t hint)
 	return (struct style_element*) style_element;
 }
 
-static void style_element_update_work(struct style_element_internal* style_element)
+// Assumes style_element->used > 1
+static void style_element_blend_keyframes(struct style_element_internal* style_element)
 {
 	// Clean old frames;
 	size_t first_future_frame = 0;
@@ -154,18 +117,23 @@ static void style_element_update_work(struct style_element_internal* style_eleme
 
 	const double blend = (current_timestamp - style_element->keyframes[0].timestamp) / (style_element->keyframes[1].timestamp - style_element->keyframes[0].timestamp);
 
-#define blend(X) style_element->current.X = blend * style_element->keyframes[1].X + (1 - blend) * style_element->keyframes[0].X
-	blend(x);
-	blend(y);
-	blend(sx);
-	blend(sy);
-	blend(t);
-	blend(saturate);
-	blend(blender_color.r);
-	blend(blender_color.g);
-	blend(blender_color.b);
-	blend(blender_color.a);
-#undef blend
+	#define blend(X) style_element->current.X = blend * style_element->keyframes[1].X + (1 - blend) * style_element->keyframes[0].X
+		blend(x);
+		blend(y);
+		blend(sx);
+		blend(sy);
+		blend(t);
+		blend(saturate);
+		blend(blender_color.r);
+		blend(blender_color.g);
+		blend(blender_color.b);
+		blend(blender_color.a);
+	#undef blend
+}
+
+static void style_element_update_work(struct style_element_internal* style_element)
+{
+	style_element_blend_keyframes(style_element);
 }
 
 struct work_queue* style_element_update()
@@ -245,6 +213,23 @@ void style_element_predraw(const struct style_element* const style_element)
 	al_use_transform(&buffer);
 
 	glDisable(GL_STENCIL_TEST);
+}
+
+void style_element_copy_destination(struct style_element* const style_element, struct keyframe* keyframe)
+{
+	struct style_element_internal* const internal = (struct style_element_internal* const)style_element;
+
+	memcpy(keyframe, &internal->keyframes[internal->used - 1], sizeof(struct keyframe));
+}
+
+void style_element_interupt(struct style_element* const style_element)
+{
+	struct style_element_internal* const internal = (struct style_element_internal* const)style_element;
+
+	if(internal->used > 1)
+		style_element_blend_keyframes(internal);
+
+	style_element_set(style_element, &style_element->current);
 }
 
 // To handle the varity of effect and selection data I've implemented a very basic type system.

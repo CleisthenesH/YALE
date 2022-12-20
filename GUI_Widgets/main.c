@@ -92,15 +92,34 @@ static inline int allegro_init()
         return 0;
     }
 
+
+    return 1;
+}
+
+//  display
+static inline void create_display()
+{
+    ALLEGRO_MONITOR_INFO monitor_info;
+    ALLEGRO_DISPLAY_MODE display_mode;
+
     al_set_new_display_option(ALLEGRO_DEPTH_SIZE, 32, ALLEGRO_SUGGEST);
     al_set_new_display_option(ALLEGRO_STENCIL_SIZE, 8, ALLEGRO_SUGGEST);
-
-    // Only works for primatives
     al_set_new_display_option(ALLEGRO_SAMPLE_BUFFERS, 1, ALLEGRO_REQUIRE);
     al_set_new_display_option(ALLEGRO_SAMPLES, 8, ALLEGRO_REQUIRE);
 
     al_set_new_display_flags(ALLEGRO_PROGRAMMABLE_PIPELINE | ALLEGRO_OPENGL | ALLEGRO_FULLSCREEN);
-    display = al_create_display(1600, 1200);
+
+    // Will improve monitor implementation when lua is itegrated
+    al_get_monitor_info(0, &monitor_info);
+    al_set_new_display_adapter(0);
+    al_get_display_mode(al_get_num_display_modes()-1, &display_mode);
+
+    if (0)
+        display = al_create_display(
+            monitor_info.x2 - monitor_info.x1,
+            monitor_info.y2 - monitor_info.y1);
+    else
+        display = al_create_display(display_mode.width, display_mode.height);
 
     al_set_render_state(ALLEGRO_ALPHA_TEST, 1);
     al_set_render_state(ALLEGRO_ALPHA_FUNCTION, ALLEGRO_RENDER_NOT_EQUAL);
@@ -110,17 +129,19 @@ static inline int allegro_init()
 
     if (!display) {
         fprintf(stderr, "failed to create display!\n");
-        return 0;
+        return;
     }
     al_set_target_bitmap(al_get_backbuffer(display));
+}
 
+// Create event queue and register sources
+static inline void create_event_queue()
+{
     main_event_queue = al_create_event_queue();
 
     al_register_event_source(main_event_queue, al_get_display_event_source(display));
     al_register_event_source(main_event_queue, al_get_mouse_event_source());
     al_register_event_source(main_event_queue, al_get_keyboard_event_source());
-
-    return 1;
 }
 
 // Initalize the global enviroment.
@@ -198,30 +219,54 @@ static inline void empty_event_queue()
     al_flip_display();
 }
 
+struct rectangle* test_rect;
+struct keyframe destination;
+
+static void left_click(struct widget_interface* const _)
+{
+    style_element_copy_destination(test_rect->widget_interface->style_element, &destination);
+    style_element_interupt(test_rect->widget_interface->style_element);
+}
+
+static void right_click(struct widget_interface* const _)
+{
+    destination.timestamp = current_timestamp + 1;
+
+    memcpy(style_element_new_frame(test_rect->widget_interface->style_element), &destination, sizeof(struct keyframe));
+}
+
 // Custom init during build testing.
 static inline void testing_init()
 {   
-    if (1)
-    {
-        struct rectangle* test_rect = rectangle_new();
-        struct style_element* const style_element = test_rect->widget_interface->style_element;
+	 test_rect = rectangle_new();
+	 {
+		 struct style_element* const style_element = test_rect->widget_interface->style_element;
 
-        struct keyframe keyframe = (struct keyframe){ .timestamp = current_timestamp, .x = 100, .y = 100, .sx = 1, .sy = 1,.saturate = 0 };
-        style_element_set(style_element, &keyframe);
+		 struct keyframe keyframe = (struct keyframe){ .timestamp = current_timestamp, .x = 100, .y = 100, .sx = 1, .sy = 1,.saturate = 0 };
+		 style_element_set(style_element, &keyframe);
 
-        for (double angle = 0; angle < 6.28318530718; angle += 6.28318530718 / 1000.0)
-        {
-            *style_element_new_frame(style_element) = (struct keyframe)
-            {
-                .timestamp = current_timestamp + angle,
-                .x = 400 + 100 * cos(angle),
-                .y = 400 + 100 * sin(angle),
+		 for (double angle = 0; angle < 6.28318530718; angle += 6.28318530718 / 1000.0)
+		 {
+			 *style_element_new_frame(style_element) = (struct keyframe)
+			 {
+				 .timestamp = current_timestamp + angle,
+				 .x = 400 + 100 * cos(angle),
+				 .y = 400 + 100 * sin(angle),
 
-                .sx = 1,
-                .sy = 1
-            };
-        }
-    }
+				 .sx = 1,
+				 .sy = 1
+			 };
+		 }
+	 }
+
+     struct rectangle* test_rect2 = rectangle_new();
+     {
+         struct keyframe keyframe = (struct keyframe){ .timestamp = current_timestamp, .x = 700, .y = 100, .sx = 1, .sy = 1,.saturate = 0 };
+         style_element_set(test_rect2->widget_interface->style_element, &keyframe);  
+
+         test_rect2->widget_interface->left_click = left_click;
+         test_rect2->widget_interface->right_click = right_click;
+     }
 
     struct card* card = card_new("Alex");
 
@@ -241,6 +286,8 @@ static inline void testing_init()
 int main()
 {
     allegro_init();
+    create_display();
+    create_event_queue();
     global_init();
 
     thread_pool_create(8);

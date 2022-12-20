@@ -60,7 +60,10 @@ struct style_element
 };
 
 struct style_element* style_element_new(size_t);
+
 void style_element_set(struct style_element* const, struct keyframe* const);
-void style_element_interupt();
+void style_element_interupt(struct style_element* const);
 struct keyframe* style_element_new_frame(struct style_element* const);
+void style_element_copy_destination(struct style_element* const, struct keyframe*);
+
 void style_element_effect(const struct style_element* const, struct effect_element*);

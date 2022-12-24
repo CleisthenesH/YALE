@@ -15,6 +15,14 @@ struct widget_interface
 	void (*left_click)(struct widget_interface* const);
 	void (*right_click)(struct widget_interface* const);
 	void (*click_off)(struct widget_interface* const);
+	void (*drag_start)(struct widget_interface* const);
+	void (*drag_end_drop)(struct widget_interface* const);
+	void (*drag_end_no_drop)(struct widget_interface* const);
+	void (*drop_start)(struct widget_interface* const);
+	void (*drop_end)(struct widget_interface* const);
+
+	bool is_draggable;
+	bool is_snappable;
 };
   
 struct widget_interface* widget_interface_new(

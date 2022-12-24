@@ -96,7 +96,7 @@ static inline int allegro_init()
     return 1;
 }
 
-//  display
+//  Config and create display
 static inline void create_display()
 {
     ALLEGRO_MONITOR_INFO monitor_info;
@@ -114,7 +114,7 @@ static inline void create_display()
     al_set_new_display_adapter(0);
     al_get_display_mode(al_get_num_display_modes()-1, &display_mode);
 
-    if (0)
+    if (1)
         display = al_create_display(
             monitor_info.x2 - monitor_info.x1,
             monitor_info.y2 - monitor_info.y1);
@@ -237,7 +237,15 @@ static void right_click(struct widget_interface* const _)
 
 // Custom init during build testing.
 static inline void testing_init()
-{   
+{  
+    struct card* card = card_new("Alex");
+
+    struct keyframe card_keyframe = (struct keyframe){
+        .timestamp = current_timestamp, .x = 800, .y = 500, .sx = 1, .sy = 1, .saturate = 0
+    };
+    style_element_set(card->widget_interface->style_element, &card_keyframe);
+    card->widget_interface->is_snappable = true;
+
 	 test_rect = rectangle_new();
 	 {
 		 struct style_element* const style_element = test_rect->widget_interface->style_element;
@@ -266,20 +274,10 @@ static inline void testing_init()
 
          test_rect2->widget_interface->left_click = left_click;
          test_rect2->widget_interface->right_click = right_click;
+         test_rect2->widget_interface->is_draggable = true;
      }
 
-    struct card* card = card_new("Alex");
 
-    struct keyframe card_keyframe = (struct keyframe){
-        .timestamp = current_timestamp, .x = 800, .y = 500, .sx = 1, .sy = 1, .saturate = 0
-    };
-    style_element_set(card->widget_interface->style_element, &card_keyframe);
-
-    if(0)
-    *style_element_new_frame(card->widget_interface->style_element) = (struct keyframe)
-    {
-        .timestamp = current_timestamp + 6, .x = 800, .y = 500, .sx = 1, .sy = 1, .saturate = 1
-    };
 }
 
 // Main

@@ -36,18 +36,17 @@ struct widget
 };
 
 #define call(widget,method) (widget)->method((struct widget_interface*) (widget))
-#define call_va(widget,method,...) (widget)->method((struct widget_interface*) (widget),##__VA_ARG__)
+#define call_va(widget,method,...) (widget)->method((struct widget_interface*) (widget),__VA_ARGS__)
 
 static enum {
-    ENGINE_STATE_IDLE,                      // Idle state
-    ENGINE_STATE_HOVER,                     // A widget is being hovered
-    ENGINE_STATE_CLICK_PRE_THRESHOLD,       // Inbetween mouse down and callback (checking if click or drag)
-    // Change to PRE_DRAG_THRESHOLD?
-    ENGINE_STATE_CLICK_POST_THRESHOLD,      // We are no longer waiting but, but the widget can't be dragged
-    ENGINE_STATE_DRAG,                      // A widget is getting dragged
-    ENGINE_STATE_SNAP_TO_DRAG,
-    ENGINE_STATE_DRAG_TO_SNAP,
-    ENGINE_STATE_SNAP
+    ENGINE_STATE_IDLE,                  // Idle state.
+    ENGINE_STATE_HOVER,                 // A widget is being hovered but the mouse is up.
+    ENGINE_STATE_PRE_DRAG_THRESHOLD,    // Inbetween mouse down and callback (checking if click or drag).
+    ENGINE_STATE_POST_DRAG_THRESHOLD,   // The drag threshold has been reached but the widget can't be dragged.
+    ENGINE_STATE_DRAG,                  // A widget is getting dragged and is located on the mouse.
+    ENGINE_STATE_TO_DRAG,               // A widget is getting dragged and is moving towards the mouse.
+    ENGINE_STATE_TO_SNAP,               // A widget is getting dragged and is mocing towards the snap.
+    ENGINE_STATE_SNAP                   // A widget is getting dragged and is located on the snap.
 } widget_engine_state;
 
 static const char* engine_state_str[] = {
@@ -56,8 +55,8 @@ static const char* engine_state_str[] = {
        "Click (Pre-Threshold)",
        "Click (Post-Threshold)",
        "Drag",
-       "Snap to Drag",
-       "Drag to Sanp",
+       "To Drag",
+       "To Snap",
        "Snap"
 };
 
@@ -67,7 +66,7 @@ static struct widget* queue_tail;
 static ALLEGRO_SHADER* offscreen_shader;
 static ALLEGRO_BITMAP* offscreen_bitmap;
 
-static double left_click_timestamp;
+static double transition_timestamp;
 
 static struct widget* last_click;
 static struct widget* current_hover;
@@ -76,6 +75,8 @@ static struct widget* current_drop;
 static struct keyframe drag_release;
 static double drag_offset_x, drag_offset_y;
 static double snap_offset_x, snap_offset_y;
+static const double snap_speed = 1000; // px per sec
+static const double drag_threshold = 0.2;
 
 // Initalize the widget engine
 void widget_engine_init()
@@ -118,9 +119,9 @@ void widget_engine_init()
 // Draw the widgets in queue order.
 void widget_engine_draw()
 {
-//  (Maybe add a second pass?)
     style_element_setup();
 
+    // Maybe add a second pass for stencil effect?
     for(struct widget* widget = queue_head; widget; widget = widget->next)
 	{
         const struct style_element* const style_element  = widget->style_element;
@@ -134,19 +135,20 @@ void widget_engine_draw()
         glDisable(GL_STENCIL_TEST);
         al_use_transform(&identity_transform);
 
-        al_draw_textf(debug_font, al_map_rgb_f(0, 1, 0), 10, 10, ALLEGRO_ALIGN_LEFT, "Hover: %p", current_hover);
-        al_draw_textf(debug_font, al_map_rgb_f(0, 1, 0), 10, 40, ALLEGRO_ALIGN_LEFT, "Drop: %p", current_drop);
-        al_draw_textf(debug_font, al_map_rgb_f(0, 1, 0), 10, 70, ALLEGRO_ALIGN_LEFT, "Drag Release: %f %f", drag_release.x, drag_release.y);
+        al_draw_textf(debug_font, al_map_rgb_f(0, 1, 0), 10, 10, ALLEGRO_ALIGN_LEFT, "State: %s", engine_state_str[widget_engine_state]);
+
+        //al_draw_textf(debug_font, al_map_rgb_f(0, 1, 0), 10, 10, ALLEGRO_ALIGN_LEFT, "Hover: %p", current_hover);
+        //al_draw_textf(debug_font, al_map_rgb_f(0, 1, 0), 10, 40, ALLEGRO_ALIGN_LEFT, "Drop: %p", current_drop);
+        //al_draw_textf(debug_font, al_map_rgb_f(0, 1, 0), 10, 70, ALLEGRO_ALIGN_LEFT, "Drag Release: %f %f", drag_release.x, drag_release.y);
     }
 }
 
 // Make a work queue with only the widgets that have an update method.
 struct work_queue* widget_engine_widget_work()
 {
- //  (Since the update method can't be changed maybe add another field for dynamic filtering,
-//      since we may need filtering some times and not others and we can offload that work to the main thread)
     struct work_queue* work_queue = work_queue_create();
 
+    // Since the update method doesn't change maybe we should have a static queue?
     for (struct widget* widget = queue_head; widget; widget = widget->next)
         if (widget->update)
             work_queue_push(work_queue, widget->update, widget);
@@ -157,7 +159,6 @@ struct work_queue* widget_engine_widget_work()
 // Handle picking mouse inputs using off screen drawing.
 static inline struct widget* widget_engine_pick(int x, int y)
 {
-    // Will skip the current drag
     ALLEGRO_BITMAP* original_bitmap = al_get_target_bitmap();
 
     al_set_target_bitmap(offscreen_bitmap);
@@ -175,12 +176,11 @@ static inline struct widget* widget_engine_pick(int x, int y)
 
     for (struct widget* widget = queue_head; widget; widget = widget->next, picker_index++)
     {
-   
         if (widget == current_hover && (
             widget_engine_state == ENGINE_STATE_DRAG ||
             widget_engine_state == ENGINE_STATE_SNAP ||
-            widget_engine_state == ENGINE_STATE_DRAG_TO_SNAP ||
-            widget_engine_state == ENGINE_STATE_SNAP_TO_DRAG
+            widget_engine_state == ENGINE_STATE_TO_SNAP ||
+            widget_engine_state == ENGINE_STATE_TO_DRAG
             ))
         {
             continue;
@@ -220,62 +220,55 @@ static inline struct widget* widget_engine_pick(int x, int y)
     return widget;
 }
 
-static inline double distance(struct widget_interface* widget, double x, double y)
+// Update the transition_timestamp based on how far the widget is to the point.
+static inline void update_transition_timestamp(struct widget* widget, double x, double y)
 {
     const double dx = widget->style_element->current.x - x;
     const double dy = widget->style_element->current.y - y;
 
-    return sqrtf(dx * dx + dy * dy);
+    const double offset =  sqrtf(dx * dx + dy * dy)/ snap_speed;
+
+    transition_timestamp = current_timestamp + offset;
 }
 
-// Updates current_hover keyframe keyframes to move towards the drag
+// Updates current_hover keyframes to move towards the drag
 static inline void widget_set_drag()
 {
     style_element_interupt(current_hover->style_element);
 
-    const double dx = current_hover->style_element->current.x - (drag_offset_x + mouse_x);
-    const double dy = current_hover->style_element->current.y - (drag_offset_y + mouse_y);
-    const double distance = sqrtf(dx * dx + dy * dy);
-    const double speed = 1000; //px per sec
+    update_transition_timestamp(current_hover, drag_offset_x + mouse_x, drag_offset_y + mouse_y);
 
-    if (distance > 0.001)
-    {
-        struct keyframe* keyframe = style_element_new_frame(current_hover->style_element);
+    struct keyframe* keyframe = style_element_new_frame(current_hover->style_element);
 
-        keyframe->x = drag_offset_x + mouse_x;
-        keyframe->y = drag_offset_y + mouse_y;
-        keyframe->timestamp = current_timestamp + distance / speed;
-    }
-    else
-    {
-        current_hover->style_element->current.x = drag_offset_x + mouse_x;
-        current_hover->style_element->current.y = drag_offset_y + mouse_y;
-    }
+    keyframe->x = drag_offset_x + mouse_x;
+    keyframe->y = drag_offset_y + mouse_y;
+    keyframe->timestamp = transition_timestamp;
 }
 
-// Return current_drag to drag_release
+// Updates current_hover keyframes to move towards the drag release
 static inline void widget_drag_release()
 {
     style_element_interupt(current_hover->style_element);
 
-    const double dx = current_hover->style_element->current.x - drag_release.x;
-    const double dy = current_hover->style_element->current.y - drag_release.y;
-    const double distance = sqrtf(dx * dx + dy * dy);
-    const double speed = 1000; //px per sec
+    update_transition_timestamp(current_hover, drag_release.x, drag_release.y);
+    drag_release.timestamp = transition_timestamp;
 
-	struct keyframe* keyframe = style_element_new_frame(current_hover->style_element);
-
-	memcpy(keyframe,&drag_release,sizeof(struct keyframe));
-    keyframe->timestamp = al_current_time() + distance/ speed;
+	memcpy(style_element_new_frame(current_hover->style_element),
+        &drag_release,sizeof(struct keyframe));
 }
 
+// Updates and calls any callbacks for the last_click, current_hover, current_drop pointers
 static inline void widget_engine_update_drag_pointers()
 {
+    // What pointer the picker returns depends on if something is being dragged.
+    // If nothing is being dragged the pointer is what's being hovered.
+    // If something is being dragged the pointer is what's under the dragged widget.
+    //  (The widget under the drag is called the drop).
     struct widget* const new_pointer = widget_engine_pick(mouse_x, mouse_y);
 
-    if ((widget_engine_state == ENGINE_STATE_IDLE ||
-        widget_engine_state == ENGINE_STATE_HOVER) &&
-        current_hover != new_pointer)
+    if (current_hover != new_pointer && (
+        widget_engine_state == ENGINE_STATE_IDLE ||
+        widget_engine_state == ENGINE_STATE_HOVER ))
     {
         if (current_hover && current_hover->hover_end)
             call(current_hover, hover_end);
@@ -293,49 +286,41 @@ static inline void widget_engine_update_drag_pointers()
         current_hover = new_pointer;
     }
 
-    if (current_drop != new_pointer)
+    if (current_drop != new_pointer && (
+        widget_engine_state == ENGINE_STATE_DRAG ||
+        widget_engine_state == ENGINE_STATE_SNAP ||
+        widget_engine_state == ENGINE_STATE_TO_DRAG ||
+        widget_engine_state == ENGINE_STATE_TO_SNAP ))
     {
-        switch (widget_engine_state)
-        {
-        case ENGINE_STATE_DRAG:
-        case ENGINE_STATE_SNAP:
-        case ENGINE_STATE_SNAP_TO_DRAG:
-        case ENGINE_STATE_DRAG_TO_SNAP:
+		if (current_drop && current_drop->drop_end)
+			call(current_drop, drop_end);
 
-            if (current_drop && current_drop->drop_end)
-                call(current_drop, drop_end);
+		if (new_pointer)
+		{
+			if (new_pointer->drop_start)
+				call(new_pointer, drop_start);
 
-            if (new_pointer)
-            {
-                if (new_pointer->drop_start)
-                    call(new_pointer, drop_start);
+			if (new_pointer->is_snappable)
+			{
+				style_element_interupt(current_hover->style_element);
 
-                if (new_pointer->is_snappable)
-                {
-                    style_element_interupt(current_hover->style_element);
-                    struct keyframe* snap_target = style_element_new_frame(current_hover->style_element);
+				struct keyframe* snap_target = style_element_new_frame(current_hover->style_element);
 
-                    snap_target->x = new_pointer->style_element->current.x + snap_offset_x;
-                    snap_target->y = new_pointer->style_element->current.y + snap_offset_y;
+				snap_target->x = new_pointer->style_element->current.x + snap_offset_x;
+				snap_target->y = new_pointer->style_element->current.y + snap_offset_y;
 
-                    const double dx = current_hover->style_element->current.x - snap_target->x;
-                    const double dy = current_hover->style_element->current.y - snap_target->y;
-                    const double distance = sqrtf(dx * dx + dy * dy);
-                    const double speed = 1000; //px per sec
+                update_transition_timestamp(current_hover, snap_target->x, snap_target->y);
 
-                    snap_target->timestamp = current_timestamp + distance/speed;
+                snap_target->timestamp = transition_timestamp;
 
-                    widget_engine_state = ENGINE_STATE_DRAG_TO_SNAP;
-                }
-            }
-            else
-            {
-                widget_set_drag();
-                widget_engine_state = current_drop && current_drop->is_snappable? ENGINE_STATE_SNAP_TO_DRAG : ENGINE_STATE_DRAG;
-            }
-
-            break;
-        }
+				widget_engine_state = ENGINE_STATE_TO_SNAP;
+			}
+		}
+		else
+		{
+			widget_set_drag();
+			widget_engine_state = current_drop && current_drop->is_snappable? ENGINE_STATE_TO_DRAG : ENGINE_STATE_DRAG;
+		}
 
         current_drop = new_pointer;
     }
@@ -346,33 +331,39 @@ void widget_engine_update()
 {
     widget_engine_update_drag_pointers();
 
-    // Update drag position
+    if(current_timestamp > transition_timestamp)
+        switch (widget_engine_state)
+        {
+        case ENGINE_STATE_PRE_DRAG_THRESHOLD:
+            if (current_hover->is_draggable)
+            {
+                if (current_hover->drag_start)
+                    call(current_hover, drag_start);
+
+                widget_engine_state = ENGINE_STATE_DRAG;
+            }
+            else
+            {
+                widget_engine_state = ENGINE_STATE_POST_DRAG_THRESHOLD;
+            }
+            break;
+        case ENGINE_STATE_TO_DRAG:
+            widget_engine_state = ENGINE_STATE_DRAG;
+            break;
+        case ENGINE_STATE_TO_SNAP:
+            widget_engine_state = ENGINE_STATE_SNAP;
+            break;
+        }
+
     switch (widget_engine_state)
     {
-    case ENGINE_STATE_CLICK_PRE_THRESHOLD:
-        if (current_timestamp - left_click_timestamp > 0.2)
-			if (current_hover->is_draggable) // is draggable
-			{
-				if (current_hover->drag_start)
-					call(current_hover, drag_start);
-
-				widget_engine_state = ENGINE_STATE_DRAG;
-			}
-			else
-			{
-				widget_engine_state = ENGINE_STATE_CLICK_POST_THRESHOLD;
-			}
-        break;
-
     case ENGINE_STATE_DRAG:
         current_hover->style_element->current.x = drag_offset_x + mouse_x;
         current_hover->style_element->current.y = drag_offset_y + mouse_y;
         break;
 
-    case ENGINE_STATE_SNAP_TO_DRAG:
+    case ENGINE_STATE_TO_DRAG:
         widget_set_drag();
-        //widget_engine_state = ENGINE_STATE_DRAG;
-
         break;
     }
 }
@@ -380,9 +371,7 @@ void widget_engine_update()
 // Handle events by calling all widgets that have a event handler.
 void widget_engine_event_handler()
 {
-    // Then update the widget engine state.
-//  (Thread pool the event listerner?)
-
+    // Incorperate to the threadpool?
     for (struct widget* widget = queue_head; widget; widget = widget->next)
         if (widget->event_handler)
             call(widget, event_handler);
@@ -401,8 +390,9 @@ void widget_engine_event_handler()
 
         if (current_event.mouse.button == 1)
         {
-            left_click_timestamp = current_timestamp;
-            widget_engine_state = ENGINE_STATE_CLICK_PRE_THRESHOLD;
+            transition_timestamp = current_timestamp + drag_threshold;
+
+            widget_engine_state = ENGINE_STATE_PRE_DRAG_THRESHOLD;
 
             drag_offset_x = current_hover->style_element->current.x - mouse_x;
             drag_offset_y = current_hover->style_element->current.y - mouse_y;
@@ -424,26 +414,25 @@ void widget_engine_event_handler()
 
 		switch(widget_engine_state)
 		{ 
-        case ENGINE_STATE_CLICK_PRE_THRESHOLD:
+        case ENGINE_STATE_PRE_DRAG_THRESHOLD:
             if (current_hover->left_click)
-            {
                 call(current_hover, left_click);
-            }
             break;
 
         case ENGINE_STATE_DRAG:
         case ENGINE_STATE_SNAP:
-        case ENGINE_STATE_DRAG_TO_SNAP:
-        case ENGINE_STATE_SNAP_TO_DRAG:
-            // if(current_drop)
-            if (current_hover->drag_end_no_drop)
+        case ENGINE_STATE_TO_SNAP:
+        case ENGINE_STATE_TO_DRAG:
+            if (current_drop && current_drop->drag_end_drop)
+                call_va(current_drop, drag_end_drop, current_hover);
+            else if (current_hover->drag_end_no_drop)
                 call(current_hover, drag_end_no_drop);
 
             widget_drag_release();
-            //style_element_set(current_hover->style_element, &drag_release);
+            break;
         }
 
-        widget_engine_state = current_hover ? ENGINE_STATE_HOVER : ENGINE_STATE_IDLE; // Might get optimized out
+        widget_engine_state = current_hover ? ENGINE_STATE_HOVER : ENGINE_STATE_IDLE;
         break;
     }
 }

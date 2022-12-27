@@ -5,6 +5,11 @@
 
 #include "style_element.h"
 
+#include "lua/lua.h"
+#include "lua/lualib.h"
+#include "lua/lauxlib.h"
+#include "lua/lualib.h"
+
 struct widget_interface
 {
 	struct style_element* style_element;
@@ -26,6 +31,7 @@ struct widget_interface
 };
   
 struct widget_interface* widget_interface_new(
+	lua_State*,
 	const void* const,
 	void (*)(const struct widget_interface* const),
 	void (*)(struct widget_interface* const),

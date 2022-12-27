@@ -13,6 +13,11 @@
 #include <allegro5/allegro_color.h>
 #include <allegro5/allegro_opengl.h>
 
+#include "lua/lua.h"
+#include "lua/lualib.h"
+#include "lua/lauxlib.h"
+#include "lua/lualib.h"
+
 #include "thread_pool.h"
 extern void thread_pool_create(size_t);
 extern void thread_pool_destroy();
@@ -42,10 +47,28 @@ static bool do_exit;
 double mouse_x, mouse_y;
 ALLEGRO_EVENT current_event;
 double current_timestamp;
-double delta_time;
+double delta_timestamp;
 
 const ALLEGRO_TRANSFORM identity_transform;
-const ALLEGRO_FONT* debug_font;
+const ALLEGRO_FONT* debug_font; 
+
+const lua_State* main_lua_state;
+extern void widget_lua_integration();
+
+// Initalze the lua enviroment.
+static inline int lua_init()
+{
+    main_lua_state = luaL_newstate();
+
+    if (!main_lua_state)
+        return 0;
+
+    luaL_openlibs(main_lua_state);
+    widget_lua_integration();
+    //  widget_lua_integration_init(main_lua_state);
+
+    return 1;
+}
 
 // Initalize the allegro enviroment.
 static inline int allegro_init()
@@ -189,8 +212,8 @@ static inline void process_event()
 static inline void empty_event_queue()
 {
     // Update globals
-    delta_time = al_get_time() - current_timestamp;
-    current_timestamp += delta_time;
+    delta_timestamp = al_get_time() - current_timestamp;
+    current_timestamp += delta_timestamp;
 
     // Update widgets
     struct work_queue* queue = style_element_update();
@@ -219,6 +242,7 @@ static inline void empty_event_queue()
     al_flip_display();
 }
 
+/*
 struct rectangle* test_rect;
 struct keyframe destination;
 
@@ -234,10 +258,11 @@ static void right_click(struct widget_interface* const _)
 
     memcpy(style_element_new_frame(test_rect->widget_interface->style_element), &destination, sizeof(struct keyframe));
 }
-
+*/
 // Custom init during build testing.
 static inline void testing_init()
 {  
+    /*
     struct card* card = card_new("Alex");
 
     struct keyframe card_keyframe = (struct keyframe){
@@ -277,12 +302,16 @@ static inline void testing_init()
          test_rect2->widget_interface->is_draggable = true;
      }
 
-
+*/
 }
 
 // Main
 int main()
 {
+    lua_init();
+
+    luaL_dofile(main_lua_state, "boot.lua");
+
     allegro_init();
     create_display();
     create_event_queue();
@@ -291,6 +320,8 @@ int main()
     thread_pool_create(8);
     style_element_init();
     widget_engine_init();
+
+    luaL_dofile(main_lua_state, "post_boot.lua");
 
     testing_init();
 

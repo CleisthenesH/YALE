@@ -13,5 +13,3 @@ struct rectangle
 
 	int cnt;
 };
-
-struct rectangle* rectangle_new();

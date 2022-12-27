@@ -22,6 +22,18 @@ extern const ALLEGRO_FONT* debug_font;
 extern ALLEGRO_EVENT current_event;
 extern const ALLEGRO_TRANSFORM identity_transform;
 
+#define FOR_CALLBACKS(DO) \
+	DO(right_click) \
+	DO(left_click) \
+	DO(hover_start) \
+	DO(hover_end) \
+	DO(click_off) \
+	DO(drag_start) \
+	DO(drag_end_drop) \
+	DO(drag_end_no_drop) \
+	DO(drop_start) \
+	DO(drop_end) \
+
 struct widget
 {
 	struct widget_interface;
@@ -33,6 +45,12 @@ struct widget
     void (*update)(struct widget_interface* const);
     void (*event_handler)(struct widget_interface* const);
     void (*mask)(const struct widget_interface* const);
+
+    struct
+    {
+#define DECLARE(method) int method;
+        FOR_CALLBACKS(DECLARE)
+    } lua;
 };
 
 #define call(widget,method) (widget)->method((struct widget_interface*) (widget))
@@ -442,13 +460,16 @@ static void dummy_draw(const struct widget_interface* const widget){}
 
 // Allocate a new widget interface and wire it into the widget engine.
 struct widget_interface* widget_interface_new(
+    lua_State* L,
     const void* const upcast,
     void (*draw)(const struct widget_interface* const),
     void (*update)(struct widget_interface* const),
     void (*event_handler)(struct widget_interface* const),
     void (*mask)(const struct widget_interface* const))
 {
-    struct widget* widget = malloc(sizeof(struct widget));
+    const size_t widget_size = sizeof(struct widget);
+
+    struct widget* const widget = L ? lua_newuserdata(L, widget_size) : malloc(widget_size);
 
     if (!widget)
         return NULL;
@@ -462,6 +483,12 @@ struct widget_interface* widget_interface_new(
         .update = update,
         .event_handler = event_handler,
         .mask = mask ? mask : (draw ? draw : dummy_draw),
+
+#define CLEAR_LUA_REFNIL(method) . ## method = LUA_REFNIL,
+        FOR_CALLBACKS(CLEAR_LUA_REFNIL)
+
+#define CLEAR_TO_NULL(method) . ## method = NULL,
+        FOR_CALLBACKS(CLEAR_TO_NULL)
 
         .next = NULL,
         .previous = queue_tail,
@@ -477,4 +504,24 @@ struct widget_interface* widget_interface_new(
     queue_tail = widget;
 
     return (struct widget_interface*) widget;
+}
+
+// Widget methods
+
+#define SET_LUA_CALLBACK(method) static int set_ ## method (lua_State* L){ \
+    ((struct widget*)lua_touserdata(L, -2))->lua. ## method = luaL_ref(L,LUA_REGISTRYINDEX); \
+    return 0;}
+
+FOR_CALLBACKS(SET_LUA_CALLBACK)
+
+#define LUA_REG_ENTRY(method) {#method , set_ ## method},
+
+const struct luaL_Reg widget_callback_methods[] = {
+    FOR_CALLBACKS(LUA_REG_ENTRY)
+    {NULL,NULL}
+};
+
+static int style_set(lua_State* L)
+{
+
 }

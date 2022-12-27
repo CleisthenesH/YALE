@@ -12,6 +12,8 @@ extern double mouse_x, mouse_y;
 
 static ALLEGRO_BITMAP* alex;
 
+extern lua_State* main_lua_state;
+
 static struct effect_element* null_effect;
 static struct effect_element* plain_foil;
 static struct effect_element* rgb_radial;
@@ -103,7 +105,7 @@ struct card* card_new(const char* name)
 		.name = name,
 		.artwork = alex ? alex : (alex = al_load_bitmap("res/alex.bmp")),
 		.effect = (char*) "Cost: Effect",
-		.widget_interface = widget_interface_new(card,draw,NULL,NULL,mask),
+		.widget_interface = widget_interface_new(main_lua_state,card,draw,NULL,NULL,mask),
 	};
 	
 	if (!null_effect)

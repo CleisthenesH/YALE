@@ -8,12 +8,23 @@
 #include "lua/lualib.h"
 
 extern lua_State* main_lua_state;
+extern double current_timestamp;
+extern double delta_timestamp;
 
 extern int rectangle_new(lua_State*);
 extern int rectangle_make_metatable(lua_State*); 
 
+int get_current_time(lua_State* L)
+{
+	lua_pushnumber(L, current_timestamp);
+	lua_pushnumber(L, delta_timestamp);
+
+	return 2;
+}
+
 static const struct luaL_Reg lib_f[] = {
 	{"rectangle",rectangle_new},
+	{"current_time",get_current_time},
 	{NULL,NULL}
 };
 

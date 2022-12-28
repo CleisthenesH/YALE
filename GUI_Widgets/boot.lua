@@ -4,5 +4,3 @@
 
 -- Runs after lua has been initalized but before anything else.
 -- Will be used to config things like display size/ thread pool size.
-
-print("test")

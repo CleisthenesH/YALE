@@ -193,6 +193,15 @@ void keyframe_build_transform(struct keyframe* const keyframe, ALLEGRO_TRANSFORM
 		keyframe->t);
 }
 
+void keyframe_default(struct keyframe* const keyframe)
+{
+	*keyframe = (struct keyframe)
+	{
+		.sx = 1,
+		.sy = 1
+	};
+}
+
 void style_element_setup()
 {
 	al_use_shader(predraw_shader); 

@@ -38,3 +38,8 @@ struct widget_interface* widget_interface_new(
 	void (*)(struct widget_interface* const),
 	void (*)(const struct widget_interface* const));
 
+void widget_interface_pop(struct widget_interface* const);
+
+extern const struct luaL_Reg widget_transform_methods[];
+extern const struct luaL_Reg widget_callback_methods[];
+

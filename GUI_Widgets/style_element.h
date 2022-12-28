@@ -8,15 +8,27 @@
 // A transparent and basic keyframe struct to enable continuous animation.
 //	The "saturate" member is to fade an object to white.
 //	The "blender_color" is currently unused, planed to be used inconjunciton with the blendeder for tinting.
+#define FOR_KEYFRAME_NUMBER_MEMBERS(DO) \
+	DO(timestamp,double) \
+	DO(x,double) \
+	DO(y,double) \
+	DO(sx,double) \
+	DO(sy,double) \
+	DO(t,double) \
+	DO(saturate,double) \
+	
+
+#define FOR_KEYFRAME_MEMBERS(DO) \
+	FOR_KEYFRAME_NUMBER_MEMBERS(DO) \
+	DO(blender_color, ALLEGRO_COLOR) \
+
 struct keyframe
 {
-	double timestamp;
-
-	double x, y, sx, sy, t;
-	double saturate;
-	ALLEGRO_COLOR blender_color;
+#define DECLARE(member,type,...) type member;
+	FOR_KEYFRAME_MEMBERS(DECLARE)
 };
 
+void keyframe_default(struct keyframe* const);
 void keyframe_build_transform(struct keyframe* const, ALLEGRO_TRANSFORM* const);
 
 // An obficated element struct.
@@ -61,6 +73,9 @@ struct style_element
 
 struct style_element* style_element_new(size_t);
 
+// Want to simplify adding a new keyframe and the interface in general
+// it's not too much to ask the widget maker to track timestamps
+// especially if we let them check the current and destination keyframe
 void style_element_set(struct style_element* const, struct keyframe* const);
 void style_element_interupt(struct style_element* const);
 struct keyframe* style_element_new_frame(struct style_element* const);

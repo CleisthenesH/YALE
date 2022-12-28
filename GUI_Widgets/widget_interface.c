@@ -12,6 +12,33 @@
 #include <float.h>
 #include <math.h>
 
+// TODO: Remove
+void stack_dump(lua_State* L)
+{
+    int top = lua_gettop(L);
+    printf("Stack Dump (%d):\n", top);
+    for (int i = 1; i <= top; i++) {
+        printf("\t%d\t%s\t", i, luaL_typename(L, i));
+        switch (lua_type(L, i)) {
+        case LUA_TNUMBER:
+            printf("\t%g\n", lua_tonumber(L, i));
+            break;
+        case LUA_TSTRING:
+            printf("\t%s\n", lua_tostring(L, i));
+            break;
+        case LUA_TBOOLEAN:
+            printf("\t%s\n", (lua_toboolean(L, i) ? "true" : "false"));
+            break;
+        case LUA_TNIL:
+            printf("\t%s\n", "nil");
+            break;
+        default:
+            printf("\t%p\n", lua_topointer(L, i));
+            break;
+        }
+    }
+}
+
 extern void style_element_setup();
 extern void style_element_predraw(const struct style_element* const);
 
@@ -21,6 +48,7 @@ extern double current_timestamp;
 extern const ALLEGRO_FONT* debug_font;
 extern ALLEGRO_EVENT current_event;
 extern const ALLEGRO_TRANSFORM identity_transform;
+extern lua_State* const main_lua_state;
 
 #define FOR_CALLBACKS(DO) \
 	DO(right_click) \
@@ -53,7 +81,14 @@ struct widget
     } lua;
 };
 
-#define call(widget,method) (widget)->method((struct widget_interface*) (widget))
+#define call_lua(widget,method) if(widget->lua. ## method != LUA_REFNIL) \
+    do{lua_rawgeti(main_lua_state, LUA_REGISTRYINDEX, widget->lua. ## method); lua_pcall(main_lua_state, 0, 0, 0); } while(0);
+
+#define call_engine(widget,method) if(widget-> ## method) \
+    do{(widget)->method((struct widget_interface*) (widget));}while(0);
+
+#define call(widget,method) do{call_engine(widget,method) call_lua(widget,method)}while(0);
+
 #define call_va(widget,method,...) (widget)->method((struct widget_interface*) (widget),__VA_ARGS__)
 
 static enum {
@@ -134,6 +169,52 @@ void widget_engine_init()
         al_get_bitmap_width(al_get_target_bitmap()));
 }
 
+// Prevents current_hover, last_click, and current_drag becoming stale
+static void widget_prevent_stale_pointers(struct widget* const ptr)
+{
+    if (current_hover == ptr)
+    {
+        call(ptr, hover_end);
+
+        widget_engine_state = ENGINE_STATE_IDLE;
+        current_hover = NULL;
+    }
+
+    if (last_click == ptr)
+    {
+        call(ptr,click_off)
+
+        last_click = NULL;
+    }
+
+    if (current_drop == ptr)
+    {
+        call(ptr, drag_end_no_drop)
+
+        widget_engine_state = ENGINE_STATE_IDLE;
+        current_drop = NULL;
+    }
+}
+
+// Pop a widget out of the engine
+void widget_interface_pop(struct widget_interface* const ptr)
+{
+    struct widget* const widget = ptr;
+
+    if (widget->next)
+        widget->next->previous = widget->previous;
+    else
+        queue_tail = widget->previous;
+
+    if (widget->previous)
+        widget->previous->next = widget->next;
+    else
+        queue_head = widget->next;
+
+    // Make sure we don't get stale pointers
+    widget_prevent_stale_pointers(widget);
+}
+
 // Draw the widgets in queue order.
 void widget_engine_draw()
 {
@@ -144,7 +225,7 @@ void widget_engine_draw()
 	{
         const struct style_element* const style_element  = widget->style_element;
         style_element_predraw(style_element);
-        call(widget, draw);
+        widget->draw((struct widget_interface*) widget);
  	}
 
     if (1)
@@ -215,7 +296,7 @@ static inline struct widget* widget_engine_pick(int x, int y)
         al_set_shader_float_vector("picker_color", 3, color_buffer, 1);
         keyframe_build_transform(&widget->style_element->current, &transform);
         al_use_transform(&transform);
-        call(widget, mask);
+        call_engine(widget, mask);
     }
 
     al_set_target_bitmap(original_bitmap);
@@ -288,13 +369,12 @@ static inline void widget_engine_update_drag_pointers()
         widget_engine_state == ENGINE_STATE_IDLE ||
         widget_engine_state == ENGINE_STATE_HOVER ))
     {
-        if (current_hover && current_hover->hover_end)
+        if (current_hover)
             call(current_hover, hover_end);
 
         if (new_pointer)
         {
-            if (new_pointer->hover_start)
-                call(new_pointer, hover_start);
+            call(new_pointer, hover_start);
 
             widget_engine_state = ENGINE_STATE_HOVER;
         }
@@ -310,13 +390,12 @@ static inline void widget_engine_update_drag_pointers()
         widget_engine_state == ENGINE_STATE_TO_DRAG ||
         widget_engine_state == ENGINE_STATE_TO_SNAP ))
     {
-		if (current_drop && current_drop->drop_end)
+		if (current_drop)
 			call(current_drop, drop_end);
 
 		if (new_pointer)
 		{
-			if (new_pointer->drop_start)
-				call(new_pointer, drop_start);
+			call(new_pointer, drop_start);
 
 			if (new_pointer->is_snappable)
 			{
@@ -355,8 +434,7 @@ void widget_engine_update()
         case ENGINE_STATE_PRE_DRAG_THRESHOLD:
             if (current_hover->is_draggable)
             {
-                if (current_hover->drag_start)
-                    call(current_hover, drag_start);
+                call(current_hover, drag_start);
 
                 widget_engine_state = ENGINE_STATE_DRAG;
             }
@@ -391,8 +469,7 @@ void widget_engine_event_handler()
 {
     // Incorperate to the threadpool?
     for (struct widget* widget = queue_head; widget; widget = widget->next)
-        if (widget->event_handler)
-            call(widget, event_handler);
+        call_engine(widget, event_handler);
 
     switch (current_event.type)
     {
@@ -402,8 +479,7 @@ void widget_engine_event_handler()
 
         if (current_event.mouse.button == 2)
         {
-            if (current_hover->right_click)
-                call(current_hover, right_click);
+            call(current_hover, right_click);
         }
 
         if (current_event.mouse.button == 1)
@@ -418,7 +494,7 @@ void widget_engine_event_handler()
 
             if (current_hover != last_click)
             {
-                if (last_click && last_click->click_off)
+                if (last_click)
                     call(last_click, click_off);
 
                 last_click = current_hover;
@@ -433,17 +509,23 @@ void widget_engine_event_handler()
 		switch(widget_engine_state)
 		{ 
         case ENGINE_STATE_PRE_DRAG_THRESHOLD:
-            if (current_hover->left_click)
-                call(current_hover, left_click);
+            call(current_hover, left_click);
             break;
 
         case ENGINE_STATE_DRAG:
         case ENGINE_STATE_SNAP:
         case ENGINE_STATE_TO_SNAP:
         case ENGINE_STATE_TO_DRAG:
-            if (current_drop && current_drop->drag_end_drop)
-                call_va(current_drop, drag_end_drop, current_hover);
-            else if (current_hover->drag_end_no_drop)
+            if (current_drop)
+            {
+                if(current_drop->drag_end_drop)
+                    call_va(current_drop, drag_end_drop, current_hover);
+                else
+                    call(current_hover, drag_end_no_drop);
+
+                call_lua(current_drop, drag_end_drop)
+            }
+            else
                 call(current_hover, drag_end_no_drop);
 
             widget_drag_release();
@@ -509,7 +591,8 @@ struct widget_interface* widget_interface_new(
 // Widget methods
 
 #define SET_LUA_CALLBACK(method) static int set_ ## method (lua_State* L){ \
-    ((struct widget*)lua_touserdata(L, -2))->lua. ## method = luaL_ref(L,LUA_REGISTRYINDEX); \
+    struct widget * const handle = (struct widget*) lua_touserdata(L, -2); \
+    handle->lua. ## method = luaL_ref(L,LUA_REGISTRYINDEX); \
     return 0;}
 
 FOR_CALLBACKS(SET_LUA_CALLBACK)
@@ -521,7 +604,122 @@ const struct luaL_Reg widget_callback_methods[] = {
     {NULL,NULL}
 };
 
-static int style_set(lua_State* L)
+static void new_index_test(lua_State* L)
 {
+    // stack: usdata, key, value
+    printf("__newindex hit\n");
 
+    return 0;
 }
+
+static void read_transform(lua_State* L, struct keyframe* keyframe)
+{
+    luaL_checktype(L, -1, LUA_TTABLE);
+
+#define READ(member,...)     lua_pushstring(L, #member); \
+    if (LUA_TNUMBER == lua_gettable(L, idx--)) keyframe-> ## member = luaL_checknumber(L, -1);
+
+    int idx = -2;
+
+    FOR_KEYFRAME_NUMBER_MEMBERS(READ)
+
+    lua_settop(L, lua_gettop(L) - 6);
+}
+
+static void write_transform(lua_State* L, struct keyframe* keyframe)
+{
+    lua_createtable(L, 0, 8);
+
+#define WRITE(member,...) lua_pushstring(L, #member); lua_pushnumber(L, keyframe-> ## member); lua_settable(L,-3);
+    FOR_KEYFRAME_NUMBER_MEMBERS(WRITE)
+
+    return;
+}
+
+static void test(lua_State* L)
+{
+    struct keyframe keyframe;
+
+    keyframe_default(&keyframe);
+
+    read_transform(L, &keyframe);
+
+    printf("%f\t%f\t%f\t%f\t%f\t%f\n", keyframe.x, keyframe.y, keyframe.sx, keyframe.sy, keyframe.t, keyframe.timestamp);
+
+    return 0;
+}
+
+static int set_keyframe(lua_State* L)
+{
+    struct keyframe keyframe;
+
+    luaL_checktype(L, -2, LUA_TUSERDATA);
+
+    const struct widget_interface* const widget = (struct widget_interface*)lua_touserdata(L, -2);
+    keyframe_default(&keyframe);
+    read_transform(L, &keyframe);
+
+    style_element_set(widget->style_element, &keyframe);
+
+    return 0;
+}
+
+static int current_keyframe(lua_State* L)
+{
+    luaL_checktype(L, 1, LUA_TUSERDATA);
+
+    const struct widget_interface* const widget = (struct widget_interface*)lua_touserdata(L, 1);
+    const struct keyframe* const keyframe = &widget->style_element->current;
+
+    write_transform(L, keyframe);
+
+    return 1;
+}
+
+static int destination_keyframe(lua_State* L)
+{
+    luaL_checktype(L, -1, LUA_TUSERDATA);
+
+    const struct widget_interface* const widget = (struct widget_interface*)lua_touserdata(L, 1);
+
+    struct keyframe keyframe;
+    style_element_copy_destination(widget->style_element, &keyframe);
+
+    write_transform(L, &keyframe);
+
+    return 1;
+}
+
+static int new_keyframe(lua_State* L)
+{
+    luaL_checktype(L, -2, LUA_TUSERDATA);
+
+    const struct widget_interface* const widget = (struct widget_interface*)lua_touserdata(L, -2);
+
+    struct keyframe* keyframe = style_element_new_frame(widget->style_element);
+
+    read_transform(L, keyframe);
+    return 0;
+}
+
+static int interupt(lua_State* L)
+{
+    luaL_checktype(L, -1, LUA_TUSERDATA);
+
+    const struct widget_interface* const widget = (struct widget_interface*)lua_touserdata(L, -1);
+
+    style_element_interupt(widget->style_element);
+
+    return 0;
+}
+
+const struct luaL_Reg widget_transform_methods[] = {
+    {"set_keyframe",set_keyframe},
+    {"current_keyframe",current_keyframe},
+    {"destination_keyframe",destination_keyframe},
+    {"new_keyframe",new_keyframe},  
+    {"interupt",interupt},
+    {"test",test},
+    {"__newindex",new_index_test},
+    {NULL,NULL}
+};

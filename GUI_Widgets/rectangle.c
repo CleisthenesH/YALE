@@ -72,16 +72,26 @@ int rectangle_new(lua_State* L)
 	rectangle->widget_interface->left_click = left_click;
 	rectangle->widget_interface->right_click = right_click;
 
-	struct keyframe keyframe = (struct keyframe){.x = 100,.y = 100,.sx=1,.sy=1};
-	style_element_set(rectangle->widget_interface->style_element, &keyframe);
-
 	luaL_getmetatable(L, "rectangle_mt");
 	lua_setmetatable(L, -2);
 
 	return 1;
 }
 
+static int gc(lua_State* L)
+{
+	printf("gc hit\n");
+	
+	struct widget_interface* const handle = (struct widget_interface*)lua_touserdata(L, -1);
+	struct text_button* const button = handle->upcast;
+
+	widget_interface_pop(handle);
+
+	return 0;
+}
+
 static const struct luaL_Reg rectangle_m[] = {
+	{"__gc",gc},
 	{NULL,NULL}
 };
 
@@ -93,35 +103,8 @@ int rectangle_make_metatable(lua_State* L)
 	lua_setfield(L, -2, "__index");
 	luaL_setfuncs(L, rectangle_m, 0);
 
-	//luaL_setfuncs(L, widget_callback_methods, 0);
-	//luaL_setfuncs(L, widget_transform_methods, 0);
+	luaL_setfuncs(L, widget_callback_methods, 0);
+	luaL_setfuncs(L, widget_transform_methods, 0);
 
 	return 1;
 }
-
-/*
-struct rectangle* rectangle_new()
-{
-	struct rectangle* const rectangle = malloc(sizeof(struct rectangle));
-
-	if (!rectangle)
-		return NULL;
-
-	*rectangle = (struct rectangle)
-	{
-		.color = al_map_rgb_f(1,1,1),
-		.height = 32,
-		.width = 100,
-		.cnt = 0,
-		.widget_interface = widget_interface_new(main_lua_state,rectangle,draw,NULL,NULL,NULL)
-	};
-
-	rectangle->widget_interface->hover_start = hover_start;
-	rectangle->widget_interface->hover_end = hover_end;
-	rectangle->widget_interface->left_click = left_click;
-	rectangle->widget_interface->right_click = right_click;
-
-	return rectangle;
-}
-*/
-

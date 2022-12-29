@@ -13,5 +13,3 @@ struct card
 	char* effect;
 	ALLEGRO_BITMAP* artwork;
 };
-
-struct card* card_new(const char*);

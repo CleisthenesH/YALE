@@ -90,8 +90,16 @@ static int gc(lua_State* L)
 	return 0;
 }
 
+static int new_index(lua_State* L)
+{
+	printf("rect new index hit\n");
+
+	return 0;
+}
+
 static const struct luaL_Reg rectangle_m[] = {
 	{"__gc",gc},
+	{"__newindex",new_index},
 	{NULL,NULL}
 };
 
@@ -101,10 +109,11 @@ int rectangle_make_metatable(lua_State* L)
 
 	lua_pushvalue(L, -1);
 	lua_setfield(L, -2, "__index");
-	luaL_setfuncs(L, rectangle_m, 0);
 
 	luaL_setfuncs(L, widget_callback_methods, 0);
 	luaL_setfuncs(L, widget_transform_methods, 0);
+
+	luaL_setfuncs(L, rectangle_m, 0);
 
 	return 1;
 }

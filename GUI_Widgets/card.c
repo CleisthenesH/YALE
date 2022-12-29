@@ -93,8 +93,9 @@ static void mask(const struct widget_interface* const widget)
 	al_draw_filled_rounded_rectangle(-90, -127, 90, 127, 10, 10, al_map_rgb_f(1, 1, 1));
 }
 
-struct card* card_new(const char* name)
+void card_new(lua_State* L)
 {
+	const char* name = "Alex";
 	struct card* const card = malloc(sizeof(struct card));
 
 	if (!card)
@@ -105,7 +106,7 @@ struct card* card_new(const char* name)
 		.name = name,
 		.artwork = alex ? alex : (alex = al_load_bitmap("res/alex.bmp")),
 		.effect = (char*) "Cost: Effect",
-		.widget_interface = widget_interface_new(main_lua_state,card,draw,NULL,NULL,mask),
+		.widget_interface = widget_interface_new(L,card,draw,NULL,NULL,mask),
 	};
 	
 	if (!null_effect)
@@ -118,5 +119,23 @@ struct card* card_new(const char* name)
 		effect_element_selection_cutoff(color_pick, 0.1);
 	}
 
-	return card;
+	luaL_getmetatable(L, "card_mt");
+	lua_setmetatable(L, -2);
+
+	return 1;
+}
+
+int card_make_metatable(lua_State* L)
+{
+	luaL_newmetatable(L, "card_mt");
+
+	lua_pushvalue(L, -1);
+	lua_setfield(L, -2, "__index");
+
+	luaL_setfuncs(L, widget_callback_methods, 0);
+	luaL_setfuncs(L, widget_transform_methods, 0);
+
+	//luaL_setfuncs(L, card_m, 0);
+
+	return 1;
 }

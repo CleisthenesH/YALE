@@ -606,7 +606,7 @@ const struct luaL_Reg widget_callback_methods[] = {
 
 static void new_index_test(lua_State* L)
 {
-    // stack: usdata, key, value
+    // stack: udata, key, value
     printf("__newindex hit\n");
 
     return 0;

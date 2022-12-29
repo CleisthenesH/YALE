@@ -38,4 +38,6 @@ control_rect:right_click(
 	end
 )
 
-control_rect["test"] = "ass"
+card = widget_engine.card()
+
+card:set_keyframe{x=800,y=500}

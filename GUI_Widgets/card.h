@@ -5,7 +5,9 @@
 #include "widget_interface.h"
 
 // A simple card widget meant for experementing with the foiling workflow
-// Not updated to the new lua paradigm
+// Not updated to the new lua paradigm (again)
+// This is so nonstandard that it has been excluded from the build
+
 struct card
 {
 	struct widget_interface* widget_interface;

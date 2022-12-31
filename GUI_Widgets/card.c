@@ -106,7 +106,7 @@ void card_new(lua_State* L)
 		.name = name,
 		.artwork = alex ? alex : (alex = al_load_bitmap("res/alex.bmp")),
 		.effect = (char*) "Cost: Effect",
-		.widget_interface = widget_interface_new(L,card,draw,NULL,NULL,mask),
+		.widget_interface = widget_interface_new(L,card,draw,NULL,NULL,mask,NULL),
 	};
 	
 	if (!null_effect)
@@ -127,15 +127,6 @@ void card_new(lua_State* L)
 
 int card_make_metatable(lua_State* L)
 {
-	luaL_newmetatable(L, "card_mt");
-
-	lua_pushvalue(L, -1);
-	lua_setfield(L, -2, "__index");
-
-	luaL_setfuncs(L, widget_callback_methods, 0);
-	luaL_setfuncs(L, widget_transform_methods, 0);
-
-	//luaL_setfuncs(L, card_m, 0);
 
 	return 1;
 }

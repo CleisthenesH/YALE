@@ -9,7 +9,7 @@
 
 #define FOR_WIDGETS(DO) \
 	DO(rectangle) \
-	DO(card) \
+	//DO(card) \
 
 extern lua_State* main_lua_state;
 extern double current_timestamp;

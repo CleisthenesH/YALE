@@ -4,27 +4,53 @@
 
 -- Runs once after all inializations have ran but before the main loop.
 
+print("hit1")
+
 control_rect = widget_engine.rectangle()
 moving_rect = widget_engine.rectangle()
 
+print("hit2")
+
+
 current_timestamp = widget_engine.current_time()
 
-moving_rect:set_keyframe{x=100,y=100}
+print("hit3")
+
+
+moving_rect:set_keyframe({x=100,y=100})
 control_rect:set_keyframe{x=700,y=100}
+
+print(moving_rect["fail"])
+moving_rect["key"] = "val"
+
+print("hit4")
+
 
 for angle = 0,6.28318530718,6.28318530718/1000.0 do
 	moving_rect:new_keyframe{x=400+100*math.cos(angle), y = 400 + 100*math.sin(angle), timestamp = current_timestamp + angle}
 end
 
-control_rect:left_click(
-	function()
-		destination = moving_rect:destination_keyframe()
-		moving_rect:interupt()
-	end
-)
+print("hit5")
 
-control_rect:right_click(
-	function()
+function left_click()
+	destination = moving_rect:destination_keyframe()
+	moving_rect:interupt()
+end
+
+control_rect["left_click"] = left_click
+
+control_rect["test"] = 28318530718
+
+print("hit6")
+
+--[[
+control_rect:left_click(left_click)
+
+control_rect = nil
+collectgarbage()
+
+--[[
+control_rect.right_click =	function()
 		if destination ~= nil then
 			current_timestamp = widget_engine.current_time()
 			destination["timestamp"] = current_timestamp + 1
@@ -36,8 +62,12 @@ control_rect:right_click(
 			collectgarbage()
 		end
 	end
-)
 
+moving_rect = nil
+
+--[[
 card = widget_engine.card()
-
 card:set_keyframe{x=800,y=500}
+--]]
+
+

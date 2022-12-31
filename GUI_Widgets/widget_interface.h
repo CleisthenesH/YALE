@@ -36,10 +36,41 @@ struct widget_interface* widget_interface_new(
 	void (*)(const struct widget_interface* const),
 	void (*)(struct widget_interface* const),
 	void (*)(struct widget_interface* const),
-	void (*)(const struct widget_interface* const));
+	void (*)(const struct widget_interface* const),
+	void (*)(struct widget_interface* const));
 
 void widget_interface_pop(struct widget_interface* const);
 
-extern const struct luaL_Reg widget_transform_methods[];
-extern const struct luaL_Reg widget_callback_methods[];
+void make_meta_table(lua_State* L,
+	const char* tname,
+	int (*index)(lua_State* L),
+	const struct luaL_Reg* const index_methods,
+	int (*newindex)(lua_State* L),
+	const struct luaL_Reg* const newindex_methods);
+
+struct widget_jump_table_entry
+{
+	void (*draw)(const struct widget_interface* const);
+	void (*update)(struct widget_interface* const);
+	void (*event_handler)(struct widget_interface* const);
+	void (*mask)(const struct widget_interface* const);
+	void (*gc)(struct widget_interface* const);
+
+	void (*hover_start)(struct widget_interface* const);
+	void (*hover_end)(struct widget_interface* const);
+	void (*left_click)(struct widget_interface* const);
+	void (*right_click)(struct widget_interface* const);
+	void (*click_off)(struct widget_interface* const);
+	void (*drag_start)(struct widget_interface* const);
+	void (*drag_end_drop)(struct widget_interface* const, struct widget_interface* const);
+	void (*drag_end_no_drop)(struct widget_interface* const);
+	void (*drop_start)(struct widget_interface* const);
+	void (*drop_end)(struct widget_interface* const);
+
+	int (*index)(lua_State* L);
+	const struct luaL_Reg* const index_methods;
+	int (*newindex)(lua_State* L);
+};
+
+void stack_dump(lua_State*);
 

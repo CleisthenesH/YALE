@@ -136,7 +136,7 @@ static inline void create_display()
     al_set_new_display_adapter(0);
     al_get_display_mode(al_get_num_display_modes()-1, &display_mode);
 
-    if (1)
+    if (0)
         display = al_create_display(
             monitor_info.x2 - monitor_info.x1,
             monitor_info.y2 - monitor_info.y1);

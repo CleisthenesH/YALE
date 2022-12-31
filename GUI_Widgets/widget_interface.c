@@ -73,6 +73,7 @@ struct widget
     void (*update)(struct widget_interface* const);
     void (*event_handler)(struct widget_interface* const);
     void (*mask)(const struct widget_interface* const);
+    void (*gc)(struct widget_interface* const);
 
     struct
     {
@@ -131,43 +132,6 @@ static double snap_offset_x, snap_offset_y;
 static const double snap_speed = 1000; // px per sec
 static const double drag_threshold = 0.2;
 
-// Initalize the widget engine
-void widget_engine_init()
-{
-    queue_head = NULL;
-    queue_tail = NULL;
-
-    current_drop = NULL;
-    current_hover = NULL;
-    last_click = NULL;
-
-    snap_offset_x = 5;
-    snap_offset_y = 5;
-
-    offscreen_shader = al_create_shader(ALLEGRO_SHADER_GLSL);
-
-    if (!al_attach_shader_source_file(offscreen_shader, ALLEGRO_VERTEX_SHADER, "widget_vertex_shader.glsl"))
-    {
-        fprintf(stderr, "Failed to attach vertex shader.\n%s\n", al_get_shader_log(offscreen_shader));
-        return;
-    }
-
-    if (!al_attach_shader_source_file(offscreen_shader, ALLEGRO_PIXEL_SHADER, "widget_pixel_shader.glsl"))
-    {
-        fprintf(stderr, "Failed to attach pixel shader.\n%s\n", al_get_shader_log(offscreen_shader));
-        return;
-    }
-
-    if (!al_build_shader(offscreen_shader))
-    {
-        fprintf(stderr, "Failed to build shader.\n%s\n", al_get_shader_log(offscreen_shader));
-        return;
-    }
-
-    offscreen_bitmap = al_create_bitmap(
-        al_get_bitmap_width(al_get_target_bitmap()),
-        al_get_bitmap_width(al_get_target_bitmap()));
-}
 
 // Prevents current_hover, last_click, and current_drag becoming stale
 static void widget_prevent_stale_pointers(struct widget* const ptr)
@@ -547,7 +511,8 @@ struct widget_interface* widget_interface_new(
     void (*draw)(const struct widget_interface* const),
     void (*update)(struct widget_interface* const),
     void (*event_handler)(struct widget_interface* const),
-    void (*mask)(const struct widget_interface* const))
+    void (*mask)(const struct widget_interface* const),
+    void (*gc)(struct widget_interface* const))
 {
     const size_t widget_size = sizeof(struct widget);
 
@@ -572,6 +537,8 @@ struct widget_interface* widget_interface_new(
 #define CLEAR_TO_NULL(method) . ## method = NULL,
         FOR_CALLBACKS(CLEAR_TO_NULL)
 
+        .gc = gc,
+
         .next = NULL,
         .previous = queue_tail,
         .is_draggable = false,
@@ -590,7 +557,15 @@ struct widget_interface* widget_interface_new(
 
 // Widget methods
 
+static int test(lua_State* L)
+{
+    printf("TEST\n");
+    return 0;
+}
+
 #define SET_LUA_CALLBACK(method) static int set_ ## method (lua_State* L){ \
+    printf("set hit\n"); \
+    stack_dump(L); \
     struct widget * const handle = (struct widget*) lua_touserdata(L, -2); \
     handle->lua. ## method = luaL_ref(L,LUA_REGISTRYINDEX); \
     return 0;}
@@ -601,16 +576,9 @@ FOR_CALLBACKS(SET_LUA_CALLBACK)
 
 const struct luaL_Reg widget_callback_methods[] = {
     FOR_CALLBACKS(LUA_REG_ENTRY)
+    {"test",test},
     {NULL,NULL}
 };
-
-static void new_index_test(lua_State* L)
-{
-    // stack: udata, key, value
-    printf("__newindex hit\n");
-
-    return 0;
-}
 
 static void read_transform(lua_State* L, struct keyframe* keyframe)
 {
@@ -634,19 +602,6 @@ static void write_transform(lua_State* L, struct keyframe* keyframe)
     FOR_KEYFRAME_NUMBER_MEMBERS(WRITE)
 
     return;
-}
-
-static void test(lua_State* L)
-{
-    struct keyframe keyframe;
-
-    keyframe_default(&keyframe);
-
-    read_transform(L, &keyframe);
-
-    printf("%f\t%f\t%f\t%f\t%f\t%f\n", keyframe.x, keyframe.y, keyframe.sx, keyframe.sy, keyframe.t, keyframe.timestamp);
-
-    return 0;
 }
 
 static int set_keyframe(lua_State* L)
@@ -692,13 +647,21 @@ static int destination_keyframe(lua_State* L)
 
 static int new_keyframe(lua_State* L)
 {
-    luaL_checktype(L, -2, LUA_TUSERDATA);
+    switch (lua_type(L, -1))
+    {
+    case LUA_TTABLE:
+        luaL_checktype(L, -2, LUA_TUSERDATA);
 
-    const struct widget_interface* const widget = (struct widget_interface*)lua_touserdata(L, -2);
+        const struct widget_interface* const widget = (struct widget_interface*)lua_touserdata(L, -2);
 
-    struct keyframe* keyframe = style_element_new_frame(widget->style_element);
+        struct keyframe* keyframe = style_element_new_frame(widget->style_element);
 
-    read_transform(L, keyframe);
+        read_transform(L, keyframe);
+        return 0;
+    case LUA_TUSERDATA:
+        stack_dump(L);
+    }
+
     return 0;
 }
 
@@ -719,7 +682,116 @@ const struct luaL_Reg widget_transform_methods[] = {
     {"destination_keyframe",destination_keyframe},
     {"new_keyframe",new_keyframe},  
     {"interupt",interupt},
-    {"test",test},
-    {"__newindex",new_index_test},
     {NULL,NULL}
 };
+
+// gc
+static int gc(lua_State* L)
+{
+    luaL_checktype(L, -1, LUA_TUSERDATA);
+
+    struct widget_interface* const widget = (struct widget_interface*)lua_touserdata(L, 1);
+
+    ((struct widget* const)widget)->gc(widget);
+    widget_interface_pop(widget);
+
+    return 0;
+}
+
+// A default index function to stop errors
+static int default_index(lua_State* L)
+{
+    return 0;
+}
+
+// A default newindex function to stop errors
+static int default_newindex(lua_State* L)
+{
+    printf("new index hit\n");
+    return 0;
+}
+
+// Initalize the widget engine
+void widget_engine_init()
+{
+    queue_head = NULL;
+    queue_tail = NULL;
+
+    current_drop = NULL;
+    current_hover = NULL;
+    last_click = NULL;
+
+    snap_offset_x = 5;
+    snap_offset_y = 5;
+
+    offscreen_shader = al_create_shader(ALLEGRO_SHADER_GLSL);
+
+    if (!al_attach_shader_source_file(offscreen_shader, ALLEGRO_VERTEX_SHADER, "widget_vertex_shader.glsl"))
+    {
+        fprintf(stderr, "Failed to attach vertex shader.\n%s\n", al_get_shader_log(offscreen_shader));
+        return;
+    }
+
+    if (!al_attach_shader_source_file(offscreen_shader, ALLEGRO_PIXEL_SHADER, "widget_pixel_shader.glsl"))
+    {
+        fprintf(stderr, "Failed to attach pixel shader.\n%s\n", al_get_shader_log(offscreen_shader));
+        return;
+    }
+
+    if (!al_build_shader(offscreen_shader))
+    {
+        fprintf(stderr, "Failed to build shader.\n%s\n", al_get_shader_log(offscreen_shader));
+        return;
+    }
+
+    offscreen_bitmap = al_create_bitmap(
+        al_get_bitmap_width(al_get_target_bitmap()),
+        al_get_bitmap_width(al_get_target_bitmap()));
+}
+
+void make_meta_table(lua_State* L,
+    const char* tname,
+    int (*index)(lua_State*),
+    const struct luaL_Reg* const index_methods,
+    int (*newindex)(lua_State*),
+    const struct luaL_Reg* const newindex_methods)
+{
+    // Push the main metatable to the stack
+    luaL_newmetatable(L, tname);
+
+    // Set the garbage collector to the main metatable
+    const struct luaL_Reg garbage_collection[] = {
+        {"__gc",gc},
+        {"__newindex",default_newindex},
+        {NULL,NULL}
+    };
+
+    luaL_setfuncs(L, garbage_collection, 0);
+
+    // Make the __index table
+    lua_newtable(L);
+    luaL_setfuncs(L, widget_transform_methods, 0);
+
+    if(index_methods) 
+        luaL_setfuncs(L, index_methods, 0);
+
+    if (index)
+    {
+        // Make the metatable for the __index table
+        lua_newtable(L);
+
+        const struct luaL_Reg index_function[] = {
+            {"__index",index},
+            {NULL,NULL}
+        };
+
+        luaL_setfuncs(L, index_function, 0);
+
+        // Set the metatable for the __index table
+        lua_setmetatable(L, -2);
+    }
+
+    // Set the __index table to the main meta table
+    lua_setfield(L, -2, "__index");
+}
+

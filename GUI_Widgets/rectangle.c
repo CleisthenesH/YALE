@@ -51,6 +51,28 @@ static void right_click(struct widget_interface* const widget)
 	rectangle->cnt--;
 }
 
+static void gc(void* rectangle)
+{
+	printf("gc hit\n");
+}
+
+// Shared new index and index function for stanadized
+static int index(lua_State* L)
+{
+	printf("index hit\n");
+
+	return 0;
+}
+
+// shared index function for standadixation
+static int new_index(lua_State* L)
+{
+	// stack: udata, key, value
+	printf("__newindex hit\n");
+
+	return 0;
+}
+
 int rectangle_new(lua_State* L)
 {
 	struct rectangle* const rectangle = malloc(sizeof(struct rectangle));
@@ -64,7 +86,7 @@ int rectangle_new(lua_State* L)
 		.height = 32,
 		.width = 100,
 		.cnt = 0,
-		.widget_interface = widget_interface_new(L,rectangle,draw,NULL,NULL,NULL)
+		.widget_interface = widget_interface_new(L,rectangle,draw,NULL,NULL,NULL,NULL)
 	};
 
 	rectangle->widget_interface->hover_start = hover_start;
@@ -78,42 +100,12 @@ int rectangle_new(lua_State* L)
 	return 1;
 }
 
-static int gc(lua_State* L)
-{
-	printf("gc hit\n");
-	
-	struct widget_interface* const handle = (struct widget_interface*)lua_touserdata(L, -1);
-	struct text_button* const button = handle->upcast;
-
-	widget_interface_pop(handle);
-
-	return 0;
-}
-
-static int new_index(lua_State* L)
-{
-	printf("rect new index hit\n");
-
-	return 0;
-}
-
-static const struct luaL_Reg rectangle_m[] = {
-	{"__gc",gc},
-	{"__newindex",new_index},
-	{NULL,NULL}
-};
-
 int rectangle_make_metatable(lua_State* L)
 {
-	luaL_newmetatable(L, "rectangle_mt");
-
-	lua_pushvalue(L, -1);
-	lua_setfield(L, -2, "__index");
-
-	luaL_setfuncs(L, widget_callback_methods, 0);
-	luaL_setfuncs(L, widget_transform_methods, 0);
-
-	luaL_setfuncs(L, rectangle_m, 0);
+	if(0)
+	make_meta_table(L, "rectangle_mt", index, NULL, NULL, NULL);
+	else
+	make_meta_table(L, "rectangle_mt", NULL, NULL, NULL, NULL);
 
 	return 1;
 }

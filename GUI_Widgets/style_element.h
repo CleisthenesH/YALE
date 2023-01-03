@@ -1,9 +1,17 @@
-// Copyright 2022 Kieran W Harvie. All rights reserved.
+// Copyright 2023 Kieran W Harvie. All rights reserved.
 // Use of this source code is governed by an MIT-style
 // license that can be found in the LICENSE file.
 
 #pragma once
 #include <allegro5/allegro_color.h>
+
+// TODO: add a general blender class of n numbers that are blended which keyframes are a subset of
+//			Homotopy
+// TODO: pass n function pointers to a method and have that calculate the path
+//			start time, end time, step count
+// TODO: loop option
+//			when frames are poped they are moved to the end keeping the same change in time as the old one
+//			will need to record one time step seperatly
 
 // A transparent and basic keyframe struct to enable continuous animation.
 //	The "saturate" member is to fade an object to white.

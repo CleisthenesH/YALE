@@ -142,9 +142,6 @@
     <ClCompile Include="lua\lzio.c">
       <Filter>lua</Filter>
     </ClCompile>
-    <ClCompile Include="widget_lua_integration.c">
-      <Filter>widget_interface</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="style_element.h">

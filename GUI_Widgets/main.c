@@ -1,4 +1,4 @@
-// Copyright 2022 Kieran W Harvie. All rights reserved.
+// Copyright 2023 Kieran W Harvie. All rights reserved.
 // Use of this source code is governed by an MIT-style
 // license that can be found in the LICENSE file.
 
@@ -28,7 +28,7 @@ extern void style_element_init();
 extern void style_element_setup();
 
 #include "widget_interface.h"
-extern void widget_engine_init();
+extern void widget_engine_init(lua_State*);
 extern void widget_engine_draw();
 extern struct work_queue* widget_engine_widget_work();
 extern void widget_engine_update();
@@ -52,8 +52,9 @@ double delta_timestamp;
 const ALLEGRO_TRANSFORM identity_transform;
 const ALLEGRO_FONT* debug_font; 
 
+// TODO: Make static and non global
+// Still used in lua function calls in widget_engine.c
 const lua_State* main_lua_state;
-extern void widget_lua_integration();
 
 // Initalze the lua enviroment.
 static inline int lua_init()
@@ -64,7 +65,6 @@ static inline int lua_init()
         return 0;
 
     luaL_openlibs(main_lua_state);
-    widget_lua_integration();
 
     return 1;
 }
@@ -254,7 +254,7 @@ int main()
     global_init();
     thread_pool_create(8);
     style_element_init();
-    widget_engine_init();
+    widget_engine_init(main_lua_state);
 
     luaL_dofile(main_lua_state, "post_boot.lua");
 

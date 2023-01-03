@@ -14,3 +14,5 @@ Blender mode.
 Trump other effects.
 
 Need a structure for managing this.
+
+

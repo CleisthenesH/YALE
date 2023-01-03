@@ -266,7 +266,6 @@
     <ClCompile Include="style_element.c" />
     <ClCompile Include="thread_pool.c" />
     <ClCompile Include="widget_interface.c" />
-    <ClCompile Include="widget_lua_integration.c" />
   </ItemGroup>
   <ItemGroup>
     <None Include="boot.lua" />

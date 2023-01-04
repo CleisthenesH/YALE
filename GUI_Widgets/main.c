@@ -24,6 +24,7 @@ extern void thread_pool_destroy();
 
 #include "style_element.h"
 extern struct work_queue* style_element_update();
+extern struct work_queue* tweener_update();
 extern void style_element_init();
 extern void style_element_setup();
 
@@ -33,9 +34,6 @@ extern void widget_engine_draw();
 extern struct work_queue* widget_engine_widget_work();
 extern void widget_engine_update();
 extern void widget_engine_event_handler();
-
-#include "rectangle.h"
-#include "card.h"
 
 static ALLEGRO_DISPLAY* display;
 static ALLEGRO_EVENT_QUEUE* main_event_queue;
@@ -215,7 +213,10 @@ static inline void empty_event_queue()
     current_timestamp += delta_timestamp;
 
     // Update widgets
-    struct work_queue* queue = style_element_update();
+    struct work_queue* queue = tweener_update();
+    thread_pool_concatenate(queue);
+
+    queue = style_element_update();
     thread_pool_concatenate(queue);
 
     queue = widget_engine_widget_work();

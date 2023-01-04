@@ -1,6 +1,8 @@
-// Copyright 2022 Kieran W Harvie. All rights reserved.
+// Copyright 2023 Kieran W Harvie. All rights reserved.
 // Use of this source code is governed by an MIT-style
 // license that can be found in the LICENSE file.
+
+// TODO: Add some type of batching of work based on how much work there is to do to people to do it
 
 #pragma once
 

@@ -5,39 +5,17 @@
 #pragma once
 #include <allegro5/allegro_color.h>
 
-// TODO: add a general blender class of n numbers that are blended which keyframes are a subset of
-//			Homotopy
-// TODO: pass n function pointers to a method and have that calculate the path
-//			start time, end time, step count
 // TODO: loop option
 //			when frames are poped they are moved to the end keeping the same change in time as the old one
 //			will need to record one time step seperatly
 
-// A transparent and basic keyframe struct to enable continuous animation.
-//	The "saturate" member is to fade an object to white.
-//	The "blender_color" is currently unused, planed to be used inconjunciton with the blendeder for tinting.
-#define FOR_KEYFRAME_NUMBER_MEMBERS(DO) \
-	DO(timestamp,double) \
-	DO(x,double) \
-	DO(y,double) \
-	DO(sx,double) \
-	DO(sy,double) \
-	DO(t,double) \
-	DO(saturate,double) \
-	
-
-#define FOR_KEYFRAME_MEMBERS(DO) \
-	FOR_KEYFRAME_NUMBER_MEMBERS(DO) \
-	DO(blender_color, ALLEGRO_COLOR) \
-
 struct keyframe
 {
-#define DECLARE(member,type,...) type member;
-	FOR_KEYFRAME_MEMBERS(DECLARE)
+	double timestamp,x, y, sx, sy, theta;
 };
 
 void keyframe_default(struct keyframe* const);
-void keyframe_build_transform(struct keyframe* const, ALLEGRO_TRANSFORM* const);
+void keyframe_build_transform(const struct keyframe* const, ALLEGRO_TRANSFORM* const);
 
 // An obficated element struct.
 //	The obfiscation is because the internal variables of a effects can change wildly but shaders are exact.
@@ -86,7 +64,7 @@ struct style_element* style_element_new(size_t);
 // especially if we let them check the current and destination keyframe
 void style_element_set(struct style_element* const, struct keyframe* const);
 void style_element_interupt(struct style_element* const);
-struct keyframe* style_element_new_frame(struct style_element* const);
+void style_element_push_keyframe(struct style_element* const, struct keyframe*);
 void style_element_copy_destination(struct style_element* const, struct keyframe*);
 
 void style_element_effect(const struct style_element* const, struct effect_element*);

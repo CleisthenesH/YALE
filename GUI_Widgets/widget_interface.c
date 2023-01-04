@@ -298,11 +298,14 @@ static inline void widget_set_drag()
 
     update_transition_timestamp(current_hover, drag_offset_x + mouse_x, drag_offset_y + mouse_y);
 
-    struct keyframe* keyframe = style_element_new_frame(current_hover->style_element);
+    struct keyframe keyframe;
+    style_element_copy_destination(current_hover->style_element, &keyframe);
 
-    keyframe->x = drag_offset_x + mouse_x;
-    keyframe->y = drag_offset_y + mouse_y;
-    keyframe->timestamp = transition_timestamp;
+    keyframe.x = drag_offset_x + mouse_x;
+    keyframe.y = drag_offset_y + mouse_y;
+    keyframe.timestamp = transition_timestamp;
+
+    style_element_push_keyframe(current_hover->style_element, &keyframe);
 }
 
 // Updates current_hover keyframes to move towards the drag release
@@ -313,8 +316,7 @@ static inline void widget_drag_release()
     update_transition_timestamp(current_hover, drag_release.x, drag_release.y);
     drag_release.timestamp = transition_timestamp;
 
-	memcpy(style_element_new_frame(current_hover->style_element),
-        &drag_release,sizeof(struct keyframe));
+    style_element_push_keyframe(current_hover->style_element, &drag_release);
 }
 
 // Updates and calls any callbacks for the last_click, current_hover, current_drop pointers
@@ -362,14 +364,17 @@ static inline void widget_engine_update_drag_pointers()
 			{
 				style_element_interupt(current_hover->style_element);
 
-				struct keyframe* snap_target = style_element_new_frame(current_hover->style_element);
+                struct keyframe snap_target;
+                style_element_copy_destination(current_hover->style_element, &snap_target);
 
-				snap_target->x = new_pointer->style_element->current.x + snap_offset_x;
-				snap_target->y = new_pointer->style_element->current.y + snap_offset_y;
+				snap_target.x = new_pointer->style_element->current.x + snap_offset_x;
+				snap_target.y = new_pointer->style_element->current.y + snap_offset_y;
 
-                update_transition_timestamp(current_hover, snap_target->x, snap_target->y);
+                update_transition_timestamp(current_hover, snap_target.x, snap_target.y);
 
-                snap_target->timestamp = transition_timestamp;
+                snap_target.timestamp = transition_timestamp;
+
+                style_element_push_keyframe(current_hover->style_element, &snap_target);
 
 				widget_engine_state = ENGINE_STATE_TO_SNAP;
 			}
@@ -548,17 +553,26 @@ struct widget_interface* check_widget(lua_State* L, int idx, const struct widget
 }
 
 // Widget methods
+#define FOR_KEYFRAME_MEMBERS(DO) \
+    DO(timestamp) \
+    DO(x) \
+    DO(y) \
+    DO(sx) \
+    DO(sy) \
+    DO(theta) \
 
 static void inline read_transform(lua_State* L, struct keyframe* keyframe)
 {
     luaL_checktype(L, -1, LUA_TTABLE);
+
+    keyframe_default(keyframe);
 
 #define READ(member,...)     lua_pushstring(L, #member); \
     if (LUA_TNUMBER == lua_gettable(L, idx--)) keyframe-> ## member = luaL_checknumber(L, -1);
 
     int idx = -2;
 
-    FOR_KEYFRAME_NUMBER_MEMBERS(READ)
+    FOR_KEYFRAME_MEMBERS(READ)
 
     lua_settop(L, lua_gettop(L) - 6);
 }
@@ -569,7 +583,7 @@ static void inline write_transform(lua_State* L, struct keyframe* keyframe)
     lua_createtable(L, 0, 8);
 
 #define WRITE(member,...) lua_pushstring(L, #member); lua_pushnumber(L, keyframe-> ## member); lua_settable(L,-3);
-    FOR_KEYFRAME_NUMBER_MEMBERS(WRITE)
+    FOR_KEYFRAME_MEMBERS(WRITE)
 
     return;
 }
@@ -615,9 +629,11 @@ static int new_keyframe(lua_State* L)
     struct widget_interface* const widget = (struct widget_interface*)luaL_checkudata(L, -2, "widget_mt");
 	luaL_checktype(L, -1, LUA_TTABLE);
 
-	struct keyframe* keyframe = style_element_new_frame(widget->style_element);
+    struct keyframe keyframe;
 
-	read_transform(L, keyframe);
+	read_transform(L,&keyframe);
+
+    style_element_push_keyframe(widget->style_element, &keyframe);
 	return 0;
 }
 
@@ -724,27 +740,6 @@ static void inline make_meta_table(lua_State* L)
     };
 
     luaL_setfuncs(L, garbage_collection, 0);
-
-    if (0)
-    {
-        // Make the __index table
-        lua_newtable(L);
-
-        const struct luaL_Reg widget_transform_methods[] = {
-            {"set_keyframe",set_keyframe},
-            {"current_keyframe",current_keyframe},
-            // 	{"destination_keyframe",destination_keyframe},
-                {"new_keyframe",new_keyframe},
-                {"interupt",interupt},
-                {"__index",index},
-                {NULL,NULL}
-        };
-
-        luaL_setfuncs(L, widget_transform_methods, 0);
-
-        // Set the __index table to the main meta table
-        lua_setfield(L, -2, "__index");
-    }
 }
 
 static void inline widget_lua_integration(lua_State* L)

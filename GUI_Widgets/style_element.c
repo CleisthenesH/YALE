@@ -1,4 +1,4 @@
-// Copyright 2022 Kieran W Harvie. All rights reserved.
+// Copyright 2023 Kieran W Harvie. All rights reserved.
 // Use of this source code is governed by an MIT-style
 // license that can be found in the LICENSE file.
 
@@ -9,24 +9,191 @@
 #include <math.h>
 #include <allegro5/allegro_opengl.h>
 
+extern double current_timestamp;
+
 static ALLEGRO_SHADER* predraw_shader;
 static ALLEGRO_SHADER* postdraw_shader;
+
+// The tweener struct takes timestamped keypoints and blends them based on the current timestamp.
+//	The main use case is to handle the varitables for the al_build_transform function (position, scale, angle).
+//  Other use cases include a color or threshold for an effect.
+// 
+//	The structs memory is quite raw so it is only avavlible within this translation unit.
+//	The user should be using the effect_element interface.
+// 
+//	TODO: Include more complex tweening options like keypoint weight and tangent.
+
+struct tweener
+{
+	size_t channels; //	The zeroth channel is the timestamp
+	double* current;
+
+	size_t used, allocated;
+	double* keypoints; // could optimize better with flexable array member?
+
+	bool looping;
+	double looping_offset;
+};
+
+static struct tweener* tweeners_list;
+static size_t tweeners_allocated;
+static size_t tweeners_used;
+
+struct tweener* tweener_new(size_t channels, size_t hint)
+{
+	if (tweeners_allocated <= tweeners_used)
+	{
+		const size_t new_cnt = 2 * tweeners_allocated;
+
+		struct tweener* memsafe_hande = realloc(tweeners_list, new_cnt * sizeof(struct tweener));
+
+		if (!memsafe_hande)
+			return NULL;
+
+		tweeners_list = memsafe_hande;
+		tweeners_allocated = new_cnt;
+	}
+
+	if (hint == 0)
+		hint = 1;
+
+	struct tweener* tweener = tweeners_list + tweeners_used++;
+
+	tweener->used = 0;
+	tweener->allocated = hint;
+	tweener->keypoints = malloc(hint * (channels + 1) * sizeof(double));
+	tweener->channels = channels;
+	tweener->current = malloc(channels * sizeof(double));
+	tweener->looping = false;
+
+	return (struct tweener*) tweener;
+}
+
+static void tweener_blend_keypoints(struct tweener* tweener)
+{
+	// Clean old frames;
+	size_t first_future_frame = 0;
+	
+	// doesn't handle looping
+	while(tweener->keypoints[first_future_frame*(tweener->channels+1)] < current_timestamp &&
+		first_future_frame < tweener->used)
+		first_future_frame++;
+
+	if (first_future_frame > 1)
+	{
+		if (!tweener->looping)
+		{
+			const size_t step = first_future_frame - 1;
+
+			for (size_t i = step; i < tweener->used; i++)
+				for (size_t j = 0; j <= tweener->channels; j++)
+					tweener->keypoints[(i - step) * (tweener->channels + 1) + j] = tweener->keypoints[i * (tweener->channels + 1) + j];
+
+			tweener->used -= step;
+
+			if (tweener->used == 1)
+			{
+				memcpy(tweener->current, tweener->keypoints + 1, tweener->channels * sizeof(double));
+				return;
+			}
+		}
+		else
+		{
+			double* buffer = malloc((tweener->channels + 1) * sizeof(double));
+		}
+	}
+
+	const double blend = (current_timestamp - tweener->keypoints[0]) / (tweener->keypoints[tweener->channels+1] - tweener->keypoints[0]);
+
+	for (size_t i = 0; i < tweener->channels; i++)
+	{
+		tweener->current[i] = blend * tweener->keypoints[i + 2 + tweener->channels] + (1 - blend) * tweener->keypoints[i + 1];
+	}
+}
+
+struct work_queue* tweener_update()
+{
+	struct work_queue* work_queue = work_queue_create();
+
+	for (size_t i = 0; i < tweeners_used; i++)
+		if (tweeners_list[i].used > 1)
+			work_queue_push(work_queue, tweener_blend_keypoints, tweeners_list + i);
+
+	return work_queue;
+}
+
+static void tweener_set(struct tweener* const tweener, double* keypoint)
+{
+	tweener->used = 1;
+
+	memcpy(tweener->current, keypoint, tweener->channels*sizeof(double));
+	memcpy(tweener->keypoints+1, keypoint,tweener->channels * sizeof(double));
+}
+
+static double* tweener_new_point(struct tweener* tweener)
+{
+	if (tweener->allocated <= tweener->used)
+	{
+		const size_t new_cnt = 2 * tweener->allocated;
+
+		double* memsafe_hande = realloc(tweener->keypoints, new_cnt *(tweener->channels+1) * sizeof(double));
+
+		if (!memsafe_hande)
+			return NULL;
+
+		tweener->keypoints = memsafe_hande;
+		tweener->allocated = new_cnt;
+	}
+
+	if (tweener->used == 1)
+		tweener->keypoints[0] = current_timestamp;
+
+	double* output = tweener->keypoints + tweener->used*(tweener->channels+1);
+
+	memcpy(output, output - tweener->channels - 1, sizeof( double) * (tweener->channels + 1));
+	tweener->used++;
+
+	return output;
+}
+
+static void tweener_interupt(struct tweener* const tweener)
+{
+	if (tweener->used > 1)
+		tweener_blend_keypoints(tweener);
+
+	tweener_set(tweener, tweener->current);
+}
+
+static double* tweener_destination(struct tweener* const tweener)
+{
+	return tweener->keypoints + (tweener->used -1)* (tweener->channels + 1);
+}
+
+// Not tested
+static void tweener_plot(struct tweener* const tweener,
+	void (*funct)(double timestamp, double* output, void* udata), void* udata,
+	double start, double end, size_t steps)
+{
+	const double step_size = (end - start) / ((double)steps - 1);
+	for (size_t i = 0; i < steps; i++)
+	{
+		const double timestamp = start + step_size * ((double) i);
+		const double* new_point = tweener_new_point(tweener);
+
+		funct(timestamp, new_point, udata);
+	}
+}
 
 struct style_element_internal
 {
 	struct style_element;
-	size_t used;
-	size_t allocated;
-	struct keyframe* keyframes;
-
+	struct tweener* keyframe_tweener;
 	double variation;
 };
 
 static struct style_element_internal* list;
 static size_t allocated;
 static size_t used;
-
-extern double current_timestamp;
 
 static inline int make_shader()
 {
@@ -59,6 +226,10 @@ void style_element_init()
 	allocated = 100;
 	list = malloc(allocated * sizeof(struct style_element_internal));
 
+	tweeners_used = 0;
+	tweeners_allocated = 100;
+	tweeners_list = malloc(allocated * sizeof(struct tweener));
+
 	make_shader();
 }
 
@@ -80,60 +251,24 @@ struct style_element* style_element_new(size_t hint)
 
 	struct style_element_internal* style_element = list + used++;
 
-	style_element->used = 0;
-	style_element->allocated = hint;
-	style_element->keyframes = malloc(hint * sizeof(struct keyframe));
-	style_element->variation = fmod(current_timestamp,100);
+	if (hint < 1)
+		hint = 1;
+
+	style_element->keyframe_tweener = tweener_new(5, hint);
+	style_element->variation = fmod(current_timestamp, 100);
 
 	return (struct style_element*) style_element;
 }
 
-// Assumes style_element->used > 1
-static void style_element_blend_keyframes(struct style_element_internal* style_element)
-{
-	// Clean old frames;
-	size_t first_future_frame = 0;
-
-	while (style_element->keyframes[first_future_frame].timestamp < current_timestamp &&
-		first_future_frame < style_element->used)
-		first_future_frame++;
-
-	// This makes it jittery maybe keep one a copy of the original and belend with that
-	if (first_future_frame > 1)
-	{
-		const size_t step = first_future_frame - 1;
-
-		for (size_t i = step; i < style_element->used; i++)
-			style_element->keyframes[i - step] = style_element->keyframes[i];
-
-		style_element->used -= step;
-
-		if (style_element->used == 1)
-		{
-			style_element->current = style_element->keyframes[0];
-			return;
-		}
-	}
-
-	const double blend = (current_timestamp - style_element->keyframes[0].timestamp) / (style_element->keyframes[1].timestamp - style_element->keyframes[0].timestamp);
-
-	#define blend(X) style_element->current.X = blend * style_element->keyframes[1].X + (1 - blend) * style_element->keyframes[0].X
-		blend(x);
-		blend(y);
-		blend(sx);
-		blend(sy);
-		blend(t);
-		blend(saturate);
-		blend(blender_color.r);
-		blend(blender_color.g);
-		blend(blender_color.b);
-		blend(blender_color.a);
-	#undef blend
-}
-
 static void style_element_update_work(struct style_element_internal* style_element)
 {
-	style_element_blend_keyframes(style_element);
+	double* keypoint = style_element->keyframe_tweener->current;
+
+	style_element->current.x = keypoint[0];
+	style_element->current.y = keypoint[1];
+	style_element->current.sx = keypoint[2];
+	style_element->current.sy = keypoint[3];
+	style_element->current.timestamp = keypoint[4];
 }
 
 struct work_queue* style_element_update()
@@ -141,8 +276,8 @@ struct work_queue* style_element_update()
 	struct work_queue* work_queue = work_queue_create();
 
 	for (size_t i = 0; i < used; i++)
-		if (list[i].used > 1)
-			work_queue_push(work_queue, style_element_update_work, list + i);
+		//if (tweeners_list[i].used > 1)
+		work_queue_push(work_queue, style_element_update_work, list + i);
 
 	return work_queue;
 }
@@ -150,55 +285,67 @@ struct work_queue* style_element_update()
 void style_element_set(struct style_element* const style_element, struct keyframe* const set)
 {
 	struct style_element_internal* const internal = (struct style_element_internal* const) style_element;
+	struct tweener* const tweener = internal->keyframe_tweener;
 
-	internal->used = 1;
+	tweener_set(tweener, (double[]) { set->x, set->y, set->sx, set->sy, set->theta });
 
-	memcpy(&style_element->current, set, sizeof(struct keyframe));
-	memcpy(internal->keyframes, set, sizeof(struct keyframe));
+	memcpy(&style_element->current, set, sizeof(struct keyframe));  // maybe can be optimized out
 }
 
-struct keyframe* style_element_new_frame(struct style_element* const style_element)
+void style_element_push_keyframe(struct style_element* const style_element,struct keyframe* frame)
 {
 	struct style_element_internal* const internal = (struct style_element_internal* const) style_element;
+	double* new_point = tweener_new_point(internal->keyframe_tweener);
 
-	if (internal->allocated <= internal->used)
-	{
-		const size_t new_cnt = 2 * internal->allocated;
-
-		struct keyframe* memsafe_hande = realloc(internal->keyframes, new_cnt*sizeof(struct keyframe));
-
-		if (!memsafe_hande)
-			return NULL;
-
-		internal->keyframes = memsafe_hande;
-		internal->allocated = new_cnt;
-	}
-
-	if (internal->used == 1)
-		internal->keyframes[0].timestamp = current_timestamp;
-
-	struct keyframe* output = internal->keyframes + internal->used;
-
-	memcpy(output, output-1, sizeof(struct keyframe));
-	internal->used++;
-
-	return output;
+	new_point[0] = frame->timestamp;
+	new_point[1] = frame->x;
+	new_point[2] = frame->y;
+	new_point[3] = frame->sx;
+	new_point[4] = frame->sy;
+	new_point[5] = frame->theta;
 }
 
-void keyframe_build_transform(struct keyframe* const keyframe, ALLEGRO_TRANSFORM* const trans)
+void style_element_copy_destination(struct style_element* const style_element, struct keyframe* keyframe)
+{
+	struct style_element_internal* const internal = (struct style_element_internal* const)style_element;
+
+	double* keypoints = tweener_destination(internal->keyframe_tweener);
+
+	keyframe->timestamp = keypoints[0];
+	keyframe->x = keypoints[1];
+	keyframe->y = keypoints[2];
+	keyframe->sx = keypoints[3];
+	keyframe->sy = keypoints[4];
+	keyframe->theta = keypoints[5];
+}
+
+void style_element_interupt(struct style_element* const style_element)
+{
+	struct style_element_internal* const internal = (struct style_element_internal* const)style_element;
+
+	tweener_interupt(internal->keyframe_tweener);
+
+	internal->current.x = internal->keyframe_tweener->current[0];
+	internal->current.y = internal->keyframe_tweener->current[1];
+	internal->current.sx = internal->keyframe_tweener->current[2];
+	internal->current.sy = internal->keyframe_tweener->current[3];
+	internal->current.theta = internal->keyframe_tweener->current[4];
+}
+
+void keyframe_build_transform(const struct keyframe* const keyframe, ALLEGRO_TRANSFORM* const trans)
 {
 	al_build_transform(trans,
 		keyframe->x, keyframe->y,
 		keyframe->sx, keyframe->sy,
-		keyframe->t);
+		keyframe->theta);
 }
 
-void keyframe_default(struct keyframe* const keyframe)
+void keyframe_default(struct keyframe * const keyframe)
 {
 	*keyframe = (struct keyframe)
 	{
 		.sx = 1,
-		.sy = 1
+		.sy = 1,
 	};
 }
 
@@ -213,7 +360,7 @@ void style_element_predraw(const struct style_element* const style_element)
 {
 	struct style_element_internal* const internal = (struct style_element_internal* const)style_element;
 
-	al_set_shader_float("saturate", style_element->current.saturate);
+	//al_set_shader_float("saturate", style_element->current.saturate);
 	al_set_shader_float("variation", internal->variation);
 
 	ALLEGRO_TRANSFORM buffer;
@@ -222,23 +369,6 @@ void style_element_predraw(const struct style_element* const style_element)
 	al_use_transform(&buffer);
 
 	glDisable(GL_STENCIL_TEST);
-}
-
-void style_element_copy_destination(struct style_element* const style_element, struct keyframe* keyframe)
-{
-	struct style_element_internal* const internal = (struct style_element_internal* const)style_element;
-
-	memcpy(keyframe, &internal->keyframes[internal->used - 1], sizeof(struct keyframe));
-}
-
-void style_element_interupt(struct style_element* const style_element)
-{
-	struct style_element_internal* const internal = (struct style_element_internal* const)style_element;
-
-	if(internal->used > 1)
-		style_element_blend_keyframes(internal);
-
-	style_element_set(style_element, &style_element->current);
 }
 
 // To handle the varity of effect and selection data I've implemented a very basic type system.

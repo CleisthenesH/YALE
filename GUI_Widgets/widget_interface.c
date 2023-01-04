@@ -602,6 +602,37 @@ static int set_keyframe(lua_State* L)
     return 0;
 }
 
+static int set_keyframes(lua_State* L)
+{
+    struct widget_interface* const widget = (struct widget_interface*)luaL_checkudata(L, -2, "widget_mt");
+    struct keyframe keyframe;
+
+    lua_geti(L, -1, 1);
+
+    keyframe_default(&keyframe);
+    read_transform(L, &keyframe);
+
+    style_element_set(widget->style_element, &keyframe);
+    
+    lua_settop(L, lua_gettop(L) - 1);
+
+    lua_geti(L, -1, 1);
+
+    for(int i = 3;lua_istable(L,-1);i++)
+    {
+        keyframe_default(&keyframe);
+        read_transform(L, &keyframe);
+
+        lua_settop(L, lua_gettop(L) - 1);
+
+        style_element_push_keyframe(widget->style_element, &keyframe);
+        
+        lua_geti(L, -1, i);
+    }
+
+    return 0;
+}
+
 static int current_keyframe(lua_State* L)
 {
     struct widget_interface* const widget = (struct widget_interface*)luaL_checkudata(L, -2, "widget_mt");
@@ -630,6 +661,7 @@ static int new_keyframe(lua_State* L)
 	luaL_checktype(L, -1, LUA_TTABLE);
 
     struct keyframe keyframe;
+    keyframe_default(&keyframe);
 
 	read_transform(L,&keyframe);
 
@@ -642,6 +674,16 @@ static int interupt(lua_State* L)
     struct widget_interface* const widget = (struct widget_interface*)luaL_checkudata(L, -1, "widget_mt");
 
     style_element_interupt(widget->style_element);
+
+    return 0;
+}
+
+static int enter_loop(lua_State* L)
+{
+    struct widget_interface* const widget = (struct widget_interface*)luaL_checkudata(L, -2, "widget_mt");
+    const double looping_offset = luaL_checknumber(L, -1);
+
+    style_element_enter_loop(widget->style_element, looping_offset);
 
     return 0;
 }
@@ -671,11 +713,14 @@ static int index(lua_State* L)
 #define PUSH_FUNC_CALL(function) if (strcmp(#function, key) == 0){ lua_pushcfunction(L, function); return 1;} else
 #define PUSH_VALUE_CALL(function) if (strcmp(#function, key) == 0){ return destination_keyframe(L);} else
 
-            PUSH_FUNC_CALL(set_keyframe)
+        PUSH_FUNC_CALL(set_keyframe)
+            PUSH_FUNC_CALL(set_keyframes)
             PUSH_VALUE_CALL(destination_keyframe)
             PUSH_VALUE_CALL(current_keyframe)
             PUSH_FUNC_CALL(new_keyframe)
-            PUSH_FUNC_CALL(interupt);
+            PUSH_FUNC_CALL(interupt)
+            PUSH_FUNC_CALL(enter_loop);
+
     }
 
     if (widget->jump_table->index)

@@ -5,10 +5,7 @@
 #pragma once
 #include <allegro5/allegro_color.h>
 
-// TODO: loop option
-//			when frames are poped they are moved to the end keeping the same change in time as the old one
-//			will need to record one time step seperatly
-
+// Simple transparent keyframe object meant to represent the all the data needed to make a transform at a given time
 struct keyframe
 {
 	double timestamp,x, y, sx, sy, theta;
@@ -66,5 +63,6 @@ void style_element_set(struct style_element* const, struct keyframe* const);
 void style_element_interupt(struct style_element* const);
 void style_element_push_keyframe(struct style_element* const, struct keyframe*);
 void style_element_copy_destination(struct style_element* const, struct keyframe*);
+void style_element_enter_loop(struct style_element* const, double);
 
 void style_element_effect(const struct style_element* const, struct effect_element*);

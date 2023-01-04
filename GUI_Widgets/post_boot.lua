@@ -9,12 +9,18 @@ moving_rect = widget_engine.rectangle()
 
 current_timestamp = widget_engine.current_time()
 
-moving_rect:set_keyframe{x=100,y=100}
 control_rect:set_keyframe{x=700,y=100}
 
-for angle = 0,6.28318530718,6.28318530718/1000.0 do
-	moving_rect:new_keyframe{x=400+100*math.cos(angle), y = 400 + 100*math.sin(angle), timestamp = current_timestamp + angle}
+circle = {}
+
+for angle = 0.0,6.28318530718,6.28318530718/1000.0 do
+	table.insert(circle,{x=400+100*math.cos(angle), y = 400 + 100*math.sin(angle), timestamp = current_timestamp + angle*0.5})
 end
+
+moving_rect:set_keyframes(circle)
+circle = nil
+
+moving_rect:enter_loop(6.28318530718/1000.0)
 
 function control_rect:left_click()
 	destination = moving_rect.destination_keyframe

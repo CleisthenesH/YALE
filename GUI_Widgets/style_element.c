@@ -69,46 +69,70 @@ struct tweener* tweener_new(size_t channels, size_t hint)
 	return (struct tweener*) tweener;
 }
 
-static void tweener_blend_keypoints(struct tweener* tweener)
+static inline void tweener_blend_nonlooping(struct tweener* tweener)
 {
 	// Clean old frames;
 	size_t first_future_frame = 0;
-	
-	// doesn't handle looping
-	while(tweener->keypoints[first_future_frame*(tweener->channels+1)] < current_timestamp &&
+
+	while (tweener->keypoints[first_future_frame * (tweener->channels + 1)] < current_timestamp &&
 		first_future_frame < tweener->used)
 		first_future_frame++;
 
 	if (first_future_frame > 1)
 	{
-		if (!tweener->looping)
+		const size_t step = first_future_frame - 1;
+
+		for (size_t i = step; i < tweener->used; i++)
+			for (size_t j = 0; j <= tweener->channels; j++)
+				tweener->keypoints[(i - step) * (tweener->channels + 1) + j] = tweener->keypoints[i * (tweener->channels + 1) + j];
+
+		tweener->used -= step;
+
+		if (tweener->used == 1)
 		{
-			const size_t step = first_future_frame - 1;
-
-			for (size_t i = step; i < tweener->used; i++)
-				for (size_t j = 0; j <= tweener->channels; j++)
-					tweener->keypoints[(i - step) * (tweener->channels + 1) + j] = tweener->keypoints[i * (tweener->channels + 1) + j];
-
-			tweener->used -= step;
-
-			if (tweener->used == 1)
-			{
-				memcpy(tweener->current, tweener->keypoints + 1, tweener->channels * sizeof(double));
-				return;
-			}
-		}
-		else
-		{
-			double* buffer = malloc((tweener->channels + 1) * sizeof(double));
+			memcpy(tweener->current, tweener->keypoints + 1, tweener->channels * sizeof(double));
+			return;
 		}
 	}
 
-	const double blend = (current_timestamp - tweener->keypoints[0]) / (tweener->keypoints[tweener->channels+1] - tweener->keypoints[0]);
+	const double blend = (current_timestamp - tweener->keypoints[0]) / (tweener->keypoints[tweener->channels + 1] - tweener->keypoints[0]);
 
 	for (size_t i = 0; i < tweener->channels; i++)
-	{
 		tweener->current[i] = blend * tweener->keypoints[i + 2 + tweener->channels] + (1 - blend) * tweener->keypoints[i + 1];
-	}
+}
+
+static inline void tweener_blend_looping(struct tweener* tweener)
+{
+	// TODO: optimize this function
+
+	double loop_time = tweener->keypoints[(tweener->used - 1) * (tweener->channels + 1)] - tweener->keypoints[0] + tweener->looping_offset; // can delay calculating this
+	size_t loops = 0;
+	size_t idx = 0; // maybe keep this index between calls
+
+	while (tweener->keypoints[idx * (tweener->channels + 1)] <= current_timestamp - ((double) loops) * loop_time)
+		if (++idx == tweener->used)
+			loops++,idx = 0;
+
+	// adjust timestamps to proper range
+	for (size_t i = 0; i < tweener->used; i++)
+		tweener->keypoints[i * (tweener->channels + 1)] += ((double)loops) * loop_time;
+
+	//
+	const size_t end_idx = idx * (tweener->channels + 1);
+	const size_t start_idx = (tweener->channels + 1) * ((idx != 0) ? (idx -1)  : tweener->used-1);
+
+	const double blend = (current_timestamp - tweener->keypoints[start_idx]) / (tweener->keypoints[end_idx] - tweener->keypoints[start_idx]);
+
+	for (size_t i = 0; i < tweener->channels; i++)
+		tweener->current[i] = blend * tweener->keypoints[i + end_idx+ 1] + (1 - blend) * tweener->keypoints[i + start_idx + 1];
+}
+
+static void tweener_blend_keypoints(struct tweener* tweener)
+{
+	if (tweener->looping)
+		tweener_blend_looping(tweener);
+	else
+		tweener_blend_nonlooping(tweener);
 }
 
 struct work_queue* tweener_update()
@@ -156,10 +180,18 @@ static double* tweener_new_point(struct tweener* tweener)
 	return output;
 }
 
+static void tweener_enter_loop(struct tweener* tweener, double loop_offset)
+{
+	tweener->looping = true;
+	tweener->looping_offset = loop_offset;
+}
+
 static void tweener_interupt(struct tweener* const tweener)
 {
 	if (tweener->used > 1)
 		tweener_blend_keypoints(tweener);
+
+	tweener->looping = false;
 
 	tweener_set(tweener, tweener->current);
 }
@@ -258,6 +290,12 @@ struct style_element* style_element_new(size_t hint)
 	style_element->variation = fmod(current_timestamp, 100);
 
 	return (struct style_element*) style_element;
+}
+
+void style_element_enter_loop(struct style_element* const style_element, double looping_offset)
+{
+	struct style_element_internal* const internal = (struct style_element_internal* const)style_element;
+	tweener_enter_loop(internal->keyframe_tweener, looping_offset);
 }
 
 static void style_element_update_work(struct style_element_internal* style_element)

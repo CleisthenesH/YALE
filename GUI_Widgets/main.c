@@ -242,12 +242,48 @@ static inline void empty_event_queue()
     al_flip_display();
 }
 
+// Error call   
+static inline void error_call(const char* file_name)
+{
+    int error = luaL_dofile(main_lua_state, file_name);
+
+    if (error == LUA_OK)
+        return;
+
+    printf("While running file % s an error of type: \"", file_name);
+
+    switch (error)
+    {
+    case LUA_ERRRUN:
+        printf("Runtime");
+        break;
+    case LUA_ERRMEM:
+        printf("Memmory Allocation");
+        break;
+    case LUA_ERRERR:
+        printf("Message Handler");
+        break;
+    case LUA_ERRSYNTAX:
+        printf("Syntax");
+        break;
+    case LUA_YIELD:
+        printf("Unexpected Yeild");
+        break;
+    default:
+        printf("Unkown Type (%d)", error);
+    }
+
+    const char* error_message = luaL_checkstring(main_lua_state, -1);
+
+    printf("\" occurred\n\t%s\n\n", error_message);
+}
+
 // Main
 int main()
 {
     lua_init();
 
-    luaL_dofile(main_lua_state, "boot.lua");
+    error_call("boot.lua");
 
     allegro_init();
     create_display();
@@ -257,8 +293,8 @@ int main()
     style_element_init();
     widget_engine_init(main_lua_state);
 
-    luaL_dofile(main_lua_state, "post_boot.lua");
-
+    error_call("post_boot.lua");
+ 
     while (!do_exit)
         if (al_get_next_event(main_event_queue, &current_event))
             process_event();

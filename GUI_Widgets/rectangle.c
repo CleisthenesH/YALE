@@ -76,7 +76,7 @@ static void read_color(lua_State* L, ALLEGRO_COLOR* color)
 		const int g = lua_tointeger(L, -2);
 		const int b = lua_tointeger(L, -1);
 
-		lua_settop(L, lua_gettop(L) - 3);
+		lua_settop(L, -4);
 
 		*color = al_map_rgb(r, g, b);
 		return;
@@ -96,13 +96,13 @@ static void read_color(lua_State* L, ALLEGRO_COLOR* color)
 		const int g = lua_tointeger(L, -2);
 		const int b = lua_tointeger(L, -1);
 
-		lua_settop(L, lua_gettop(L) - 4);
+		lua_settop(L, -5);
 
 		*color = al_map_rgb(r, g, b);
 		return;
 	}
 
-	lua_settop(L, lua_gettop(L) - 2);
+	lua_settop(L, -2);
 
 	return;
 }

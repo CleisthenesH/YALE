@@ -80,8 +80,14 @@ struct widget
     } lua;
 };
 
-#define call_lua(widget,method) if(widget->lua. ## method != LUA_REFNIL) \
-    do{lua_rawgeti(main_lua_state, LUA_REGISTRYINDEX, widget->lua. ## method); lua_pcall(main_lua_state, 0, 0, 0); } while(0);
+#define call_lua(widget,method) if(widget->lua. ## method != LUA_REFNIL) do{ \
+    lua_rawgeti(main_lua_state, LUA_REGISTRYINDEX, widget->lua. ## method); \
+    if(lua_pcall(main_lua_state, 0, 0, 0) != LUA_OK) \
+    {\
+        printf("Error calling method \"" #method "\" on widget \"" #widget"\".\n\tFrom " __FILE__ " at line %d.\n\n\t%s\n\n", \
+        __LINE__, luaL_checkstring(main_lua_state, -1)); \
+    }\
+ } while(0); 
 
 #define call_engine(widget,method) if(widget->jump_table-> ## method) \
     do{(widget)->jump_table-> ## method((struct widget_interface*) (widget));}while(0);
@@ -574,7 +580,7 @@ static void inline read_transform(lua_State* L, struct keyframe* keyframe)
 
     FOR_KEYFRAME_MEMBERS(READ)
 
-    lua_settop(L, lua_gettop(L) - 6);
+    lua_settop(L, -7);
 }
 
 static void inline write_transform(lua_State* L, struct keyframe* keyframe)
@@ -614,7 +620,7 @@ static int set_keyframes(lua_State* L)
 
     style_element_set(widget->style_element, &keyframe);
     
-    lua_settop(L, lua_gettop(L) - 1);
+    lua_settop(L,-2);
 
     lua_geti(L, -1, 1);
 
@@ -623,7 +629,7 @@ static int set_keyframes(lua_State* L)
         keyframe_default(&keyframe);
         read_transform(L, &keyframe);
 
-        lua_settop(L, lua_gettop(L) - 1);
+        lua_settop(L, -2);
 
         style_element_push_keyframe(widget->style_element, &keyframe);
         

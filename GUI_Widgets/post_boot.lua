@@ -26,6 +26,8 @@ function control_rect:left_click()
 	destination = moving_rect.destination_keyframe
 
 	moving_rect:interupt()
+	
+	throw["error"]()
 end
 
 function control_rect:right_click()
@@ -39,17 +41,6 @@ function control_rect:right_click()
 		moving_rect = nil
 		collectgarbage()
 	end
-end
-
-for key, value in pairs(control_rect.color) do
-	print(" ",key,value)
-end
-
-control_rect.color = {1,2,3}
-control_rect.color = {g=255,r=0,b=0}
-
-for key, value in pairs(control_rect.color) do
-	print(" ",key,value)
 end
 
 print("post boot complete")

@@ -142,6 +142,7 @@
     <ClCompile Include="lua\lzio.c">
       <Filter>lua</Filter>
     </ClCompile>
+    <ClCompile Include="font_loader.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="style_element.h">

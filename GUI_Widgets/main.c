@@ -36,6 +36,8 @@ extern struct work_queue* widget_engine_widget_work();
 extern void widget_engine_update();
 extern void widget_engine_event_handler();
 
+ALLEGRO_FONT* emily_huo_font(const char*);
+
 static ALLEGRO_DISPLAY* display;
 static ALLEGRO_EVENT_QUEUE* main_event_queue;
 struct thread_pool* thread_pool;
@@ -208,126 +210,6 @@ static inline void process_event()
 
 // On an empty queue update and draw.
 ALLEGRO_FONT* test_font;
-ALLEGRO_BITMAP* test;
-
-// load lua font
-static void lua_font()
-{
-    static lua_State* lua = NULL;
-    static ALLEGRO_BITMAP* bitmap = NULL;
-    static ALLEGRO_BITMAP* bitmap_font = NULL;
-    static ALLEGRO_FONT* bitmap_font2 = NULL;
-
-    if (!bitmap)
-    {
-        // TODO: improve by incuding offset in to calc of total and max.
-        // Should make it look beter
-        int max_height = 0;
-        int total_width = 1;
-        int x, y, w, h, xoffset, yoffset, xadvance;
-        bitmap = al_load_bitmap("res/GoldPeaberry.png");
-
-        lua = luaL_newstate();
-        luaL_openlibs(lua);
-        luaL_dofile(lua, "res/GoldPeaberry.lua");
-
-        // Transposed table
-        lua_newtable(lua);
-
-        lua_pushstring(lua, "chars");
-        lua_gettable(lua, -3);
-
-        lua_pushnil(lua);
-        while (lua_next(lua, -2) != 0)
-        {
-            // stack: font_table, transpose_table, src_table, key, value 
-            lua_pushstring(lua, "letter");
-            lua_gettable(lua, -2);
-            lua_pushvalue(lua, -2);
-            lua_settable(lua, -6);
-
-            // stack: font_table, transpose_table, src_table, key, value 
-            lua_pushstring(lua, "width");
-            lua_gettable(lua, -2);
-            const int width = luaL_checkinteger(lua, -1);
-
-            total_width += width + 1;
-
-            lua_pop(lua, 1);
-
-            // stack: font_table, transpose_table, src_table, key, value 
-            lua_pushstring(lua, "height");
-            lua_gettable(lua, -2);
-            const int height = luaL_checkinteger(lua, -1);
-
-            if (height > max_height)
-                max_height = height;
-
-            lua_pop(lua, 2);
-        }
-
-        lua_pop(lua, 1);
-        // stack: font_table, transposed_table
-
-        bitmap_font = al_create_bitmap(total_width, max_height + 2);
-
-        al_set_target_bitmap(bitmap_font);
-        al_clear_to_color(al_color_name("pink"));
-        al_set_blender(ALLEGRO_ADD, ALLEGRO_ONE, ALLEGRO_ZERO);
-        al_set_render_state(ALLEGRO_ALPHA_TEST, 0);
-        xadvance = 1;
-
-        char buffer[2] = { 'A','\0' };
-
-        // TODO: Fix, currently skips " "
-        for (size_t i = 33; i <= 126; i++)
-        {
-            buffer[0] = (char) i;
-            lua_pushstring(lua, buffer);
-            lua_gettable(lua, -2);
-
-            lua_pushstring(lua, "x");
-            lua_gettable(lua, -2);
-            x = luaL_checkinteger(lua, -1);
-
-            lua_pushstring(lua, "y");
-            lua_gettable(lua, -3);
-            y = luaL_checkinteger(lua, -1);
-
-            lua_pushstring(lua, "width");
-            lua_gettable(lua, -4);
-            w = luaL_checkinteger(lua, -1);
-
-            lua_pushstring(lua, "height");
-            lua_gettable(lua, -5);
-            h = luaL_checkinteger(lua, -1);
-
-            lua_pushstring(lua, "xoffset");
-            lua_gettable(lua, -6);
-            xoffset = luaL_checkinteger(lua, -1);
-
-            lua_pushstring(lua, "yoffset");
-            lua_gettable(lua, -7);
-            yoffset = luaL_checkinteger(lua, -1);
-
-            al_draw_bitmap_region(bitmap, x, y, w, h, xadvance, 1, 0);
-
-            lua_pushstring(lua, "xadvance");
-            lua_gettable(lua, -8);
-            xadvance += w + 1; // luaL_checkinteger(lua, -1) + 20;
-
-            lua_pop(lua, 8);
-        }
-
-        int ranges[2] = {
-            33,126 };
-        bitmap_font2 = al_grab_font_from_bitmap(bitmap_font, 1, ranges);
-    }
-
-    al_draw_bitmap(bitmap_font, 1, 1, 0);
-
-    al_draw_text(bitmap_font2, al_map_rgb_f(1, 1, 1), 100, 100, 0, "ABCDabcd~");
-}
 
 static inline void empty_event_queue()
 {
@@ -364,7 +246,10 @@ static inline void empty_event_queue()
     // Draw
     widget_engine_draw();
 
-    lua_font();
+    if (1)
+        al_draw_text(test_font, al_map_rgb_f(1, 1, 1), 100, 100, 0, "Michele Harvie");
+    else
+        al_draw_bitmap(test_font, 10, 10, 0);
 
     // Flip
     al_flip_display();
@@ -426,9 +311,7 @@ int main()
 
     error_call("post_boot.lua");
 
-    test = al_load_bitmap("res/GoldPeaberry.png");
-
-    lua_font();
+    test_font = emily_huo_font("ShinyPeaberry");
 
     while (!do_exit)
         if (al_get_next_event(main_event_queue, &current_event))

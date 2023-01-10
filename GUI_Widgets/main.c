@@ -246,11 +246,6 @@ static inline void empty_event_queue()
     // Draw
     widget_engine_draw();
 
-    if (1)
-        al_draw_text(test_font, al_map_rgb_f(1, 1, 1), 100, 100, 0, "Michele Harvie");
-    else
-        al_draw_bitmap(test_font, 10, 10, 0);
-
     // Flip
     al_flip_display();
 }
@@ -302,6 +297,9 @@ int main()
     error_call("boot.lua");
 
     allegro_init();
+
+    test_font = emily_huo_font("ShinyPeaberry");
+
     create_display();
     create_event_queue();
     global_init();
@@ -310,8 +308,6 @@ int main()
     widget_engine_init(main_lua_state);
 
     error_call("post_boot.lua");
-
-    test_font = emily_huo_font("ShinyPeaberry");
 
     while (!do_exit)
         if (al_get_next_event(main_event_queue, &current_event))

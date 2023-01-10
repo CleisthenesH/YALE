@@ -217,12 +217,12 @@
     <ClInclude Include="lua\lundump.h" />
     <ClInclude Include="lua\lvm.h" />
     <ClInclude Include="lua\lzio.h" />
-    <ClInclude Include="rectangle.h" />
     <ClInclude Include="style_element.h" />
     <ClInclude Include="thread_pool.h" />
     <ClInclude Include="widget_interface.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="button.c" />
     <ClCompile Include="card.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
@@ -264,8 +264,10 @@
     <ClCompile Include="lua\lzio.c" />
     <ClCompile Include="main.c" />
     <ClCompile Include="rectangle.c" />
+    <ClCompile Include="slider.c" />
     <ClCompile Include="style_element.c" />
     <ClCompile Include="thread_pool.c" />
+    <ClCompile Include="transform_utility.c" />
     <ClCompile Include="widget_interface.c" />
   </ItemGroup>
   <ItemGroup>

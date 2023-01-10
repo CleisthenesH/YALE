@@ -49,6 +49,7 @@ extern double delta_timestamp;
 extern const ALLEGRO_FONT* debug_font;
 extern ALLEGRO_EVENT current_event;
 extern const ALLEGRO_TRANSFORM identity_transform;
+extern void invert_transform_3D(ALLEGRO_TRANSFORM*);
 
 // TODO: try to remove, still used in calling lua methods
 extern lua_State* const main_lua_state;
@@ -63,6 +64,7 @@ extern lua_State* const main_lua_state;
 	DO(drag_end_drop) \
 	DO(drag_end_no_drop) \
 	DO(drop_start) \
+    DO(left_click_end) \
 	DO(drop_end) \
 
 struct widget
@@ -412,6 +414,8 @@ void widget_engine_update()
             }
             else
             {
+                call(current_hover, left_click);
+
                 widget_engine_state = ENGINE_STATE_POST_DRAG_THRESHOLD;
             }
             break;
@@ -481,7 +485,12 @@ void widget_engine_event_handler()
 		switch(widget_engine_state)
 		{ 
         case ENGINE_STATE_PRE_DRAG_THRESHOLD:
-            call(current_hover, left_click);
+            // Should I call both left_click and left_click_end?
+            //call(current_hover, left_click);
+            break;
+
+        case ENGINE_STATE_POST_DRAG_THRESHOLD:
+            call(current_hover, left_click_end);
             break;
 
         case ENGINE_STATE_DRAG:
@@ -549,6 +558,31 @@ struct widget_interface* widget_interface_new(
     lua_setmetatable(L, -2);
 
     return (struct widget_interface*) widget;
+}
+
+// Convert a screen position to the cordinate used when drawng
+void widget_screen_to_local(const struct widget_interface* const widget, double* x, double* y)
+{
+    ALLEGRO_TRANSFORM transform;
+
+    // The allegro uses float but standards have moved forward to doubles.
+    // This is the easist solution.
+    float _x = *x;
+    float _y = *y;
+
+    keyframe_build_transform(&widget->style_element->current, &transform);
+
+    // WARNING: the inbuilt invert only works for 2D transforms
+    if (1)
+        al_invert_transform(&transform);
+    else
+        invert_transform_3D(&transform);
+
+
+    al_transform_coordinates(&transform, &_x, &_y);
+
+    *x = _x;
+    *y = _y;
 }
 
 // Check that the data at the given index is a widget and has the given jumptable.
@@ -762,6 +796,8 @@ static int newindex(lua_State* L)
 
 #define FOR_WIDGETS(DO) \
 	DO(rectangle) \
+    DO(button) \
+    DO(slider) \
 	//DO(card) \
 
 #define EXTERN(widget) extern int widget ## _new(lua_State*);

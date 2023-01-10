@@ -33,6 +33,9 @@ ALLEGRO_FONT* emily_huo_font(const char* font_name)
 	luaL_openlibs(lua);
 	luaL_dofile(lua, file_name_buffer);
 
+	if (!lua || !bitmap)
+		return NULL;
+
 	ALLEGRO_BITMAP* bitmap_font = NULL;
 
 	int max_height = 0;
@@ -92,7 +95,7 @@ ALLEGRO_FONT* emily_huo_font(const char* font_name)
 	al_set_blender(ALLEGRO_ADD, ALLEGRO_ONE, ALLEGRO_ZERO);
 	al_set_render_state(ALLEGRO_ALPHA_TEST, 0);
 
-	int x, y, w, h, xoffset, yoffset, xadvance;
+	int x, y, w, h, yoffset, xadvance;
 
 	char buffer[2] = { 'A','\0' };
 
@@ -126,7 +129,6 @@ ALLEGRO_FONT* emily_huo_font(const char* font_name)
 		lua_pushstring(lua, "yoffset");
 		lua_gettable(lua, -6);
 		yoffset = luaL_checkinteger(lua, -1);
-		printf("%c\t%d\n", i, yoffset);
 
 		al_draw_filled_rectangle(xadvance,1, xadvance + w, 1 + max_height, al_map_rgba(0, 0, 0, 0));
 		al_draw_bitmap_region(bitmap, x, y, w, h, xadvance, 1+yoffset, 0);

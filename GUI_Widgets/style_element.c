@@ -288,6 +288,8 @@ struct style_element* style_element_new(size_t hint)
 
 	style_element->keyframe_tweener = tweener_new(5, hint);
 	style_element->variation = fmod(current_timestamp, 100);
+	style_element->width = 0;
+	style_element->height = 0;
 
 	return (struct style_element*) style_element;
 }

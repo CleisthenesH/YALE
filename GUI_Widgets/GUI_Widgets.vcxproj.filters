@@ -28,6 +28,12 @@
     <Filter Include="scripts">
       <UniqueIdentifier>{d1104b60-9157-4fa5-816f-82d8815d0850}</UniqueIdentifier>
     </Filter>
+    <Filter Include="widget\button">
+      <UniqueIdentifier>{56bb3da1-34bd-4071-a095-874278d9cfe0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="widget\slider">
+      <UniqueIdentifier>{1b473e1f-47b6-4819-9d3f-873b9811f156}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="style_element.c">
@@ -143,6 +149,13 @@
       <Filter>lua</Filter>
     </ClCompile>
     <ClCompile Include="font_loader.c" />
+    <ClCompile Include="button.c">
+      <Filter>widget\button</Filter>
+    </ClCompile>
+    <ClCompile Include="slider.c">
+      <Filter>widget\slider</Filter>
+    </ClCompile>
+    <ClCompile Include="transform_utility.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="style_element.h">
@@ -153,9 +166,6 @@
     </ClInclude>
     <ClInclude Include="widget_interface.h">
       <Filter>widget_interface</Filter>
-    </ClInclude>
-    <ClInclude Include="rectangle.h">
-      <Filter>widget\rectangle</Filter>
     </ClInclude>
     <ClInclude Include="card.h">
       <Filter>widget\card</Filter>

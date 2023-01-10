@@ -2,10 +2,20 @@
 // Use of this source code is governed by an MIT-style
 // license that can be found in the LICENSE file.
 
-#include "rectangle.h"
+#include "widget_interface.h"
+#include <allegro5/allegro5.h>
 #include <allegro5/allegro_primitives.h>
 #include <allegro5/allegro_font.h>
 #include <allegro5/allegro_opengl.h>
+
+struct rectangle
+{
+	struct widget_interface* widget_interface;
+	double width, height;
+	ALLEGRO_COLOR color;
+
+	int cnt;
+};
 
 static const struct widget_jump_table rectangle_jump_table_entry;
 
@@ -53,7 +63,7 @@ static void right_click(struct widget_interface* const widget)
 	rectangle->cnt--;
 }
 
-static void gc(void* rectangle)
+static void gc(struct widget_interface* const widget)
 {
 	printf("gc hit\n");
 }

@@ -6,6 +6,8 @@
 
 control_rect = widget_engine.rectangle()
 moving_rect = widget_engine.rectangle()
+test_button = widget_engine.button()
+slider = widget_engine.slider()
 
 current_timestamp = widget_engine.current_time()
 
@@ -22,12 +24,13 @@ circle = nil
 
 moving_rect:enter_loop(6.28318530718/1000.0)
 
+test_button:set_keyframe{x=700,y=300}
+slider:set_keyframe{x=700,y=500}
+
 function control_rect:left_click()
 	destination = moving_rect.destination_keyframe
 
 	moving_rect:interupt()
-	
-	throw["error"]()
 end
 
 function control_rect:right_click()

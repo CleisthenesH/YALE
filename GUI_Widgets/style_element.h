@@ -52,6 +52,7 @@ void effect_element_selection_cutoff(struct effect_element* const, double);
 struct style_element
 {
 	struct keyframe current;
+	double width, height;
 };
 
 struct style_element* style_element_new(size_t);

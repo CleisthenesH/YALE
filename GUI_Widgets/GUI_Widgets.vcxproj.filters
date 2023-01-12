@@ -34,6 +34,9 @@
     <Filter Include="widget\slider">
       <UniqueIdentifier>{1b473e1f-47b6-4819-9d3f-873b9811f156}</UniqueIdentifier>
     </Filter>
+    <Filter Include="hash">
+      <UniqueIdentifier>{9c016a3b-ba3c-40e4-9d2c-b41745712971}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="style_element.c">
@@ -156,6 +159,9 @@
       <Filter>widget\slider</Filter>
     </ClCompile>
     <ClCompile Include="transform_utility.c" />
+    <ClCompile Include="hash.c">
+      <Filter>hash</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="style_element.h">
@@ -253,6 +259,9 @@
     </ClInclude>
     <ClInclude Include="lua\lzio.h">
       <Filter>lua</Filter>
+    </ClInclude>
+    <ClInclude Include="hash.h">
+      <Filter>hash</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

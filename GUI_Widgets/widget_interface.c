@@ -747,8 +747,9 @@ static int index(lua_State* L)
     // Ineficient, should use a hash or BST 
     if (lua_type(L, -1) == LUA_TSTRING)
     {
-
         const char* key = lua_tostring(L, -1);
+
+        printf("kye: %s\n", key);
 
 #define PUSH_FUNC_CALL(function) if (strcmp(#function, key) == 0){ lua_pushcfunction(L, function); return 1;} else
 #define PUSH_VALUE_CALL(function) if (strcmp(#function, key) == 0){ return destination_keyframe(L);} else

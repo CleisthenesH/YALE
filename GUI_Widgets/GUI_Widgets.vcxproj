@@ -273,16 +273,22 @@
     <ClCompile Include="widget_interface.c" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\README.md" />
     <None Include="boot.lua" />
     <None Include="packages.config" />
     <None Include="post_boot.lua" />
     <None Include="README.md" />
     <None Include="predraw_pixel_shader.glsl" />
     <None Include="predraw_vertex_shader.glsl" />
+    <None Include="shaders\style_element_pixel_shader.glsl" />
+    <None Include="shaders\style_element_vertex_shader.glsl" />
+    <None Include="shaders\widget_pixel_shader.glsl" />
+    <None Include="shaders\widget_vertex_shader.glsl" />
     <None Include="widget_pixel_shader.glsl" />
     <None Include="widget_vertex_shader.glsl" />
   </ItemGroup>
   <ItemGroup>
+    <Text Include="..\LICENSE.txt" />
     <Text Include="LICENSE.txt" />
   </ItemGroup>
   <ItemGroup>

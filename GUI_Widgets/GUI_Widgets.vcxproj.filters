@@ -285,9 +285,23 @@
     <None Include="post_boot.lua">
       <Filter>scripts</Filter>
     </None>
+    <None Include="..\README.md" />
+    <None Include="shaders\widget_pixel_shader.glsl">
+      <Filter>widget_interface</Filter>
+    </None>
+    <None Include="shaders\widget_vertex_shader.glsl">
+      <Filter>widget_interface</Filter>
+    </None>
+    <None Include="shaders\style_element_pixel_shader.glsl">
+      <Filter>style_element</Filter>
+    </None>
+    <None Include="shaders\style_element_vertex_shader.glsl">
+      <Filter>style_element</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Text Include="LICENSE.txt" />
+    <Text Include="..\LICENSE.txt" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="res\alex.bmp">

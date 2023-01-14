@@ -885,13 +885,13 @@ void widget_engine_init(lua_State* L)
     // Build the offscreen shader and bitmap
     offscreen_shader = al_create_shader(ALLEGRO_SHADER_GLSL);
 
-    if (!al_attach_shader_source_file(offscreen_shader, ALLEGRO_VERTEX_SHADER, "widget_vertex_shader.glsl"))
+    if (!al_attach_shader_source_file(offscreen_shader, ALLEGRO_VERTEX_SHADER, "shaders/widget_vertex_shader.glsl"))
     {
         fprintf(stderr, "Failed to attach vertex shader.\n%s\n", al_get_shader_log(offscreen_shader));
         return;
     }
 
-    if (!al_attach_shader_source_file(offscreen_shader, ALLEGRO_PIXEL_SHADER, "widget_pixel_shader.glsl"))
+    if (!al_attach_shader_source_file(offscreen_shader, ALLEGRO_PIXEL_SHADER, "shaders/widget_pixel_shader.glsl"))
     {
         fprintf(stderr, "Failed to attach pixel shader.\n%s\n", al_get_shader_log(offscreen_shader));
         return;

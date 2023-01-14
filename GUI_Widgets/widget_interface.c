@@ -4,6 +4,7 @@
 
 #include "widget_interface.h"
 #include "thread_pool.h"
+#include "hash.h"
 
 #include <allegro5/allegro_font.h>
 #include <allegro5/allegro_opengl.h>
@@ -52,6 +53,7 @@ extern const ALLEGRO_TRANSFORM identity_transform;
 extern void invert_transform_3D(ALLEGRO_TRANSFORM*);
 
 // TODO: try to remove, still used in calling lua methods
+// If I'm going to have a global widget state i might as well have a gloabl lua state
 extern lua_State* const main_lua_state;
 
 #define FOR_CALLBACKS(DO) \
@@ -82,6 +84,8 @@ struct widget
     } lua;
 };
 
+// TODO: implement as a hash so we don't have to use macros
+// but hashing is still runtime maybe enumerations would be better
 #define call_lua(widget,method) if(widget->lua. ## method != LUA_REFNIL) do{ \
     lua_rawgeti(main_lua_state, LUA_REGISTRYINDEX, widget->lua. ## method); \
     if(lua_pcall(main_lua_state, 0, 0, 0) != LUA_OK) \
@@ -485,8 +489,8 @@ void widget_engine_event_handler()
 		switch(widget_engine_state)
 		{ 
         case ENGINE_STATE_PRE_DRAG_THRESHOLD:
-            // Should I call both left_click and left_click_end?
-            //call(current_hover, left_click);
+            call(current_hover, left_click);
+            call(current_hover, left_click_end);
             break;
 
         case ENGINE_STATE_POST_DRAG_THRESHOLD:
@@ -592,15 +596,7 @@ struct widget_interface* check_widget(lua_State* L, int idx, const struct widget
     return (widget->jump_table == jump_table) ? (struct widget_interface*)widget : NULL;
 }
 
-// Widget methods
-#define FOR_KEYFRAME_MEMBERS(DO) \
-    DO(timestamp) \
-    DO(x) \
-    DO(y) \
-    DO(sx) \
-    DO(sy) \
-    DO(theta) \
-
+// Read a transform from the top of the stack to a pointer
 static void inline read_transform(lua_State* L, struct keyframe* keyframe)
 {
     luaL_checktype(L, -1, LUA_TTABLE);
@@ -617,6 +613,7 @@ static void inline read_transform(lua_State* L, struct keyframe* keyframe)
     lua_settop(L, -7);
 }
 
+// Write a transform from a pointer to the top of the stack
 static void inline write_transform(lua_State* L, struct keyframe* keyframe)
 {
     // optimize for tail call? or is inline enough
@@ -628,6 +625,7 @@ static void inline write_transform(lua_State* L, struct keyframe* keyframe)
     return;
 }
 
+// Set the widget keyframe (singular) clears all current keyframes 
 static int set_keyframe(lua_State* L)
 {
     struct widget_interface* const widget = (struct widget_interface*)luaL_checkudata(L, -2, "widget_mt");
@@ -642,6 +640,7 @@ static int set_keyframe(lua_State* L)
     return 0;
 }
 
+// Set the widget keyframes (multiple) clears all current keyframes 
 static int set_keyframes(lua_State* L)
 {
     struct widget_interface* const widget = (struct widget_interface*)luaL_checkudata(L, -2, "widget_mt");
@@ -673,6 +672,7 @@ static int set_keyframes(lua_State* L)
     return 0;
 }
 
+// Get the current keyframe
 static int current_keyframe(lua_State* L)
 {
     struct widget_interface* const widget = (struct widget_interface*)luaL_checkudata(L, -2, "widget_mt");
@@ -683,6 +683,7 @@ static int current_keyframe(lua_State* L)
     return 1;
 }
 
+// Get the destination keyframe
 static int destination_keyframe(lua_State* L)
 {
     struct widget_interface* const widget = (struct widget_interface*)luaL_checkudata(L, -2, "widget_mt");
@@ -695,6 +696,7 @@ static int destination_keyframe(lua_State* L)
     return 1;
 }
 
+// Reads a transform from the stack and appends to the end of its current path
 static int new_keyframe(lua_State* L)
 {
     struct widget_interface* const widget = (struct widget_interface*)luaL_checkudata(L, -2, "widget_mt");
@@ -709,6 +711,7 @@ static int new_keyframe(lua_State* L)
 	return 0;
 }
 
+// Interupts the widgets keyframe, clears the keyframe queue, and sets the current keyframe to the interupted value
 static int interupt(lua_State* L)
 {
     struct widget_interface* const widget = (struct widget_interface*)luaL_checkudata(L, -1, "widget_mt");
@@ -718,6 +721,7 @@ static int interupt(lua_State* L)
     return 0;
 }
 
+// Make the widget loop
 static int enter_loop(lua_State* L)
 {
     struct widget_interface* const widget = (struct widget_interface*)luaL_checkudata(L, -2, "widget_mt");
@@ -728,7 +732,7 @@ static int enter_loop(lua_State* L)
     return 0;
 }
 
-// gc
+// Genearl widget garbage collection
 static int gc(lua_State* L)
 {
     struct widget* const widget = (struct widget*)luaL_checkudata(L, 1, "widget_mt");
@@ -739,29 +743,73 @@ static int gc(lua_State* L)
     return 0;
 }
 
-// test index
+// Hash data for index and newindex methods
+
+static const char* index_keys[] = {
+    "set_keyframe",
+    "set_keyframes",
+    "destination_keyframe",
+    "current_keyframe",
+    "new_keyframe",
+    "interupt",
+    "enter_loop",
+
+    // placeholders
+    // because the hasher uses the first n characters where n is the number of keys
+    "asdfasdf",
+    "lkjlkiww",
+    "m.,jkh",
+    "fdgsdfgs",
+    "oijsmlkw",
+    ",m.owwdsx",
+
+    NULL
+};
+
+static const struct {
+    const lua_CFunction function;
+    const uint8_t call_behaviour;
+} index_functions[] = 
+{
+    {set_keyframe,1},
+    {set_keyframes,1},
+    {destination_keyframe,0},
+    {current_keyframe,0},
+    {new_keyframe,1},
+    {interupt,1},
+    {enter_loop,1}
+};
+
+static const struct hash_data* index_hash;
+
+#define NEW_INDEX_KEY(callbacks,...) #callbacks ,
+
+static const char* newindex_keys[] = {
+    FOR_CALLBACKS(NEW_INDEX_KEY)
+    NULL
+};
+
+static const struct hash_data* newindex_hash;
+
+// Geneal widget index method
 static int index(lua_State* L)
 {
     struct widget* const widget = (struct widget*)luaL_checkudata(L, -2, "widget_mt");
     
-    // Ineficient, should use a hash or BST 
     if (lua_type(L, -1) == LUA_TSTRING)
     {
         const char* key = lua_tostring(L, -1);
 
-        printf("kye: %s\n", key);
+        const uint8_t hash_val = hash(index_hash, key);
 
-#define PUSH_FUNC_CALL(function) if (strcmp(#function, key) == 0){ lua_pushcfunction(L, function); return 1;} else
-#define PUSH_VALUE_CALL(function) if (strcmp(#function, key) == 0){ return destination_keyframe(L);} else
-
-        PUSH_FUNC_CALL(set_keyframe)
-            PUSH_FUNC_CALL(set_keyframes)
-            PUSH_VALUE_CALL(destination_keyframe)
-            PUSH_VALUE_CALL(current_keyframe)
-            PUSH_FUNC_CALL(new_keyframe)
-            PUSH_FUNC_CALL(interupt)
-            PUSH_FUNC_CALL(enter_loop);
-
+        if (hash_val < 7 && strcmp(index_keys[hash_val], key) == 0)
+            if (index_functions[hash_val].call_behaviour)
+            {
+                lua_pushcfunction(L, index_functions[hash_val].function);
+                return 1;
+            }
+            else
+                return index_functions[hash_val].function(main_lua_state);
     }
 
     if (widget->jump_table->index)
@@ -770,23 +818,24 @@ static int index(lua_State* L)
     return 0;
 }
 
+// Geneal widget newindex method
 static int newindex(lua_State* L)
 {
     struct widget* const widget = (struct widget*)luaL_checkudata(L, -3, "widget_mt");
 
-    // This is inefficient but can be optimized once a set of callbacks it confirmed
     if (lua_type(L, -1) == LUA_TFUNCTION &&
         lua_type(L, -2) == LUA_TSTRING)
     {
         const char* key = lua_tostring(L, -2);
 
-#define CHECK(callback,...) if(strcmp(key, #callback) == 0)\
-    {\
-        widget->lua. ## callback = luaL_ref(L,LUA_REGISTRYINDEX); \
-        return 0; \
-    }\
+        const uint8_t hash_val = hash(newindex_hash, key);
 
-        FOR_CALLBACKS(CHECK)
+        if (hash_val < 11 && strcmp(newindex_keys[hash_val], key) == 0)
+        {
+            int* handle = ((int*) & widget->lua.right_click) + hash_val;
+            *handle = luaL_ref(L, LUA_REGISTRYINDEX); 
+            return 0; 
+        }
     }
 
     if (widget->jump_table->newindex)
@@ -805,6 +854,7 @@ static int newindex(lua_State* L)
 
 FOR_WIDGETS(EXTERN)
 
+// Return the current time and delta
 int get_current_time(lua_State* L)
 {
     lua_pushnumber(L, current_timestamp);
@@ -813,42 +863,10 @@ int get_current_time(lua_State* L)
     return 2;
 }
 
-// make metatable
-static void inline make_meta_table(lua_State* L)
-{
-    // Push the main metatable to the stack
-    luaL_newmetatable(L, "widget_mt");
-
-    // Set the garbage collector to the main metatable
-    const struct luaL_Reg garbage_collection[] = {
-        {"__gc",gc},
-        {"__newindex",newindex},
-        {"__index",index},
-        {NULL,NULL}
-    };
-
-    luaL_setfuncs(L, garbage_collection, 0);
-}
-
-static void inline widget_lua_integration(lua_State* L)
-{
-    #define LUA_REG_ENTRY(widget) {#widget , widget ## _new},
-
-    const struct luaL_Reg lib_f[] = {
-        FOR_WIDGETS(LUA_REG_ENTRY)
-        {"current_time",get_current_time},
-        {NULL,NULL}
-    };
-
-    luaL_newlib(L, lib_f);
-    lua_setglobal(L, "widget_engine");
-
-    make_meta_table(L);
-}
-
 // Initalize the widget engine
 void widget_engine_init(lua_State* L)
 {
+    // Set empty pointers to NULL
     queue_head = NULL;
     queue_tail = NULL;
 
@@ -856,9 +874,15 @@ void widget_engine_init(lua_State* L)
     current_hover = NULL;
     last_click = NULL;
 
+    // Arbitarly set snap to something nonzero
     snap_offset_x = 5;
-    snap_offset_y = 5;
+    snap_offset_y = 5;  
 
+    // Create hashes for index and newindex
+    index_hash = calc_hash_data(index_keys, NULL);
+    newindex_hash = calc_hash_data(newindex_keys, NULL);
+
+    // Build the offscreen shader and bitmap
     offscreen_shader = al_create_shader(ALLEGRO_SHADER_GLSL);
 
     if (!al_attach_shader_source_file(offscreen_shader, ALLEGRO_VERTEX_SHADER, "widget_vertex_shader.glsl"))
@@ -883,6 +907,28 @@ void widget_engine_init(lua_State* L)
         al_get_bitmap_width(al_get_target_bitmap()),
         al_get_bitmap_width(al_get_target_bitmap()));
 
-    widget_lua_integration(L);
+    // Make the widget_engine table
+	#define LUA_REG_ENTRY(widget) {#widget , widget ## _new},
+
+	const struct luaL_Reg lib_f[] = {
+		FOR_WIDGETS(LUA_REG_ENTRY)
+		{"current_time",get_current_time},
+		{NULL,NULL}
+	};
+
+    luaL_newlib(L, lib_f);
+    lua_setglobal(L, "widget_engine");
+
+    // Make the widget meta table
+    luaL_newmetatable(L, "widget_mt");
+
+    const struct luaL_Reg garbage_collection[] = {
+        {"__gc",gc},
+        {"__newindex",newindex},
+        {"__index",index},
+        {NULL,NULL}
+    };
+
+    luaL_setfuncs(L, garbage_collection, 0);
 }
 

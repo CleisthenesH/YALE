@@ -6,6 +6,14 @@
 #include <allegro5/allegro_color.h>
 
 // Simple transparent keyframe object meant to represent the all the data needed to make a transform at a given time
+#define FOR_KEYFRAME_MEMBERS(DO) \
+    DO(timestamp) \
+    DO(x) \
+    DO(y) \
+    DO(sx) \
+    DO(sy) \
+    DO(theta) \
+
 struct keyframe
 {
 	double timestamp,x, y, sx, sy, theta;

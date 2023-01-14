@@ -10,3 +10,12 @@ struct hash_data;
 
 struct hash_data* calc_hash_data(const char* [], uint8_t*);
 uint8_t hash(struct hash_data*, const char*);
+
+// add a safe call or lua integration
+
+struct hash_table;
+
+struct hash_table* hash_table_new(const char* []);
+uint8_t hash_table_get(struct hash_table*, const char*);
+
+

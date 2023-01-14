@@ -125,6 +125,27 @@ static void inline augmented_matrix_swap_row(struct augmented_matrix* matrix, si
 	matrix->constants[j] = buffer;
 }
 
+// Rearrange the matrix such that all zeros in the ith column i lower than the ith row are moved to the bottom
+static size_t inline augmented_matrix_rearrange_zeros(struct augmented_matrix* matrix, size_t i)
+{
+	size_t leading_zeros = 0;
+
+	for (size_t j = i; j < matrix->size - leading_zeros; j++)
+	{
+		while (matrix->matrix[i + matrix->size * j] == 0)
+		{
+			leading_zeros++;
+
+			if (j != matrix->size - leading_zeros)
+				augmented_matrix_swap_row(matrix, j, matrix->size - leading_zeros);
+			else
+				break;
+		}
+	}
+
+	return leading_zeros;
+}
+
 static void inline augmented_matrix_scale_row(struct augmented_matrix* matrix, size_t i, uint8_t scale)
 {
 	for (size_t k = 0; k < matrix->size; k++)
@@ -164,25 +185,30 @@ static void inline augmented_matrix_gaussian_elimination(struct augmented_matrix
 	// Make the matrix an upper triangluar with leading zeros
 	for (size_t i = 0; i < matrix->size; i++)
 	{
-		size_t leading_zeros = 0;
+		const size_t leading_zeros = augmented_matrix_rearrange_zeros(matrix,i);
 
-		for (size_t j = i; j < matrix->size - leading_zeros; j++)
-			if (matrix->matrix[i + matrix->size * j] == 0)
-			{
-				augmented_matrix_swap_row(matrix, j, matrix->size - 1 - leading_zeros);
-				leading_zeros++;
-			}
-			else
-			{
-				const uint8_t inv = ginv(matrix->matrix[i + matrix->size * j]);
-				augmented_matrix_scale_row(matrix, j, inv);
-			}
+	
+		const uint8_t leading_val = matrix->matrix[i + matrix->size * i];
+
+		// The ith column is a linear combination of the previous rows so the matrix is singular
+		if (leading_val == 0)
+		{
+			printf("CRITICAL ERROR: matrix is singular\n");
+			return;	
+		}
+
+		augmented_matrix_scale_row(matrix, i, ginv(leading_val));
 
 		for (size_t j = i + 1; j < matrix->size - leading_zeros; j++)
+		{
+			const uint8_t inv = ginv(matrix->matrix[i + matrix->size * j]);
+			augmented_matrix_scale_row(matrix, j, inv);
 			augmented_matrix_add_row(matrix, j, i);
+		}
 	}
 
 	// Make the matrix the identy matrix
+	// This can be optimzed, since we don't care about the matrix at this point there is no reasion to update
 	for (size_t i = 1; i < matrix->size; i++)
 		for (size_t j = 0; j < i; j++)
 			if (matrix->matrix[matrix->size * j + i])
@@ -255,4 +281,32 @@ uint8_t hash(struct hash_data* hash_data, const char* key)
 			break;
 
 	return output;
+}
+
+// Hash table
+
+struct hash_table
+{
+	struct hash_data;
+	const char*** keys;
+};
+
+struct hash_table* hash_table_new(const char*** keys)
+{
+	struct hash_table* output = malloc(sizeof(struct hash_table));
+
+	struct hash_data* temp = calc_hash_data(keys, NULL);
+
+	*output = (struct hash_table)
+	{
+		.n = temp->n,
+		.coefficients = malloc(sizeof(uint8_t) * temp->n),
+	};
+
+	return NULL;
+}
+
+uint8_t hash_table_get(struct hash_table* table, const char* key)
+{
+	return 0;
 }

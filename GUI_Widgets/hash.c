@@ -6,6 +6,24 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* There is a problem with this implimentation.
+ * Because of how function names are written we don't actually have as much varity as it might look, making a singular matrix likely:
+ * 
+ *		set_keyframe_abc
+ *		set_keyframe_def
+ *		set_keyframe_ghi
+ *	
+ * Only have three characters of variantion between them.
+ * This makes a row being a linear combination of another likey, which makes a singular matrix likey.
+ * 
+ * Consider having two hash functions.
+ * One called "encode" which takes from the source set to an n sized block of uint8_t.
+ * One that takes an block to a single uint8_t.
+ * 
+ * The encode has to sensitvly depend on every input char and can have a random offset to change to force a non-singular matrix.
+ * (This random number might be called a nonce or salt in proper cryptographic circles, not sure.
+ */
+
 // F = GF(2)
 // F[x]/(x^8 + x^4 + x^3 + x + 1)
 /* Add two numbers in the GF(2^8) finite field */

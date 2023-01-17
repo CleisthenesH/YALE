@@ -36,6 +36,8 @@ extern struct work_queue* widget_engine_widget_work();
 extern void widget_engine_update();
 extern void widget_engine_event_handler();
 
+extern void piece_manager_setglobal(lua_State*);
+
 ALLEGRO_FONT* emily_huo_font(const char*);
 
 static ALLEGRO_DISPLAY* display;
@@ -66,6 +68,7 @@ static inline int lua_init()
         return 0;
 
     luaL_openlibs(main_lua_state);
+    piece_manager_setglobal(main_lua_state);
 
     return 1;
 }

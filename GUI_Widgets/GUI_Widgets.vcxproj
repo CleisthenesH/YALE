@@ -189,6 +189,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClInclude>
+    <ClInclude Include="piece_manager.h" />
     <ClInclude Include="hash.h" />
     <ClInclude Include="lua\lapi.h" />
     <ClInclude Include="lua\lauxlib.h" />
@@ -231,6 +232,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="font_loader.c" />
+    <ClCompile Include="piece_manager.c" />
     <ClCompile Include="hash.c" />
     <ClCompile Include="lua\lapi.c" />
     <ClCompile Include="lua\lauxlib.c" />
@@ -277,19 +279,14 @@
     <None Include="boot.lua" />
     <None Include="packages.config" />
     <None Include="post_boot.lua" />
-    <None Include="README.md" />
-    <None Include="predraw_pixel_shader.glsl" />
-    <None Include="predraw_vertex_shader.glsl" />
     <None Include="shaders\style_element_pixel_shader.glsl" />
     <None Include="shaders\style_element_vertex_shader.glsl" />
     <None Include="shaders\widget_pixel_shader.glsl" />
     <None Include="shaders\widget_vertex_shader.glsl" />
-    <None Include="widget_pixel_shader.glsl" />
-    <None Include="widget_vertex_shader.glsl" />
+    <None Include="sketch.lua" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="..\LICENSE.txt" />
-    <Text Include="LICENSE.txt" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="res\alex.bmp" />

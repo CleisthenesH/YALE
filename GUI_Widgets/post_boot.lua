@@ -46,6 +46,7 @@ function control_rect:right_click()
 	end
 end
 
+print(piece_manager_new(12,"test"))
 print("post boot complete")
 
 --[[

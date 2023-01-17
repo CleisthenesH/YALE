@@ -37,6 +37,9 @@
     <Filter Include="hash">
       <UniqueIdentifier>{9c016a3b-ba3c-40e4-9d2c-b41745712971}</UniqueIdentifier>
     </Filter>
+    <Filter Include="game_state">
+      <UniqueIdentifier>{544d5bbc-863e-46b8-a67b-9d9cd6e6ae64}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="style_element.c">
@@ -162,6 +165,9 @@
     <ClCompile Include="hash.c">
       <Filter>hash</Filter>
     </ClCompile>
+    <ClCompile Include="piece_manager.c">
+      <Filter>game_state</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="style_element.h">
@@ -263,22 +269,12 @@
     <ClInclude Include="hash.h">
       <Filter>hash</Filter>
     </ClInclude>
+    <ClInclude Include="piece_manager.h">
+      <Filter>game_state</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
-    <None Include="predraw_pixel_shader.glsl">
-      <Filter>style_element</Filter>
-    </None>
-    <None Include="predraw_vertex_shader.glsl">
-      <Filter>style_element</Filter>
-    </None>
-    <None Include="README.md" />
-    <None Include="widget_vertex_shader.glsl">
-      <Filter>widget_interface</Filter>
-    </None>
-    <None Include="widget_pixel_shader.glsl">
-      <Filter>widget_interface</Filter>
-    </None>
     <None Include="boot.lua">
       <Filter>scripts</Filter>
     </None>
@@ -298,9 +294,11 @@
     <None Include="shaders\style_element_vertex_shader.glsl">
       <Filter>style_element</Filter>
     </None>
+    <None Include="sketch.lua">
+      <Filter>scripts</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
-    <Text Include="LICENSE.txt" />
     <Text Include="..\LICENSE.txt" />
   </ItemGroup>
   <ItemGroup>

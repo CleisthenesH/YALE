@@ -63,7 +63,7 @@ static void right_click(struct widget_interface* const widget)
 	rectangle->cnt--;
 }
 
-static void gc(struct widget_interface* const widget)
+static void piece_gc(struct widget_interface* const widget)
 {
 	printf("gc hit\n");
 }
@@ -189,7 +189,7 @@ static int index(lua_State* L)
 
 static const struct widget_jump_table rectangle_jump_table_entry = 
 {
-	.gc = gc,
+	.gc = piece_gc,
 	.draw = draw,
 	.mask = draw,
 	.hover_start = hover_start,

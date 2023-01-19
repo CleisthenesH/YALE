@@ -231,6 +231,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="checker.c" />
     <ClCompile Include="font_loader.c" />
     <ClCompile Include="piece_manager.c" />
     <ClCompile Include="hash.c" />
@@ -269,6 +270,7 @@
     <ClCompile Include="main.c" />
     <ClCompile Include="rectangle.c" />
     <ClCompile Include="slider.c" />
+    <ClCompile Include="square.c" />
     <ClCompile Include="style_element.c" />
     <ClCompile Include="thread_pool.c" />
     <ClCompile Include="transform_utility.c" />

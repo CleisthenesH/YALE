@@ -40,6 +40,9 @@
     <Filter Include="game_state">
       <UniqueIdentifier>{544d5bbc-863e-46b8-a67b-9d9cd6e6ae64}</UniqueIdentifier>
     </Filter>
+    <Filter Include="pieces">
+      <UniqueIdentifier>{bbc4b4a2-26f4-4db5-bbf0-ac35fe82bbbf}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="style_element.c">
@@ -167,6 +170,12 @@
     </ClCompile>
     <ClCompile Include="piece_manager.c">
       <Filter>game_state</Filter>
+    </ClCompile>
+    <ClCompile Include="checker.c">
+      <Filter>pieces</Filter>
+    </ClCompile>
+    <ClCompile Include="square.c">
+      <Filter>pieces</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

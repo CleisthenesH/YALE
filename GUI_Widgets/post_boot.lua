@@ -34,6 +34,7 @@ function control_rect:left_click()
 end
 
 function control_rect:right_click()
+-- TODO: Fix, I think it's just using a deprecated function
 	if destination ~= nil then
 		current_timestamp = widget_engine.current_time()
 		destination.timestamp = current_timestamp + 1
@@ -46,7 +47,24 @@ function control_rect:right_click()
 	end
 end
 
-print(piece_manager_new(12,"test"))
+piece_manager = piece_manager_new()	
+
+piece_manager:new_piece("checker")
+piece_manager:new_piece("checker")
+piece_manager:new_piece("checker")
+piece_manager:new_piece("checker")
+
+test_square = piece_manager:new_zone("square")
+test_square:set_keyframe{x=700,y=800}
+
+for i,v in pairs(piece_manager.pieces) do
+	v:set_keyframe{x=700+100*i,y=700}
+	print(i,v)
+end
+
+print(piece_manager.pieces)
+
+
 print("post boot complete")
 
 --[[

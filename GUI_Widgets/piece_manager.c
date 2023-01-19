@@ -1,78 +1,18 @@
+// Copyright 2023 Kieran W Harvie. All rights reserved.
+// Use of this source code is governed by an MIT-style
+// license that can be found in the LICENSE file.
+
 #include "piece_manager.h"
-#include "widget_interface.h"
-
-#include <stdint.h>
-#include <stdbool.h>
-
-#include "lua/lua.h"
-#include "lua/lualib.h"
-#include "lua/lauxlib.h"
-#include "lua/lualib.h"
 
 extern lua_State* const main_lua_state;
 
-struct game_piece_jump_table
-{
-	void (*gc)(struct game_piece* const);
-	void (*draw)(const struct game_piece* const);
-	void (*mask)(const struct game_piece* const);
-	// maybe add a function that pushes custom relevent to dragable context to the stack
-};
-
-struct game_zone_jump_table
-{
-	void (*gc)(struct game_piece* const);
-	void (*draw)(const struct game_piece* const);
-	void (*mask)(const struct game_piece* const);
-};
-
-struct game_piece
-{
-	struct widget_interface* widget_interface;
-	const struct game_piece_jump_table* jump_table;
-
-	struct game_zone* location;
-	struct piece_manager* state;
-
-	uint8_t type;
-	uint8_t subtype;
-	uint8_t owner;
-	uint8_t controler;
-
-	int is_dragable_funct_ref;
-	int valild_zones_funct_ref;
-};
-
-struct game_zone
-{
-	struct widget_interface* widget_interface;
-	struct widget_jump_table* jump_table;
-
-	uint8_t owner;
-	uint8_t controler;
-	uint8_t type;		// Like inplay, inhand
-	uint8_t subtype;	// Like a counter
-
-	bool droppable_zone;
-};
-
-struct piece_manager
-{
-	struct game_zone* zones;
-	size_t zones_allocated;
-	size_t zones_used;
-
-	struct game_piece* pieces;
-	size_t pieces_allocated;
-	size_t pieces_used;
-} ;
-
-// game_piece function
+// game_piece integration functions
 
 static void piece_gc(struct widget_interface* const widget)
 {
 	 struct game_piece* const game_piece = (struct game_piece*) widget->upcast;
-	 game_piece->jump_table->gc(game_piece);
+	 if(game_piece->jump_table->gc)
+		game_piece->jump_table->gc(game_piece);
 }
 
 static void piece_draw(const struct widget_interface* const widget)
@@ -114,33 +54,6 @@ static void piece_hover_end(const struct widget_interface* const widget)
 	// some type of default snap and dragable ness?
 }
 
-// game_zone functions
-
-static void zone_gc(struct widget_interface* const widget)
-{
-	struct game_zone* const game_zone = (struct game_zone*)widget->upcast;
-	game_zone->jump_table->gc(game_zone);
-}
-
-static void zone_draw(const struct widget_interface* const widget)
-{
-	struct game_zone* const game_zone = (struct game_zone*)widget->upcast;
-	game_zone->jump_table->draw(game_zone);
-}
-
-static void zone_mask(const struct widget_interface* const widget)
-{
-	struct game_zone* const game_zone = (struct game_zone*)widget->upcast;
-	game_zone->jump_table->mask(game_zone);
-}
-
-static void zone_drag_end_drop(struct widget_interface* const zone, struct widget_interface* const piece)
-{
-
-}
-
-// wiring up jump tables
-
 static const struct widget_jump_table game_piece_to_widget_table =
 {
 	.gc = piece_gc,
@@ -150,6 +63,83 @@ static const struct widget_jump_table game_piece_to_widget_table =
 	.hover_end = piece_hover_end,
 };
 
+// game_piece general functions
+
+void piece_new(lua_State* L, void* upcast,
+	const struct game_piece_jump_table* const jump_table)
+{
+	struct game_piece* const piece = malloc(sizeof(struct game_piece));
+
+	if (!piece)
+		return 0;
+
+	*piece = (struct game_piece)
+	{
+		.widget_interface = widget_interface_new(L,piece,&game_piece_to_widget_table),
+		.jump_table = jump_table,
+		.upcast = upcast
+	};
+
+	return piece;
+}
+
+extern void checker_new(lua_State*);
+
+static int piece_new_lua(lua_State* L)
+{
+	struct piece_manager* const piece_manager = (struct piece_manager*)luaL_checkudata(L, -2, "piece_manager_mt");
+	if (lua_type(L, -1) == LUA_TSTRING)
+	{
+		const char* key = luaL_checkstring(L, -1);
+
+		if (strcmp(key, "checker") == 0)
+		{
+			lua_rawgeti(L, LUA_REGISTRYINDEX, piece_manager->piece_table_ref);
+			lua_len(L, -1);
+			const int idx = luaL_checkinteger(L, -1)+1; 
+			lua_pop(L, 1);
+
+			checker_new(L);
+			lua_pushvalue(L, -1);
+
+			lua_rawseti(L, -3,idx);
+
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
+
+// game_zone functions
+
+
+static void zone_gc(struct widget_interface* const widget)
+{
+	struct game_zone* const game_zone = (struct game_zone*)widget->upcast;
+
+	if(game_zone->jump_table->gc)
+		game_zone->jump_table->gc(game_zone->widget_interface);
+}
+
+static void zone_draw(const struct widget_interface* const widget)
+{
+	struct game_zone* const game_zone = (struct game_zone*)widget->upcast;
+	game_zone->jump_table->draw(game_zone->widget_interface);
+}
+
+static void zone_mask(const struct widget_interface* const widget)
+{
+	struct game_zone* const game_zone = (struct game_zone*)widget->upcast;
+	game_zone->jump_table->mask(game_zone->widget_interface);
+}
+
+static void zone_drag_end_drop(struct widget_interface* const zone, struct widget_interface* const piece)
+{
+
+}
+
 static const struct widget_jump_table game_zone_to_widget_table =
 {
 	.gc = zone_gc,
@@ -158,11 +148,86 @@ static const struct widget_jump_table game_zone_to_widget_table =
 	.drag_end_drop = zone_drag_end_drop,
 };
 
-// piece_manager methods
-
-static int new_zone(lua_State* L)
+void zone_new(lua_State* L, void* upcast,
+	const struct game_zone_jump_table* const jump_table)
 {
-	printf("new_zone\n");
+	struct game_zone* const zone = malloc(sizeof(struct game_zone));
+
+	if (!zone)
+		return 0;
+
+	*zone = (struct game_zone)
+	{
+		.widget_interface = widget_interface_new(L,zone,&game_zone_to_widget_table),
+		.jump_table = jump_table,
+		.upcast = upcast
+	};
+
+	return zone;
+}
+
+extern void square_new(lua_State*);
+
+static int zone_new_lua(lua_State* L)
+{
+	struct piece_manager* const piece_manager = (struct piece_manager*)luaL_checkudata(L, -2, "piece_manager_mt");
+	if (lua_type(L, -1) == LUA_TSTRING)
+	{
+		const char* key = luaL_checkstring(L, -1);
+
+		if (strcmp(key, "square") == 0)
+		{
+			lua_rawgeti(L, LUA_REGISTRYINDEX, piece_manager->zone_table_ref);
+			lua_len(L, -1);
+			const int idx = luaL_checkinteger(L, -1) + 1;
+			lua_pop(L, 1);
+
+			square_new(L);
+			lua_pushvalue(L, -1);
+
+			lua_rawseti(L, -3, idx);
+
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
+// Geneal widget index method
+static int index(lua_State* L)
+{
+	struct piece_manager* const piece_manager = (struct piece_manager*)luaL_checkudata(L, -2, "piece_manager_mt");
+
+	if (lua_type(L, -1) == LUA_TSTRING)
+	{
+		const char* key = luaL_checkstring(L, -1);
+
+		if (strcmp(key, "pieces") == 0)
+		{
+			lua_rawgeti(L, LUA_REGISTRYINDEX, piece_manager->piece_table_ref );
+			return 1;
+		}
+
+		if (strcmp(key, "zones") == 0)
+		{
+			lua_rawgeti(L, LUA_REGISTRYINDEX, piece_manager->zone_table_ref);
+			return 1;
+		}
+
+		if (strcmp(key, "new_zone") == 0)
+		{
+			lua_pushcfunction(L, zone_new_lua);
+			return 1;
+		}
+
+		if (strcmp(key, "new_piece") == 0)
+		{
+			lua_pushcfunction(L, piece_new_lua);
+			return 1;
+		}
+	}
+
 	return 0;
 }
 
@@ -174,19 +239,14 @@ static int piece_manager_new(lua_State* L)
 	if (!piece_manager)
 		return 0;
 
-	*piece_manager = (struct piece_manager)
-	{
-		.pieces = NULL,
-		.pieces_allocated = 0,
-		.pieces_used = 0,
-
-		.zones = NULL,
-		.zones_allocated = 0,
-		.zones_used = 0,
-	};
-
 	luaL_getmetatable(L, "piece_manager_mt");
 	lua_setmetatable(L, -2);
+
+	lua_newtable(L);
+	piece_manager->piece_table_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+
+	lua_newtable(L);
+	piece_manager->zone_table_ref = luaL_ref(L, LUA_REGISTRYINDEX);
 
 	return 1;
 }
@@ -201,7 +261,7 @@ void piece_manager_setglobal(lua_State* L)
 	luaL_newmetatable(L, "piece_manager_mt");
 
 	const struct luaL_Reg meta_table[] = {
-		{"new_zone",new_zone},
+		{"__index",index},
 		{NULL,NULL}
 	};
 

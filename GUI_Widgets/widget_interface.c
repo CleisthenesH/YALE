@@ -77,6 +77,10 @@ struct widget
     struct widget* next;
     struct widget* previous;
 
+    // TODO: change to uservalues
+    // make the jumptable have a uservalue column and offset by that value
+    // maybe a table with string keys, that seems cool
+    // so widgets writers don't need to know the number
     struct
     {
 #define DECLARE(method) int method;

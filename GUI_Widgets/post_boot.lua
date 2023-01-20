@@ -33,6 +33,7 @@ function control_rect:left_click()
 	moving_rect:interupt()
 end
 
+-- syntactic sugar for control_rec.right_click = function()
 function control_rect:right_click()
 -- TODO: Fix, I think it's just using a deprecated function
 	if destination ~= nil then
@@ -63,7 +64,6 @@ for i,v in pairs(piece_manager.pieces) do
 end
 
 print(piece_manager.pieces)
-
 
 print("post boot complete")
 

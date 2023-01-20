@@ -94,7 +94,7 @@ static int piece_new_lua(lua_State* L)
 
 		if (strcmp(key, "checker") == 0)
 		{
-			lua_rawgeti(L, LUA_REGISTRYINDEX, piece_manager->piece_table_ref);
+			lua_getiuservalue(L, -2, 1);
 			lua_len(L, -1);
 			const int idx = luaL_checkinteger(L, -1)+1; 
 			lua_pop(L, 1);
@@ -120,19 +120,19 @@ static void zone_gc(struct widget_interface* const widget)
 	struct game_zone* const game_zone = (struct game_zone*)widget->upcast;
 
 	if(game_zone->jump_table->gc)
-		game_zone->jump_table->gc(game_zone->widget_interface);
+		game_zone->jump_table->gc(game_zone);
 }
 
 static void zone_draw(const struct widget_interface* const widget)
 {
 	struct game_zone* const game_zone = (struct game_zone*)widget->upcast;
-	game_zone->jump_table->draw(game_zone->widget_interface);
+	game_zone->jump_table->draw(game_zone);
 }
 
 static void zone_mask(const struct widget_interface* const widget)
 {
 	struct game_zone* const game_zone = (struct game_zone*)widget->upcast;
-	game_zone->jump_table->mask(game_zone->widget_interface);
+	game_zone->jump_table->mask(game_zone);
 }
 
 static void zone_drag_end_drop(struct widget_interface* const zone, struct widget_interface* const piece)
@@ -177,7 +177,7 @@ static int zone_new_lua(lua_State* L)
 
 		if (strcmp(key, "square") == 0)
 		{
-			lua_rawgeti(L, LUA_REGISTRYINDEX, piece_manager->zone_table_ref);
+			lua_getiuservalue(L, -2, 2);
 			lua_len(L, -1);
 			const int idx = luaL_checkinteger(L, -1) + 1;
 			lua_pop(L, 1);
@@ -205,13 +205,13 @@ static int index(lua_State* L)
 
 		if (strcmp(key, "pieces") == 0)
 		{
-			lua_rawgeti(L, LUA_REGISTRYINDEX, piece_manager->piece_table_ref );
+			lua_getiuservalue(L, -2, 1);
 			return 1;
 		}
 
 		if (strcmp(key, "zones") == 0)
 		{
-			lua_rawgeti(L, LUA_REGISTRYINDEX, piece_manager->zone_table_ref);
+			lua_getiuservalue(L, -2, 2);
 			return 1;
 		}
 
@@ -226,6 +226,12 @@ static int index(lua_State* L)
 			lua_pushcfunction(L, piece_new_lua);
 			return 1;
 		}
+
+		if (strcmp(key, "test") == 0)
+		{
+			lua_getuservalue(L, 1);	
+			return 1;
+		}
 	}
 
 	return 0;
@@ -234,7 +240,7 @@ static int index(lua_State* L)
 static int piece_manager_new(lua_State* L)
 {
 	// TODO: implements hints
-	struct piece_manager* const piece_manager = lua_newuserdata(L, sizeof(struct piece_manager));
+	struct piece_manager* const piece_manager = lua_newuserdatauv(L, sizeof(struct piece_manager),2);
 
 	if (!piece_manager)
 		return 0;
@@ -243,10 +249,10 @@ static int piece_manager_new(lua_State* L)
 	lua_setmetatable(L, -2);
 
 	lua_newtable(L);
-	piece_manager->piece_table_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+	lua_setiuservalue(L, -2, 1);
 
 	lua_newtable(L);
-	piece_manager->zone_table_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+	lua_setiuservalue(L, -2, 2);
 
 	return 1;
 }

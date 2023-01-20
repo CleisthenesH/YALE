@@ -15,9 +15,9 @@
 
 struct game_zone_jump_table
 {
-	void (*gc)(struct game_piece* const);
-	void (*draw)(const struct game_piece* const);
-	void (*mask)(const struct game_piece* const);
+	void (*gc)(struct game_zone* const);
+	void (*draw)(const struct game_zone* const);
+	void (*mask)(const struct game_zone* const);
 };
 
 struct game_zone

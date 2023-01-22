@@ -4,12 +4,12 @@
 
 -- Runs once after all inializations have ran but before the main loop.
 
-control_rect = widget_engine.rectangle()
-moving_rect = widget_engine.rectangle()
-test_button = widget_engine.button()
-slider = widget_engine.slider()
+control_rect = rectangle_new()
+moving_rect = rectangle_new()
+test_button = button_new()
+slider = slider_new()
 
-current_timestamp = widget_engine.current_time()
+current_timestamp = current_time()
 
 control_rect:set_keyframe{x=700,y=100}
 
@@ -37,7 +37,7 @@ end
 function control_rect:right_click()
 -- TODO: Fix, I think it's just using a deprecated function
 	if destination ~= nil then
-		current_timestamp = widget_engine.current_time()
+		current_timestamp = current_time()
 		destination.timestamp = current_timestamp + 1
 		moving_rect:new_keyframe(destination)
 
@@ -54,22 +54,23 @@ piece_manager:new_piece("checker")
 piece_manager:new_piece("checker")
 piece_manager:new_piece("checker")
 piece_manager:new_piece("checker")
+piece_manager:new_zone("square")
 
-test_square = piece_manager:new_zone("square")
-test_square:set_keyframe{x=700,y=800}
-
+print("pieces")
+local x_pos = 700
 for i,v in pairs(piece_manager.pieces) do
-	v:set_keyframe{x=700+100*i,y=700}
+	v:set_keyframe{x=x_pos,y=700}
+	x_pos = x_pos + 100
 	print(i,v)
 end
 
-print(piece_manager.pieces)
+print("zones")
+local x_pos = 700
+for i,v in pairs(piece_manager.zones) do
+	v:set_keyframe{x=x_pos,y=900}
+	x_pos = x_pos + 100
+	print(i,v)
+end
 
 print("post boot complete")
-
---[[
-card = widget_engine.card()
-card:set_keyframe{x=800,y=500}
---]]
-
 

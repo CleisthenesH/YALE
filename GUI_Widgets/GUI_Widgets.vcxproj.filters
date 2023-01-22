@@ -37,10 +37,10 @@
     <Filter Include="hash">
       <UniqueIdentifier>{9c016a3b-ba3c-40e4-9d2c-b41745712971}</UniqueIdentifier>
     </Filter>
-    <Filter Include="game_state">
+    <Filter Include="piece_manager">
       <UniqueIdentifier>{544d5bbc-863e-46b8-a67b-9d9cd6e6ae64}</UniqueIdentifier>
     </Filter>
-    <Filter Include="pieces">
+    <Filter Include="piece_manager\pieces">
       <UniqueIdentifier>{bbc4b4a2-26f4-4db5-bbf0-ac35fe82bbbf}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
@@ -169,13 +169,13 @@
       <Filter>hash</Filter>
     </ClCompile>
     <ClCompile Include="piece_manager.c">
-      <Filter>game_state</Filter>
+      <Filter>piece_manager</Filter>
     </ClCompile>
     <ClCompile Include="checker.c">
-      <Filter>pieces</Filter>
+      <Filter>piece_manager\pieces</Filter>
     </ClCompile>
     <ClCompile Include="square.c">
-      <Filter>pieces</Filter>
+      <Filter>piece_manager\pieces</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -279,7 +279,7 @@
       <Filter>hash</Filter>
     </ClInclude>
     <ClInclude Include="piece_manager.h">
-      <Filter>game_state</Filter>
+      <Filter>piece_manager</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -30,7 +30,7 @@ static void piece_mask(const struct widget_interface* const widget)
 static void piece_hover_start(struct widget_interface* const widget)
 {
 	struct game_piece* const game_piece = (struct game_piece*)widget->upcast;
-
+/*
 	// Check if the game_piece is draggable
 	if (game_piece->is_dragable_funct_ref != LUA_REFNIL)
 	{
@@ -45,6 +45,7 @@ static void piece_hover_start(struct widget_interface* const widget)
 			widget->is_draggable = (luaL_checkinteger(main_lua_state,-1) != 0);
 		// TODO: handle errors
 	}
+	*/
 
 	// Update snappable zones
 }
@@ -65,7 +66,7 @@ static const struct widget_jump_table game_piece_to_widget_table =
 
 // game_piece general functions
 
-void piece_new(lua_State* L, void* upcast,
+struct game_piece* piece_new(lua_State* L, void* upcast,
 	const struct game_piece_jump_table* const jump_table)
 {
 	struct game_piece* const piece = malloc(sizeof(struct game_piece));
@@ -80,6 +81,10 @@ void piece_new(lua_State* L, void* upcast,
 		.upcast = upcast
 	};
 
+	lua_pushlightuserdata(L, piece);
+	lua_rotate(L, -2, 1);
+
+	// pushes a lightudata and udata to the stack (in that order, light under normal)
 	return piece;
 }
 
@@ -95,15 +100,9 @@ static int piece_new_lua(lua_State* L)
 		if (strcmp(key, "checker") == 0)
 		{
 			lua_getiuservalue(L, -2, 1);
-			lua_len(L, -1);
-			const int idx = luaL_checkinteger(L, -1)+1; 
-			lua_pop(L, 1);
-
 			checker_new(L);
-			lua_pushvalue(L, -1);
-
-			lua_rawseti(L, -3,idx);
-
+			lua_settable(L, -3);
+			
 			return 1;
 		}
 	}
@@ -111,9 +110,7 @@ static int piece_new_lua(lua_State* L)
 	return 0;
 }
 
-
 // game_zone functions
-
 
 static void zone_gc(struct widget_interface* const widget)
 {
@@ -148,7 +145,7 @@ static const struct widget_jump_table game_zone_to_widget_table =
 	.drag_end_drop = zone_drag_end_drop,
 };
 
-void zone_new(lua_State* L, void* upcast,
+struct game_zone* zone_new(lua_State* L, void* upcast,
 	const struct game_zone_jump_table* const jump_table)
 {
 	struct game_zone* const zone = malloc(sizeof(struct game_zone));
@@ -162,6 +159,9 @@ void zone_new(lua_State* L, void* upcast,
 		.jump_table = jump_table,
 		.upcast = upcast
 	};
+
+	lua_pushlightuserdata(L, zone);
+	lua_rotate(L, -2, 1);
 
 	return zone;
 }
@@ -178,14 +178,8 @@ static int zone_new_lua(lua_State* L)
 		if (strcmp(key, "square") == 0)
 		{
 			lua_getiuservalue(L, -2, 2);
-			lua_len(L, -1);
-			const int idx = luaL_checkinteger(L, -1) + 1;
-			lua_pop(L, 1);
-
 			square_new(L);
-			lua_pushvalue(L, -1);
-
-			lua_rawseti(L, -3, idx);
+			lua_settable(L, -3);
 
 			return 1;
 		}

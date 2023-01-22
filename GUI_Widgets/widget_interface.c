@@ -77,10 +77,13 @@ struct widget
     struct widget* next;
     struct widget* previous;
 
-    // TODO: change to uservalues
-    // make the jumptable have a uservalue column and offset by that value
-    // maybe a table with string keys, that seems cool
-    // so widgets writers don't need to know the number
+    // TODO: Manage Registry Use
+    // This method creates a new registry entry for every function call.
+    // I don't want to prematurly optimize it away but if it becomes to much it can be replace by a single table.
+    // And if that become's too much a single registry entryf or each widget. 
+    // And if that's too much a sperate table for all active widgets.
+    // (This could also have other uses + it should be a weak table to not interfer with gc).
+    // Q: Why not use uservalues. A: The callback can be called from anycontext, i.e. not knowing the udata.
     struct
     {
 #define DECLARE(method) int method;
@@ -565,6 +568,13 @@ struct widget_interface* widget_interface_new(
     luaL_getmetatable(L, "widget_mt");
     lua_setmetatable(L, -2);
 
+    lua_getglobal(L, "widgets");
+    lua_pushlightuserdata(L, widget);
+    lua_pushvalue(L, -3);
+    
+    lua_settable(L, -3);
+    lua_pop(L, 1);
+    
     return (struct widget_interface*) widget;
 }
 
@@ -911,17 +921,21 @@ void widget_engine_init(lua_State* L)
         al_get_bitmap_width(al_get_target_bitmap()),
         al_get_bitmap_width(al_get_target_bitmap()));
 
-    // Make the widget_engine table
-	#define LUA_REG_ENTRY(widget) {#widget , widget ## _new},
+    lua_pushcfunction(L, get_current_time);
+    lua_setglobal(L, "current_time");
 
-	const struct luaL_Reg lib_f[] = {
-		FOR_WIDGETS(LUA_REG_ENTRY)
-		{"current_time",get_current_time},
-		{NULL,NULL}
-	};
+#define LUA_REG_FUNCT(widget) lua_pushcfunction(L, widget ## _new); \
+    lua_setglobal(L, #widget  "_new");
 
-    luaL_newlib(L, lib_f);
-    lua_setglobal(L, "widget_engine");
+    FOR_WIDGETS(LUA_REG_FUNCT)
+
+    // Make a weak global table to contain the widgets
+    lua_newtable(L);
+    lua_newtable(L);
+    lua_pushstring(L, "vk");
+    lua_setfield(L, -2, "__mode");
+    lua_setmetatable(L, -2);
+    lua_setglobal(L, "widgets");
 
     // Make the widget meta table
     luaL_newmetatable(L, "widget_mt");

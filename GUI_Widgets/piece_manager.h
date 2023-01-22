@@ -26,12 +26,9 @@ struct game_zone
 	const struct game_zone_jump_table* jump_table;
 	void* upcast;
 
-	uint8_t owner;
-	uint8_t controler;
-	uint8_t type;		// Like inplay, inhand
-	uint8_t subtype;	// Like a counter
-
-	bool droppable_zone;
+	int payload;
+	int game_pieces;
+	int piece_manager;
 };
 
 struct game_piece_jump_table
@@ -49,28 +46,25 @@ struct game_piece
 
 	void* upcast;
 
-	struct game_zone* location;
-	struct piece_manager* state;
-
-	uint8_t type;
-	uint8_t subtype;
-	uint8_t owner;
-	uint8_t controler;
-
-	int is_dragable_funct_ref;
-	int valild_zones_funct_ref;
+	int payload;
+	int game_zones; // A table of game_zones the piece is in
+	int piece_manager;
 };
 
 struct piece_manager
 {
-	int piece_table_ref;
-	int zone_table_ref;
+	int self;
+
+	int piece_drag_start;
+	int zone_drag_start;
+	int zone_drag_end;
+	int zone_drag_drop;
 };
 
-void zone_new(lua_State* L, void* upcast,
+struct game_zone* zone_new(lua_State* L, void* upcast,
 	const struct game_zone_jump_table* const jump_table);
 
-void piece_new(lua_State* L, void* upcast,
+struct game_piece* piece_new(lua_State* L, void* upcast,
 	const struct game_piece_jump_table* const jump_table);
 
 // Some inits

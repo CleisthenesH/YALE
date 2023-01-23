@@ -13,12 +13,11 @@ piece_manager:new_zone("square"):set_keyframe{x=700, y=700}
 
 local checker = piece_manager:new_piece("checker")
 checker:set_keyframe{x=100, y=100}
---checker:new_keyframe{x=900, y=100, timestamp = current_time()+1}
+checker:new_keyframe{x=900, y=100, timestamp = current_time()+1}
+checker:new_keyframe{x=400, y=200, timestamp = current_time()+2}
+checker:enter_loop(1)
 
 function piece_manager.pre_move(manager, piece)
-	--print("pre_move:")
-	--print(manager, piece)
-
 	local a = {}
 	local idx = 0
 
@@ -34,33 +33,14 @@ function piece_manager.pre_move(manager, piece)
 end
 
 function piece_manager.post_move(manager, piece, zone)
-	--print("post_move:")
-	--print(manager, piece, zone)
+	destination = zone.destination_keyframe
+	current_timestamp = current_time()
 
-	if(zone ~= nil) then
-		destination = zone.destination_keyframe
-		current_timestamp = current_time()
+	destination.timestamp = current_timestamp + 0.1
 
-		destination.timestamp = current_timestamp + 1
-
-		piece:interupt()
-		piece:new_keyframe(destination)
-	end
+	piece:interupt()
+	piece:new_keyframe(destination)
 end
 
 print("post boot complete")
-
---[[
-test_square = piece_manager:new_zone("square")
-test_square:set_keyframe{x=700,y=800}
-
-local x_pos = 700
-for i,v in pairs(piece_manager.pieces) do
-	v:set_keyframe{x=x_pos,y=700}
-	x_pos = x_pos + 100
-	print(i,v)
-end
-
-print("post boot complete")
---]]
 

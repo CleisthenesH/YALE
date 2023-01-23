@@ -108,28 +108,32 @@ static void piece_drag_start(struct widget_interface* const widget)
 
 static void piece_drag_end_no_drop(struct widget_interface* const widget)
 {
-	// Convert the pointer to the widget 
-	lua_getglobal(main_lua_state, "widgets");
-	lua_pushlightuserdata(main_lua_state, widget);
-	lua_gettable(main_lua_state, -2);
+	// Not actually a move, shouldn't trigger an event
+	if (0)
+	{
+		// Convert the pointer to the widget 
+		lua_getglobal(main_lua_state, "widgets");
+		lua_pushlightuserdata(main_lua_state, widget);
+		lua_gettable(main_lua_state, -2);
 
-	// Push the manager on the stack
-	lua_getiuservalue(main_lua_state, -1, 3);
+		// Push the manager on the stack
+		lua_getiuservalue(main_lua_state, -1, 3);
 
-	// Push the function on the stack
-	lua_getiuservalue(main_lua_state, -1, 4);
+		// Push the function on the stack
+		lua_getiuservalue(main_lua_state, -1, 4);
 
-	// Manipuate the stack such that the top is:
-	// function, manager, piece, nil
-	lua_rotate(main_lua_state, -3, 1);
-	lua_rotate(main_lua_state, -2, 1);
-	lua_pushnil(main_lua_state);
+		// Manipuate the stack such that the top is:
+		// function, manager, piece, nil
+		lua_rotate(main_lua_state, -3, 1);
+		lua_rotate(main_lua_state, -2, 1);
+		lua_pushnil(main_lua_state);
 
-	// Call the post_move function
-	lua_call(main_lua_state, 3, 0);
+		// Call the post_move function
+		lua_call(main_lua_state, 3, 0);
 
-	// clean the stack
-	lua_pop(main_lua_state, 1);
+		// clean the stack
+		lua_pop(main_lua_state, 1);
+	}
 }
 
 static int pieces_index(lua_State* L)
@@ -231,6 +235,9 @@ static void zone_mask(const struct widget_interface* const widget)
 
 static void zone_drag_end_drop(struct widget_interface* const zone, struct widget_interface* const piece)
 {
+	if (!zone->is_snappable)
+		return;
+
 	// Convert the pointers to the widget 
 	lua_getglobal(main_lua_state, "widgets");
 	lua_pushlightuserdata(main_lua_state, zone);

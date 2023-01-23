@@ -13,9 +13,6 @@
 #include <float.h>
 #include <math.h>
 
-// TODO: destination frame is bugged again. Fix and then hopfully not change again so it can finally be fixed for good >:(
-
-// TODO: Remove
 void stack_dump(lua_State* L)
 {
     int top = lua_gettop(L);
@@ -332,19 +329,6 @@ static inline void widget_set_drag()
     style_element_push_keyframe(current_hover->style_element, &keyframe);
 }
 
-// Updates current_hover keyframes to move towards the drag release
-static inline void widget_drag_release()
-{
-    style_element_interupt(current_hover->style_element);
-
-    update_transition_timestamp(current_hover, drag_release.x, drag_release.y);
-    drag_release.timestamp = transition_timestamp;
-
-    style_element_push_keyframe(current_hover->style_element, &drag_release);
-
-    current_drop = NULL;
-}
-
 // Updates and calls any callbacks for the last_click, current_hover, current_drop pointers
 static inline void widget_engine_update_drag_pointers()
 {
@@ -519,6 +503,13 @@ void widget_engine_event_handler()
         case ENGINE_STATE_SNAP:
         case ENGINE_STATE_TO_SNAP:
         case ENGINE_STATE_TO_DRAG:
+            style_element_interupt(current_hover->style_element);
+
+            update_transition_timestamp(current_hover, drag_release.x, drag_release.y);
+            drag_release.timestamp = transition_timestamp;
+
+            style_element_push_keyframe(current_hover->style_element, &drag_release);
+
             if (current_drop)
             {
                 if(current_drop->jump_table->drag_end_drop)
@@ -531,7 +522,7 @@ void widget_engine_event_handler()
             else
                 call(current_hover, drag_end_no_drop);
 
-            widget_drag_release();
+            current_drop = NULL;
             break;
         }
 

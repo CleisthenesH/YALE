@@ -6,80 +6,201 @@
 
 extern lua_State* const main_lua_state;
 
-// game_piece integration functions
+static const struct widget_jump_table piece_to_widget_table;
+static const struct widget_jump_table zone_to_widget_table;
+
+extern void checker_new(lua_State*);
+extern void square_new(lua_State*);
+
+struct zone
+{
+	struct widget_interface* widget_interface;
+	const struct zone_jump_table* jump_table;
+	void* upcast;
+};
+
+struct piece
+{
+	struct widget_interface* widget_interface;
+	const struct piece_jump_table* jump_table;
+
+	void* upcast;
+};
 
 static void piece_gc(struct widget_interface* const widget)
 {
-	 struct game_piece* const game_piece = (struct game_piece*) widget->upcast;
-	 if(game_piece->jump_table->gc)
-		game_piece->jump_table->gc(game_piece);
+	 struct piece* const piece = (struct piece*) widget->upcast;
+	 if(piece->jump_table->gc)
+		piece->jump_table->gc(piece);
 }
 
 static void piece_draw(const struct widget_interface* const widget)
 {
-	const struct game_piece* const game_piece = (struct game_piece*)widget->upcast;
-	game_piece->jump_table->draw(game_piece);
+	const struct piece* const piece = (struct piece*)widget->upcast;
+	piece->jump_table->draw(piece);
 }
 
 static void piece_mask(const struct widget_interface* const widget)
 {
-	const struct game_piece* const game_piece = (struct game_piece*)widget->upcast;
-	game_piece->jump_table->mask(game_piece);
+	const struct piece* const piece = (struct piece*)widget->upcast;
+	piece->jump_table->mask(piece);
 }
 
 static void piece_hover_start(struct widget_interface* const widget)
 {
-	struct game_piece* const game_piece = (struct game_piece*)widget->upcast;
-/*
-	// Check if the game_piece is draggable
-	if (game_piece->is_dragable_funct_ref != LUA_REFNIL)
-	{
-		lua_rawgeti(main_lua_state, LUA_REGISTRYINDEX, game_piece->is_dragable_funct_ref); 
-
-		lua_pushinteger(main_lua_state, game_piece->type);
-		lua_pushinteger(main_lua_state, game_piece->subtype);
-		lua_pushinteger(main_lua_state, game_piece->controler);
-		lua_pushinteger(main_lua_state, game_piece->owner);
-
-		if (lua_pcall(main_lua_state, 4, 1, 0) == LUA_OK && !lua_isnil(main_lua_state, -1))
-			widget->is_draggable = (luaL_checkinteger(main_lua_state,-1) != 0);
-		// TODO: handle errors
-	}
-	*/
-
-	// Update snappable zones
 }
 
-static void piece_hover_end(const struct widget_interface* const widget)
+static void piece_hover_end(struct widget_interface* const widget)
 {
 	// some type of default snap and dragable ness?
 }
 
-static const struct widget_jump_table game_piece_to_widget_table =
+static void piece_drag_start(struct widget_interface* const widget)
 {
-	.gc = piece_gc,
-	.draw = piece_draw,
-	.mask = piece_mask,
-	.hover_start = piece_hover_start,
-	.hover_end = piece_hover_end,
-};
+	// Convert the pointer to the widget 
+	lua_getglobal(main_lua_state, "widgets");
+	lua_pushlightuserdata(main_lua_state, widget);
+	lua_gettable(main_lua_state, -2);
 
-// game_piece general functions
+	// Push the manager on the stack
+	lua_getiuservalue(main_lua_state, -1, 3);
 
-struct game_piece* piece_new(lua_State* L, void* upcast,
-	const struct game_piece_jump_table* const jump_table)
+	// Push the zones onto the st
+	lua_getfield(main_lua_state, -1, "zones");
+
+	// All zones are not snappable by default
+	lua_pushnil(main_lua_state);  
+	while (lua_next(main_lua_state, -2) != 0) 
+	{
+		lua_pushboolean(main_lua_state, false);
+		lua_setfield(main_lua_state,-2,"snappable");
+
+		lua_pop(main_lua_state, 1);
+	}
+
+	// Push the function on the stack
+	lua_getiuservalue(main_lua_state, -2, 3);
+
+	// Manupulate stack such that the top is:
+	// function, state, piece
+	lua_rotate(main_lua_state, -4, -2);
+	lua_rotate(main_lua_state, -2, 1);
+
+	// Call the pre_move function
+	lua_call(main_lua_state, 2, 1);
+
+	// Everything in the returned table 
+	if (lua_istable(main_lua_state, -1))
+	{
+		lua_pushnil(main_lua_state);
+		while (lua_next(main_lua_state, -2) != 0)
+		{
+			lua_pushboolean(main_lua_state, true);
+			lua_setfield(main_lua_state, -2, "snappable");
+
+			lua_pop(main_lua_state, 1);
+		}
+	}
+
+	// Clean up the table
+	lua_pop(main_lua_state, 3);
+}
+
+static void piece_drag_end_no_drop(struct widget_interface* const widget)
 {
-	struct game_piece* const piece = malloc(sizeof(struct game_piece));
+	// Convert the pointer to the widget 
+	lua_getglobal(main_lua_state, "widgets");
+	lua_pushlightuserdata(main_lua_state, widget);
+	lua_gettable(main_lua_state, -2);
+
+	// Push the manager on the stack
+	lua_getiuservalue(main_lua_state, -1, 3);
+
+	// Push the function on the stack
+	lua_getiuservalue(main_lua_state, -1, 4);
+
+	// Manipuate the stack such that the top is:
+	// function, manager, piece, nil
+	lua_rotate(main_lua_state, -3, 1);
+	lua_rotate(main_lua_state, -2, 1);
+	lua_pushnil(main_lua_state);
+
+	// Call the post_move function
+	lua_call(main_lua_state, 3, 0);
+
+	// clean the stack
+	lua_pop(main_lua_state, 1);
+}
+
+static int pieces_index(lua_State* L)
+{
+	struct widget_interface* const widget = check_widget(L, -2, &piece_to_widget_table);
+	struct piece* const piece = widget->upcast;
+
+	if (lua_type(L, -1) == LUA_TSTRING)
+	{
+		const char* key = luaL_checkstring(L, -1);
+
+		if (strcmp(key, "zones") == 0)
+		{
+			lua_getiuservalue(L, -2, 2);
+			return 1;
+		}
+
+		if (strcmp(key, "manager") == 0)
+		{
+			lua_getiuservalue(L, -2, 3);
+			return 1;
+		}
+
+		if (strcmp(key, "payload") == 0)
+		{
+			lua_getiuservalue(L, -2, 1);
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
+static int pieces_new_index(lua_State* L)
+{
+	struct widget_interface* const widget = check_widget(L, -3, &piece_to_widget_table);
+	struct piece* const piece = widget->upcast;
+
+	if (lua_type(L, -2) == LUA_TSTRING)
+	{
+		const char* key = luaL_checkstring(L, -2);
+
+		if (strcmp(key, "payload") == 0)
+		{
+			lua_setiuservalue(L, -3, 1);
+			return 0;
+		}
+	}
+	return 0;
+
+}
+
+struct piece* piece_new(lua_State* L, void* upcast, const struct piece_jump_table* const jump_table)
+{
+	struct piece* const piece = malloc(sizeof(struct piece));
 
 	if (!piece)
 		return 0;
 
-	*piece = (struct game_piece)
+	*piece = (struct piece)
 	{
-		.widget_interface = widget_interface_new(L,piece,&game_piece_to_widget_table),
+		.widget_interface = widget_interface_new(L,piece,&piece_to_widget_table),
 		.jump_table = jump_table,
 		.upcast = upcast
 	};
+
+	piece->widget_interface->is_draggable = true;
+
+	// set the zones table to an empty table
+	lua_newtable(L);
+	lua_setiuservalue(L, -2, 2);
 
 	lua_pushlightuserdata(L, piece);
 	lua_rotate(L, -2, 1);
@@ -88,11 +209,105 @@ struct game_piece* piece_new(lua_State* L, void* upcast,
 	return piece;
 }
 
-extern void checker_new(lua_State*);
+static void zone_gc(struct widget_interface* const widget)
+{
+	struct zone* const zone = (struct zone*)widget->upcast;
 
-static int piece_new_lua(lua_State* L)
+	if(zone->jump_table->gc)
+		zone->jump_table->gc(zone);
+}
+
+static void zone_draw(const struct widget_interface* const widget)
+{
+	struct zone* const zone = (struct zone*)widget->upcast;
+	zone->jump_table->draw(zone);
+}
+
+static void zone_mask(const struct widget_interface* const widget)
+{
+	struct zone* const zone = (struct zone*)widget->upcast;
+	zone->jump_table->mask(zone);
+}
+
+static void zone_drag_end_drop(struct widget_interface* const zone, struct widget_interface* const piece)
+{
+	// Convert the pointers to the widget 
+	lua_getglobal(main_lua_state, "widgets");
+	lua_pushlightuserdata(main_lua_state, zone);
+	lua_gettable(main_lua_state, -2);
+	lua_pushlightuserdata(main_lua_state, piece);
+	lua_gettable(main_lua_state, -3);
+
+	// Push the manager on the stack
+	lua_getiuservalue(main_lua_state, -1, 3);
+
+	// Push the function on the stack
+	lua_getiuservalue(main_lua_state, -1, 4);
+
+	// Manipuate the stack such that the top is:
+	// function, manager, piece, nil
+	lua_rotate(main_lua_state, -4, 1);
+	lua_rotate(main_lua_state, -3, 1);
+	lua_rotate(main_lua_state, -2, 1);
+
+	// Call the post_move function
+	lua_call(main_lua_state, 3, 0);
+
+	// clean the stack
+	lua_pop(main_lua_state, 1);
+}
+
+struct zone* zone_new(lua_State* L, void* upcast, const struct zone_jump_table* const jump_table)
+{
+	struct zone* const zone = malloc(sizeof(struct zone));
+
+	if (!zone)
+		return 0;
+
+	*zone = (struct zone)
+	{
+		.widget_interface = widget_interface_new(L,zone,&zone_to_widget_table),
+		.jump_table = jump_table,
+		.upcast = upcast
+	};
+
+	lua_pushlightuserdata(L, zone);
+	lua_rotate(L, -2, 1);
+
+	// set the piece table to an empty table
+	lua_newtable(L);
+	lua_setiuservalue(L, -2, 2);
+
+	return zone;
+}
+
+static const struct widget_jump_table zone_to_widget_table =
+{
+	.gc = zone_gc,
+	.draw = zone_draw,
+	.mask = zone_mask,
+	.drag_end_drop = zone_drag_end_drop,
+	.uservalues = 3,
+};
+
+static const struct widget_jump_table piece_to_widget_table =
+{
+	.gc = piece_gc,
+	.draw = piece_draw,
+	.mask = piece_mask,
+	.hover_start = piece_hover_start,
+	.hover_end = piece_hover_end,
+	.index = pieces_index,
+	.newindex = pieces_new_index,
+	.drag_start = piece_drag_start,
+	.drag_end_no_drop = piece_drag_end_no_drop,
+	.uservalues = 3,
+};
+
+static inline int piece_manager_new_piece(lua_State* L)
 {
 	struct piece_manager* const piece_manager = (struct piece_manager*)luaL_checkudata(L, -2, "piece_manager_mt");
+
 	if (lua_type(L, -1) == LUA_TSTRING)
 	{
 		const char* key = luaL_checkstring(L, -1);
@@ -101,8 +316,13 @@ static int piece_new_lua(lua_State* L)
 		{
 			lua_getiuservalue(L, -2, 1);
 			checker_new(L);
-			lua_settable(L, -3);
-			
+			lua_pushvalue(L, -5);
+			lua_setiuservalue(L, -2, 3);
+
+			lua_pushvalue(L, -1);
+			lua_rotate(L, -3, 1);
+			lua_settable(L, -4);
+
 			return 1;
 		}
 	}
@@ -110,67 +330,10 @@ static int piece_new_lua(lua_State* L)
 	return 0;
 }
 
-// game_zone functions
-
-static void zone_gc(struct widget_interface* const widget)
-{
-	struct game_zone* const game_zone = (struct game_zone*)widget->upcast;
-
-	if(game_zone->jump_table->gc)
-		game_zone->jump_table->gc(game_zone);
-}
-
-static void zone_draw(const struct widget_interface* const widget)
-{
-	struct game_zone* const game_zone = (struct game_zone*)widget->upcast;
-	game_zone->jump_table->draw(game_zone);
-}
-
-static void zone_mask(const struct widget_interface* const widget)
-{
-	struct game_zone* const game_zone = (struct game_zone*)widget->upcast;
-	game_zone->jump_table->mask(game_zone);
-}
-
-static void zone_drag_end_drop(struct widget_interface* const zone, struct widget_interface* const piece)
-{
-
-}
-
-static const struct widget_jump_table game_zone_to_widget_table =
-{
-	.gc = zone_gc,
-	.draw = zone_draw,
-	.mask = zone_mask,
-	.drag_end_drop = zone_drag_end_drop,
-};
-
-struct game_zone* zone_new(lua_State* L, void* upcast,
-	const struct game_zone_jump_table* const jump_table)
-{
-	struct game_zone* const zone = malloc(sizeof(struct game_zone));
-
-	if (!zone)
-		return 0;
-
-	*zone = (struct game_zone)
-	{
-		.widget_interface = widget_interface_new(L,zone,&game_zone_to_widget_table),
-		.jump_table = jump_table,
-		.upcast = upcast
-	};
-
-	lua_pushlightuserdata(L, zone);
-	lua_rotate(L, -2, 1);
-
-	return zone;
-}
-
-extern void square_new(lua_State*);
-
-static int zone_new_lua(lua_State* L)
+static inline int piece_manager_new_zone(lua_State* L)
 {
 	struct piece_manager* const piece_manager = (struct piece_manager*)luaL_checkudata(L, -2, "piece_manager_mt");
+
 	if (lua_type(L, -1) == LUA_TSTRING)
 	{
 		const char* key = luaL_checkstring(L, -1);
@@ -179,7 +342,12 @@ static int zone_new_lua(lua_State* L)
 		{
 			lua_getiuservalue(L, -2, 2);
 			square_new(L);
-			lua_settable(L, -3);
+			lua_pushvalue(L, -5);
+			lua_setiuservalue(L, -2, 3);
+
+			lua_pushvalue(L, -1);
+			lua_rotate(L, -3, 1);
+			lua_settable(L, -4);
 
 			return 1;
 		}
@@ -188,8 +356,31 @@ static int zone_new_lua(lua_State* L)
 	return 0;
 }
 
-// Geneal widget index method
-static int index(lua_State* L)
+static int piece_manager_newindex(lua_State* L)
+{
+	struct piece_manager* const piece_manager = (struct piece_manager*)luaL_checkudata(L, -3, "piece_manager_mt");
+
+	if (lua_type(L, -2) == LUA_TSTRING)
+	{
+		const char* key = luaL_checkstring(L, -2);
+		
+		if (strcmp(key, "pre_move") == 0)
+		{
+			lua_setiuservalue(L, -3, 3);
+			return 1;
+		}
+
+		if (strcmp(key, "post_move") == 0)
+		{
+			lua_setiuservalue(L, -3, 4);
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
+static int piece_manager_index(lua_State* L)
 {
 	struct piece_manager* const piece_manager = (struct piece_manager*)luaL_checkudata(L, -2, "piece_manager_mt");
 
@@ -211,19 +402,13 @@ static int index(lua_State* L)
 
 		if (strcmp(key, "new_zone") == 0)
 		{
-			lua_pushcfunction(L, zone_new_lua);
+			lua_pushcfunction(L, piece_manager_new_zone);
 			return 1;
 		}
 
 		if (strcmp(key, "new_piece") == 0)
 		{
-			lua_pushcfunction(L, piece_new_lua);
-			return 1;
-		}
-
-		if (strcmp(key, "test") == 0)
-		{
-			lua_getuservalue(L, 1);	
+			lua_pushcfunction(L, piece_manager_new_piece);
 			return 1;
 		}
 	}
@@ -233,12 +418,13 @@ static int index(lua_State* L)
 
 static int piece_manager_new(lua_State* L)
 {
-	// TODO: implements hints
-	struct piece_manager* const piece_manager = lua_newuserdatauv(L, sizeof(struct piece_manager),2);
+	// TODO: implements hints for zone and pice size
+	struct piece_manager* const piece_manager = lua_newuserdatauv(L,0,4);
 
 	if (!piece_manager)
 		return 0;
 
+	// TODO: implment an enum for uservalue n
 	luaL_getmetatable(L, "piece_manager_mt");
 	lua_setmetatable(L, -2);
 
@@ -261,7 +447,8 @@ void piece_manager_setglobal(lua_State* L)
 	luaL_newmetatable(L, "piece_manager_mt");
 
 	const struct luaL_Reg meta_table[] = {
-		{"__index",index},
+		{"__index",piece_manager_index},
+		{"__newindex",piece_manager_newindex},
 		{NULL,NULL}
 	};
 

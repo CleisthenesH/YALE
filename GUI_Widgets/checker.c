@@ -10,23 +10,23 @@ struct checker
 	ALLEGRO_COLOR color;
 };
 
-static void gc(struct game_piece* const checker)
+static void gc(struct piece* const checker)
 {
 
 }
 
-static void draw(const struct game_piece* const checker)
+static void draw(const struct piece* const checker)
 {
 	al_draw_filled_circle(0, 0, 50, al_map_rgb_f(1, 0, 0));
 	al_draw_filled_circle(0, 0, 40, al_map_rgb_f(0.7, 0, 0));
 }
 
-static void mask(const struct game_piece* const checker)
+static void mask(const struct piece* const checker)
 {
 	al_draw_filled_circle(0, 0, 50, al_map_rgb_f(1, 0, 0));
 }
 
-static struct game_piece_jump_table checker_table =
+static struct piece_jump_table checker_table =
 {
 	.draw = draw,
 	.mask = mask,

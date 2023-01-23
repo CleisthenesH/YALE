@@ -12,6 +12,8 @@
 
 struct widget_jump_table
 {
+	size_t uservalues;
+
 	void (*gc)(struct widget_interface* const);
 
 	void (*draw)(const struct widget_interface* const);

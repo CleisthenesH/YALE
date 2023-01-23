@@ -13,6 +13,8 @@
 #include <float.h>
 #include <math.h>
 
+// TODO: destination frame is bugged again. Fix and then hopfully not change again so it can finally be fixed for good >:(
+
 // TODO: Remove
 void stack_dump(lua_State* L)
 {
@@ -137,7 +139,7 @@ static struct widget* queue_tail;
 static ALLEGRO_SHADER* offscreen_shader;
 static ALLEGRO_BITMAP* offscreen_bitmap;
 
-static double transition_timestamp;
+static double transition_timestamp; // why is this seperate and global ?
 
 static struct widget* last_click;
 static struct widget* current_hover;
@@ -214,11 +216,14 @@ void widget_engine_draw()
         glDisable(GL_STENCIL_TEST);
         al_use_transform(&identity_transform);
 
-        al_draw_textf(debug_font, al_map_rgb_f(0, 1, 0), 10, 10, ALLEGRO_ALIGN_LEFT, "State: %s", engine_state_str[widget_engine_state]);
-
-        //al_draw_textf(debug_font, al_map_rgb_f(0, 1, 0), 10, 10, ALLEGRO_ALIGN_LEFT, "Hover: %p", current_hover);
-        //al_draw_textf(debug_font, al_map_rgb_f(0, 1, 0), 10, 40, ALLEGRO_ALIGN_LEFT, "Drop: %p", current_drop);
-        //al_draw_textf(debug_font, al_map_rgb_f(0, 1, 0), 10, 70, ALLEGRO_ALIGN_LEFT, "Drag Release: %f %f", drag_release.x, drag_release.y);
+        al_draw_textf(debug_font, al_map_rgb_f(0, 1, 0), 10, 10, ALLEGRO_ALIGN_LEFT, 
+            "State: %s", engine_state_str[widget_engine_state]);
+        al_draw_textf(debug_font, al_map_rgb_f(0, 1, 0), 10, 40, ALLEGRO_ALIGN_LEFT, 
+            "Hover: %p", current_hover);
+        al_draw_textf(debug_font, al_map_rgb_f(0, 1, 0), 10, 70, ALLEGRO_ALIGN_LEFT, 
+            "Drop: %p", current_drop);
+        al_draw_textf(debug_font, al_map_rgb_f(0, 1, 0), 10, 100, ALLEGRO_ALIGN_LEFT, 
+            "Drag Release: (%f, %f) %f", drag_release.x, drag_release.y, transition_timestamp);
     }
 }
 
@@ -336,6 +341,8 @@ static inline void widget_drag_release()
     drag_release.timestamp = transition_timestamp;
 
     style_element_push_keyframe(current_hover->style_element, &drag_release);
+
+    current_drop = NULL;
 }
 
 // Updates and calls any callbacks for the last_click, current_hover, current_drop pointers
@@ -441,9 +448,13 @@ void widget_engine_update()
     switch (widget_engine_state)
     {
     case ENGINE_STATE_DRAG:
+    {
         current_hover->style_element->current.x = drag_offset_x + mouse_x;
         current_hover->style_element->current.y = drag_offset_y + mouse_y;
+
+        style_element_align_tweener(current_hover->style_element);
         break;
+    }
 
     case ENGINE_STATE_TO_DRAG:
         widget_set_drag();
@@ -537,7 +548,7 @@ struct widget_interface* widget_interface_new(
 {
     const size_t widget_size = sizeof(struct widget);
 
-    struct widget* const widget = L ? lua_newuserdata(L, widget_size) : malloc(widget_size);
+    struct widget* const widget = L ? lua_newuserdatauv(L, widget_size,(int) jump_table->uservalues) : malloc(widget_size);
 
     if (!widget)
         return NULL;
@@ -757,6 +768,17 @@ static int gc(lua_State* L)
     return 0;
 }
 
+// Make Snappable
+static int snappable(lua_State* L)
+{
+    struct widget_interface* const widget = (struct widget_interface*)luaL_checkudata(L, -3, "widget_mt");
+    int boolean = lua_toboolean(L, -1);
+
+    widget->is_snappable = boolean;
+
+    return 0;
+}
+
 // Hash data for index and newindex methods
 
 static const char* index_keys[] = {
@@ -837,18 +859,25 @@ static int newindex(lua_State* L)
 {
     struct widget* const widget = (struct widget*)luaL_checkudata(L, -3, "widget_mt");
 
-    if (lua_type(L, -1) == LUA_TFUNCTION &&
-        lua_type(L, -2) == LUA_TSTRING)
+    if (lua_type(L, -2) == LUA_TSTRING)
     {
         const char* key = lua_tostring(L, -2);
 
-        const uint8_t hash_val = hash(newindex_hash, key);
+        if (lua_type(L, -1) == LUA_TFUNCTION)
+	    {
+			const uint8_t hash_val = hash(newindex_hash, key);
 
-        if (hash_val < 11 && strcmp(newindex_keys[hash_val], key) == 0)
+			if (hash_val < 11 && strcmp(newindex_keys[hash_val], key) == 0)
+			{
+				int* handle = ((int*)&widget->lua.right_click) + hash_val;
+				*handle = luaL_ref(L, LUA_REGISTRYINDEX);
+				return 0;
+			}
+		}
+
+        if (strcmp(key, "snappable") == 0)
         {
-            int* handle = ((int*) & widget->lua.right_click) + hash_val;
-            *handle = luaL_ref(L, LUA_REGISTRYINDEX); 
-            return 0; 
+            return snappable(L);
         }
     }
 
@@ -948,5 +977,7 @@ void widget_engine_init(lua_State* L)
     };
 
     luaL_setfuncs(L, garbage_collection, 0);
+
+    lua_pop(L, 2);
 }
 

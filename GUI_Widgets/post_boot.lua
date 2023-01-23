@@ -4,59 +4,56 @@
 
 -- Runs once after all inializations have ran but before the main loop.
 
-control_rect = rectangle_new()
-moving_rect = rectangle_new()
-test_button = button_new()
-slider = slider_new()
+piece_manager = piece_manager_new()	
 
-current_timestamp = current_time()
+piece_manager:new_zone("square"):set_keyframe{x=500, y=500}
+piece_manager:new_zone("square"):set_keyframe{x=700, y=500}
+piece_manager:new_zone("square"):set_keyframe{x=500, y=700}
+piece_manager:new_zone("square"):set_keyframe{x=700, y=700}
 
-control_rect:set_keyframe{x=700,y=100}
+local checker = piece_manager:new_piece("checker")
+checker:set_keyframe{x=100, y=100}
+--checker:new_keyframe{x=900, y=100, timestamp = current_time()+1}
 
-circle = {}
+function piece_manager.pre_move(manager, piece)
+	--print("pre_move:")
+	--print(manager, piece)
 
-for angle = 0.0,6.28318530718,6.28318530718/1000.0 do
-	table.insert(circle,{x=400+100*math.cos(angle), y = 400 + 100*math.sin(angle), timestamp = current_timestamp + angle*0.5})
+	local a = {}
+	local idx = 0
+
+	for k,v in pairs(manager.zones) do
+		if(idx % 2 == 0) then
+			a[k] = v
+		end
+
+		idx = idx + 1
+	end
+	
+	return a
 end
 
-moving_rect:set_keyframes(circle)
-circle = nil
+function piece_manager.post_move(manager, piece, zone)
+	--print("post_move:")
+	--print(manager, piece, zone)
 
-moving_rect:enter_loop(6.28318530718/1000.0)
-
-test_button:set_keyframe{x=700,y=300}
-slider:set_keyframe{x=700,y=500}
-
-function control_rect:left_click()
-	destination = moving_rect.destination_keyframe
-
-	moving_rect:interupt()
-end
-
--- syntactic sugar for control_rec.right_click = function()
-function control_rect:right_click()
--- TODO: Fix, I think it's just using a deprecated function
-	if destination ~= nil then
+	if(zone ~= nil) then
+		destination = zone.destination_keyframe
 		current_timestamp = current_time()
-		destination.timestamp = current_timestamp + 1
-		moving_rect:new_keyframe(destination)
 
-		destination = nil
-	else
-		moving_rect = nil
-		collectgarbage()
+		destination.timestamp = current_timestamp + 1
+
+		piece:interupt()
+		piece:new_keyframe(destination)
 	end
 end
 
-piece_manager = piece_manager_new()	
+print("post boot complete")
 
-piece_manager:new_piece("checker")
-piece_manager:new_piece("checker")
-piece_manager:new_piece("checker")
-piece_manager:new_piece("checker")
-piece_manager:new_zone("square")
+--[[
+test_square = piece_manager:new_zone("square")
+test_square:set_keyframe{x=700,y=800}
 
-print("pieces")
 local x_pos = 700
 for i,v in pairs(piece_manager.pieces) do
 	v:set_keyframe{x=x_pos,y=700}
@@ -64,13 +61,6 @@ for i,v in pairs(piece_manager.pieces) do
 	print(i,v)
 end
 
-print("zones")
-local x_pos = 700
-for i,v in pairs(piece_manager.zones) do
-	v:set_keyframe{x=x_pos,y=900}
-	x_pos = x_pos + 100
-	print(i,v)
-end
-
 print("post boot complete")
+--]]
 

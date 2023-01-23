@@ -139,6 +139,7 @@ struct work_queue* tweener_update()
 {
 	struct work_queue* work_queue = work_queue_create();
 
+	// optimize this by doing the looping check before appding the work item
 	for (size_t i = 0; i < tweeners_used; i++)
 		if (tweeners_list[i].used > 1)
 			work_queue_push(work_queue, tweener_blend_keypoints, tweeners_list + i);
@@ -357,6 +358,12 @@ void style_element_copy_destination(struct style_element* const style_element, s
 	keyframe->sx = keypoints[3];
 	keyframe->sy = keypoints[4];
 	keyframe->theta = keypoints[5];
+}
+
+// Align the tweener's current with the style_element's current
+void style_element_align_tweener(struct style_element* const style_element)
+{
+	style_element_set(style_element, &style_element->current);
 }
 
 void style_element_interupt(struct style_element* const style_element)

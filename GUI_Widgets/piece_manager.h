@@ -5,66 +5,27 @@
 
 #include "widget_interface.h"
 
-#include <stdint.h>
-#include <stdbool.h>
-
 #include "lua/lua.h"
 #include "lua/lualib.h"
 #include "lua/lauxlib.h"
 #include "lua/lualib.h"
 
-struct game_zone_jump_table
+struct zone_jump_table
 {
-	void (*gc)(struct game_zone* const);
-	void (*draw)(const struct game_zone* const);
-	void (*mask)(const struct game_zone* const);
+	void (*gc)(struct zone* const);
+	void (*draw)(const struct zone* const);
+	void (*mask)(const struct zone* const);
 };
 
-struct game_zone
+struct piece_jump_table
 {
-	struct widget_interface* widget_interface;
-	const struct game_zone_jump_table* jump_table;
-	void* upcast;
-
-	int payload;
-	int game_pieces;
-	int piece_manager;
+	void (*gc)(struct piece* const);
+	void (*draw)(const struct piece* const);
+	void (*mask)(const struct piece* const);
 };
 
-struct game_piece_jump_table
-{
-	void (*gc)(struct game_piece* const);
-	void (*draw)(const struct game_piece* const);
-	void (*mask)(const struct game_piece* const);
-	// maybe add a function that pushes custom relevent to dragable context to the stack
-};
+struct zone* zone_new(lua_State* L, void* upcast,
+	const struct zone_jump_table* const jump_table);
 
-struct game_piece
-{
-	struct widget_interface* widget_interface;
-	const struct game_piece_jump_table* jump_table;
-
-	void* upcast;
-
-	int payload;
-	int game_zones; // A table of game_zones the piece is in
-	int piece_manager;
-};
-
-struct piece_manager
-{
-	int self;
-
-	int piece_drag_start;
-	int zone_drag_start;
-	int zone_drag_end;
-	int zone_drag_drop;
-};
-
-struct game_zone* zone_new(lua_State* L, void* upcast,
-	const struct game_zone_jump_table* const jump_table);
-
-struct game_piece* piece_new(lua_State* L, void* upcast,
-	const struct game_piece_jump_table* const jump_table);
-
-// Some inits
+struct piece* piece_new(lua_State* L, void* upcast,
+	const struct piece_jump_table* const jump_table);

@@ -279,6 +279,7 @@
   <ItemGroup>
     <None Include="..\README.md" />
     <None Include="boot.lua" />
+    <None Include="example_workflow.lua" />
     <None Include="packages.config" />
     <None Include="post_boot.lua" />
     <None Include="shaders\style_element_pixel_shader.glsl" />

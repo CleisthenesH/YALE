@@ -10,22 +10,22 @@ struct square
 	ALLEGRO_COLOR color;
 };
 
-static void gc(struct game_zone* const square)
+static void gc(struct zone* const square)
 {
 
 }
 
-static void draw(const struct game_zone* const square)
-{
-	al_draw_filled_rectangle(-50, -50, 50, 50, al_map_rgb_f(1, 1, 1));
-}
-
-static void mask(const struct game_zone* const square)
+static void draw(const struct zone* const square)
 {
 	al_draw_filled_rectangle(-50, -50, 50, 50, al_map_rgb_f(1, 1, 1));
 }
 
-static struct game_zone_jump_table square_table =
+static void mask(const struct zone* const square)
+{
+	al_draw_filled_rectangle(-50, -50, 50, 50, al_map_rgb_f(1, 1, 1));
+}
+
+static struct zone_jump_table square_table =
 {
 	.draw = draw,
 	.mask = mask,

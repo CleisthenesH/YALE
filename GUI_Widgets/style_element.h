@@ -71,6 +71,7 @@ struct style_element* style_element_new(size_t);
 void style_element_set(struct style_element* const, struct keyframe* const);
 void style_element_interupt(struct style_element* const);
 void style_element_push_keyframe(struct style_element* const, struct keyframe*);
+void style_element_align_tweener(struct style_element* const);
 void style_element_copy_destination(struct style_element* const, struct keyframe*);
 void style_element_enter_loop(struct style_element* const, double);
 

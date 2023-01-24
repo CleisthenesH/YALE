@@ -22,11 +22,21 @@ struct keyframe
 void keyframe_default(struct keyframe* const);
 void keyframe_build_transform(const struct keyframe* const, ALLEGRO_TRANSFORM* const);
 
-// An obficated element struct.
-//	The obfiscation is because the internal variables of a effects can change wildly but shaders are exact.
-//	So I want to mantain the effect state where the user can't mess with it.
+// An obficated struct for a rendering material.
+//	The obfiscation is because the internal variables of a material can change wildly but the shaders requirements are exact.
+//	So I want to mantain the material's state where the user can't mess with it.
 //	Might add and update element method to them at later date, might not.
-struct effect_element;
+struct material;
+
+enum EFFECT_ID
+{
+	EFFECT_ID_NULL,
+	EFFECT_ID_PLAIN_FOIL,
+	EFFECT_ID_RADIAL_RGB,
+	/*
+		EFFECT_ID_SHEEN,
+	*/
+};
 
 enum SELECTION_ID
 {
@@ -34,25 +44,14 @@ enum SELECTION_ID
 	SELECTION_ID_COLOR_BAND,
 };
 
-enum EFFECT_ID
-{
-	EFFECT_ID_NULL,
-	EFFECT_ID_PLAIN_FOIL,
-	EFFECT_ID_RADIAL_RGB,
-/*	EFFECT_ID_SHEEN,
-	EFFECT_ID_COLOR_SELECT,
-	EFFECT_ID_TEST,
-*/
-};
+struct material* material_new(enum EFFECT_ID, enum SELECTION_ID);
 
-struct effect_element* effect_element_new(enum EFFECT_ID, enum SELECTION_ID);
+void material_effect_point(struct material* const, double, double);
+void material_effect_color(struct material* const, ALLEGRO_COLOR);
+void material_effect_cutoff(struct material* const, double);
 
-void effect_element_point(struct effect_element* const, double, double);
-void effect_element_color(struct effect_element* const, ALLEGRO_COLOR);
-void effect_element_cutoff(struct effect_element* const, double);
-
-void effect_element_selection_color(struct effect_element* const, ALLEGRO_COLOR);
-void effect_element_selection_cutoff(struct effect_element* const, double);
+void material_selection_color(struct material* const, ALLEGRO_COLOR);
+void material_selection_cutoff(struct material* const, double);
 
 // An obficated struct for managing all the style information in one place.
 //	It's maing job is to manage a queue of keyframes to output the current keyframe on each frame.
@@ -65,14 +64,27 @@ struct style_element
 
 struct style_element* style_element_new(size_t);
 
-// Want to simplify adding a new keyframe and the interface in general
-// it's not too much to ask the widget maker to track timestamps
-// especially if we let them check the current and destination keyframe
+// Keyframe methods
 void style_element_set(struct style_element* const, struct keyframe* const);
 void style_element_interupt(struct style_element* const);
 void style_element_push_keyframe(struct style_element* const, struct keyframe*);
 void style_element_align_tweener(struct style_element* const);
 void style_element_copy_destination(struct style_element* const, struct keyframe*);
 void style_element_enter_loop(struct style_element* const, double);
+void style_element_callback(struct sytle_element* const, void (*)(void*), void*);
 
-void style_element_effect(const struct style_element* const, struct effect_element*);
+// Material methods
+void style_element_apply_material(const struct style_element* const, struct material*);
+
+// An obficated struct for a rendering a particle.
+//  Particles have a limited life span and are likely to go stale so they don't exist seperate to the style element.
+//	So they are being implemented as a set and forget way atm, may comeback and change later.
+//	May need to add "layers" to particles in the style_element though?
+
+enum PARTICLE_ID
+{
+	PARTICLE_ID_CIRCLE,
+};
+
+void style_element_particle_new(struct style_element* const, enum PARTICLE_ID, void*);
+void style_element_draw_particles(const struct style_element* const);

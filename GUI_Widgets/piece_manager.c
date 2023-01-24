@@ -257,6 +257,8 @@ static void zone_drag_end_drop(struct widget_interface* const zone, struct widge
 	if (!zone->is_snappable)
 		return;
 
+	// TODO: add stability by checking that the zone is in the managers list
+
 	// Convert the pointers to the widgets
 	lua_getglobal(main_lua_state, "widgets");
 	lua_pushlightuserdata(main_lua_state, zone);
@@ -317,6 +319,7 @@ static void zone_drag_end_drop(struct widget_interface* const zone, struct widge
 	// Assign the pieces to the zones table
 	lua_settable(main_lua_state, -3);
 	
+	// Clean up
 	lua_pop(main_lua_state, 3);
 }
 

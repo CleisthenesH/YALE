@@ -19,7 +19,7 @@ static ALLEGRO_SHADER* postdraw_shader;
 //  Other use cases include a color or threshold for an effect.
 // 
 //	The structs memory is quite raw so it is only avavlible within this translation unit.
-//	The user should be using the effect_element interface.
+//	The user should be using the material interface.
 // 
 //	TODO: Include more complex tweening options like keypoint weight and tangent.
 
@@ -33,6 +33,10 @@ struct tweener
 
 	bool looping;
 	double looping_offset;
+
+	// Callback when the path ends 
+	void (*funct)(void*);
+	void* data;
 };
 
 static struct tweener* tweeners_list;
@@ -91,6 +95,10 @@ static inline void tweener_blend_nonlooping(struct tweener* tweener)
 		if (tweener->used == 1)
 		{
 			memcpy(tweener->current, tweener->keypoints + 1, tweener->channels * sizeof(double));
+
+			if (tweener->funct)
+				tweener->funct(tweener->data);
+
 			return;
 		}
 	}
@@ -202,6 +210,12 @@ static double* tweener_destination(struct tweener* const tweener)
 	return tweener->keypoints + (tweener->used -1)* (tweener->channels + 1);
 }
 
+static void tweener_set_callback(struct tweener* const tweener, void (*funct)(void*), void* data)
+{
+	tweener->funct = funct;
+	tweener->data = data;
+}
+
 // Not tested
 static void tweener_plot(struct tweener* const tweener,
 	void (*funct)(double timestamp, double* output, void* udata), void* udata,
@@ -266,7 +280,6 @@ void style_element_init()
 	make_shader();
 }
 
-// TEST
 struct style_element* style_element_new(size_t hint)
 {
 	if (allocated <= used)
@@ -331,6 +344,14 @@ void style_element_set(struct style_element* const style_element, struct keyfram
 	tweener_set(tweener, (double[]) { set->x, set->y, set->sx, set->sy, set->theta });
 
 	memcpy(&style_element->current, set, sizeof(struct keyframe));  // maybe can be optimized out
+}
+
+void style_element_callback(struct sytle_element* const style_element, void (*funct)(void*), void* data)
+{
+	struct style_element_internal* const internal = (struct style_element_internal* const)style_element;
+	struct tweener* const tweener = internal->keyframe_tweener;
+
+	tweener_set_callback(tweener, funct, data);
 }
 
 void style_element_push_keyframe(struct style_element* const style_element,struct keyframe* frame)
@@ -464,25 +485,25 @@ static inline size_t selection_data_size(enum SELECTION_ID id)
 	}
 }
 
-static inline struct selection_data* get_selection(struct effect_element* effect_element)
+static inline struct selection_data* get_selection(struct material* material)
 {
-	struct effect_data* const effect_data = (struct effect_data* const) effect_element;
-	return (struct selection_data* const)((char*)effect_element) + effect_data_size(effect_data->id);
+	struct effect_data* const effect_data = (struct effect_data* const) material;
+	return (struct selection_data* const)((char*)material) + effect_data_size(effect_data->id);
 }
 
-void style_element_effect(
+void style_element_apply_material(
 	const struct style_element* const style_element, 
-	struct effect_element* effect_element)
+	struct material* material)
 {
-	if (!effect_element)
+	if (!material)
 	{
 		al_set_shader_int("effect_id", EFFECT_ID_NULL);
 		al_set_shader_int("selection_id", SELECTION_ID_FULL);
 		return;
 	}
 
-	struct effect_data* const effect_data = (struct effect_data* const) effect_element;
-	struct selection_data* const selection_data = get_selection(effect_element);
+	struct effect_data* const effect_data = (struct effect_data* const) material;
+	struct selection_data* const selection_data = get_selection(material);
 
 	al_set_shader_int("effect_id", effect_data->id);
 	al_set_shader_int("selection_id", selection_data->id);
@@ -499,25 +520,16 @@ void style_element_effect(
 			}, 1);
 		return;
 	}
-
-	/*
-	switch (selection_data->id)
-	{
-	case SELECTION_ID_COLOR_BAND:
-		((struct selection_color_band*)selection_data)->color = ;
-		return;
-	}
-	*/
 }
 
-struct effect_element* effect_element_new(
+struct material* material_new(
 	enum EFFECT_ID effect_id,
 	enum SELECTION_ID selection_id)
 {
 	const size_t selection_block = selection_data_size(selection_id);
 	const size_t effect_block = effect_data_size(effect_id);
 
-	struct effect_element* const output = malloc(selection_block+ effect_block);
+	struct material* const output = malloc(selection_block+ effect_block);
 	if (!output)
 		return NULL;
 
@@ -530,7 +542,7 @@ struct effect_element* effect_element_new(
 	return output;
 }
 
-void effect_element_selection_color(struct effect_element* const element, ALLEGRO_COLOR color)
+void material_selection_color(struct material* const element, ALLEGRO_COLOR color)
 {
 	struct selection_data* const selection_data = get_selection(element);
 
@@ -545,7 +557,7 @@ void effect_element_selection_color(struct effect_element* const element, ALLEGR
 
 }
 
-void effect_element_selection_cutoff(struct effect_element* const element, double cutoff)
+void material_selection_cutoff(struct material* const element, double cutoff)
 {
 	struct selection_data* const selection_data = get_selection(element);
 
@@ -559,7 +571,7 @@ void effect_element_selection_cutoff(struct effect_element* const element, doubl
 	}
 }
 
-void effect_element_point(struct effect_element* const element, double x, double y)
+void material_effect_point(struct material* const element, double x, double y)
 {
 	struct effect_data* const effect_data = (struct effect_data*)element;
 

@@ -11,8 +11,6 @@ piece_manager:new_zone("square"):set_keyframe{x=700, y=500}
 piece_manager:new_zone("square"):set_keyframe{x=500, y=700}
 piece_manager:new_zone("square"):set_keyframe{x=700, y=700}
 
-checker = piece_manager:new_piece("checker"):set_keyframe{x=200, y=200}
-
 local checker = piece_manager:new_piece("checker")
 checker:set_keyframe{x=100, y=100}
 checker:new_keyframe{x=900, y=100, timestamp = current_time()+1}
@@ -24,7 +22,7 @@ function piece_manager.pre_move(manager, piece)
 	local idx = 0
 
 	for k,v in pairs(manager.zones) do
-		if(idx % 2 == 0) and (next(v.pieces) == nil) then
+		if(idx % 2 == 0) then
 			a[k] = v
 		end
 

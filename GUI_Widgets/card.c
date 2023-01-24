@@ -14,10 +14,10 @@ static ALLEGRO_BITMAP* alex;
 
 extern lua_State* main_lua_state;
 
-static struct effect_element* null_effect;
-static struct effect_element* plain_foil;
-static struct effect_element* rgb_radial;
-static struct effect_element* color_pick;
+static struct material* null_effect;
+static struct material* plain_foil;
+static struct material* rgb_radial;
+static struct material* color_pick;
 
 static void draw(const struct widget_interface* const widget_interface)
 {
@@ -29,14 +29,14 @@ static void draw(const struct widget_interface* const widget_interface)
 	glStencilFunc(GL_ALWAYS, 1, 0x07);
 	glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
-	style_element_effect(widget_interface->style_element, plain_foil);
+	style_element_apply_material(widget_interface->style_element, plain_foil);
 	al_draw_filled_rounded_rectangle(-90, -127, 90, 127, 10, 10, al_color_name("forestgreen"));
 
 	// Stencil the art zone
 	glStencilFunc(GL_ALWAYS, 2, 0x07);
 	glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
-	style_element_effect(widget_interface->style_element, NULL);
+	style_element_apply_material(widget_interface->style_element, NULL);
 
 	al_draw_filled_rounded_rectangle(-90+5, -127+5+10, 90-5, -10, 10, 10, al_map_rgb_f(1,1,1));
 
@@ -52,7 +52,7 @@ static void draw(const struct widget_interface* const widget_interface)
 	glStencilFunc(GL_ALWAYS, 3, 0x07);
 	glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 	effect_element_point(rgb_radial, mouse_x, mouse_y);
-	style_element_effect(widget_interface->style_element, rgb_radial);
+	style_element_apply_material(widget_interface->style_element, rgb_radial);
 
 	al_draw_text(debug_font, al_map_rgb_f(0, 0, 0), 0, -127, ALLEGRO_ALIGN_CENTER, card->name);
 	al_draw_text(debug_font, al_map_rgb_f(0, 0, 0), 0, 20, ALLEGRO_ALIGN_CENTER, card->effect);
@@ -65,7 +65,7 @@ static void draw(const struct widget_interface* const widget_interface)
 	glStencilFunc(GL_EQUAL, 2, 0x07);
 	glStencilOp(GL_KEEP, GL_KEEP, GL_INCR);
 	effect_element_point(color_pick, mouse_x, mouse_y);
-	style_element_effect(widget_interface->style_element, color_pick);
+	style_element_apply_material(widget_interface->style_element, color_pick);
 
 	al_draw_scaled_bitmap(alex, 0, 0, 255, 256, -90 + 5, -127 + 5 + 10, 2 * (90 - 5), 127 - 5, 0);
 

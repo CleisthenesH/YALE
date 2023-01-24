@@ -69,8 +69,10 @@ struct tweener* tweener_new(size_t channels, size_t hint)
 	tweener->channels = channels;
 	tweener->current = malloc(channels * sizeof(double));
 	tweener->looping = false;
+	tweener->funct = NULL;
+	tweener->data = NULL;
 
-	return (struct tweener*) tweener;
+	return (struct tweener*)tweener;
 }
 
 static inline void tweener_blend_nonlooping(struct tweener* tweener)
@@ -117,9 +119,9 @@ static inline void tweener_blend_looping(struct tweener* tweener)
 	size_t loops = 0;
 	size_t idx = 0; // maybe keep this index between calls
 
-	while (tweener->keypoints[idx * (tweener->channels + 1)] <= current_timestamp - ((double) loops) * loop_time)
+	while (tweener->keypoints[idx * (tweener->channels + 1)] <= current_timestamp - ((double)loops) * loop_time)
 		if (++idx == tweener->used)
-			loops++,idx = 0;
+			loops++, idx = 0;
 
 	// adjust timestamps to proper range
 	for (size_t i = 0; i < tweener->used; i++)
@@ -127,12 +129,12 @@ static inline void tweener_blend_looping(struct tweener* tweener)
 
 	//
 	const size_t end_idx = idx * (tweener->channels + 1);
-	const size_t start_idx = (tweener->channels + 1) * ((idx != 0) ? (idx -1)  : tweener->used-1);
+	const size_t start_idx = (tweener->channels + 1) * ((idx != 0) ? (idx - 1) : tweener->used - 1);
 
 	const double blend = (current_timestamp - tweener->keypoints[start_idx]) / (tweener->keypoints[end_idx] - tweener->keypoints[start_idx]);
 
 	for (size_t i = 0; i < tweener->channels; i++)
-		tweener->current[i] = blend * tweener->keypoints[i + end_idx+ 1] + (1 - blend) * tweener->keypoints[i + start_idx + 1];
+		tweener->current[i] = blend * tweener->keypoints[i + end_idx + 1] + (1 - blend) * tweener->keypoints[i + start_idx + 1];
 }
 
 static void tweener_blend_keypoints(struct tweener* tweener)
@@ -159,8 +161,8 @@ static void tweener_set(struct tweener* const tweener, double* keypoint)
 {
 	tweener->used = 1;
 
-	memcpy(tweener->current, keypoint, tweener->channels*sizeof(double));
-	memcpy(tweener->keypoints+1, keypoint,tweener->channels * sizeof(double));
+	memcpy(tweener->current, keypoint, tweener->channels * sizeof(double));
+	memcpy(tweener->keypoints + 1, keypoint, tweener->channels * sizeof(double));
 }
 
 static double* tweener_new_point(struct tweener* tweener)
@@ -169,7 +171,7 @@ static double* tweener_new_point(struct tweener* tweener)
 	{
 		const size_t new_cnt = 2 * tweener->allocated;
 
-		double* memsafe_hande = realloc(tweener->keypoints, new_cnt *(tweener->channels+1) * sizeof(double));
+		double* memsafe_hande = realloc(tweener->keypoints, new_cnt * (tweener->channels + 1) * sizeof(double));
 
 		if (!memsafe_hande)
 			return NULL;
@@ -181,9 +183,9 @@ static double* tweener_new_point(struct tweener* tweener)
 	if (tweener->used == 1)
 		tweener->keypoints[0] = current_timestamp;
 
-	double* output = tweener->keypoints + tweener->used*(tweener->channels+1);
+	double* output = tweener->keypoints + tweener->used * (tweener->channels + 1);
 
-	memcpy(output, output - tweener->channels - 1, sizeof( double) * (tweener->channels + 1));
+	memcpy(output, output - tweener->channels - 1, sizeof(double) * (tweener->channels + 1));
 	tweener->used++;
 
 	return output;
@@ -207,7 +209,7 @@ static void tweener_interupt(struct tweener* const tweener)
 
 static double* tweener_destination(struct tweener* const tweener)
 {
-	return tweener->keypoints + (tweener->used -1)* (tweener->channels + 1);
+	return tweener->keypoints + (tweener->used - 1) * (tweener->channels + 1);
 }
 
 static void tweener_set_callback(struct tweener* const tweener, void (*funct)(void*), void* data)
@@ -224,7 +226,7 @@ static void tweener_plot(struct tweener* const tweener,
 	const double step_size = (end - start) / ((double)steps - 1);
 	for (size_t i = 0; i < steps; i++)
 	{
-		const double timestamp = start + step_size * ((double) i);
+		const double timestamp = start + step_size * ((double)i);
 		const double* new_point = tweener_new_point(tweener);
 
 		funct(timestamp, new_point, udata);
@@ -305,7 +307,7 @@ struct style_element* style_element_new(size_t hint)
 	style_element->width = 0;
 	style_element->height = 0;
 
-	return (struct style_element*) style_element;
+	return (struct style_element*)style_element;
 }
 
 void style_element_enter_loop(struct style_element* const style_element, double looping_offset)
@@ -338,7 +340,7 @@ struct work_queue* style_element_update()
 
 void style_element_set(struct style_element* const style_element, struct keyframe* const set)
 {
-	struct style_element_internal* const internal = (struct style_element_internal* const) style_element;
+	struct style_element_internal* const internal = (struct style_element_internal* const)style_element;
 	struct tweener* const tweener = internal->keyframe_tweener;
 
 	tweener_set(tweener, (double[]) { set->x, set->y, set->sx, set->sy, set->theta });
@@ -354,9 +356,9 @@ void style_element_callback(struct sytle_element* const style_element, void (*fu
 	tweener_set_callback(tweener, funct, data);
 }
 
-void style_element_push_keyframe(struct style_element* const style_element,struct keyframe* frame)
+void style_element_push_keyframe(struct style_element* const style_element, struct keyframe* frame)
 {
-	struct style_element_internal* const internal = (struct style_element_internal* const) style_element;
+	struct style_element_internal* const internal = (struct style_element_internal* const)style_element;
 	double* new_point = tweener_new_point(internal->keyframe_tweener);
 
 	new_point[0] = frame->timestamp;
@@ -408,7 +410,7 @@ void keyframe_build_transform(const struct keyframe* const keyframe, ALLEGRO_TRA
 		keyframe->theta);
 }
 
-void keyframe_default(struct keyframe * const keyframe)
+void keyframe_default(struct keyframe* const keyframe)
 {
 	*keyframe = (struct keyframe)
 	{
@@ -419,7 +421,7 @@ void keyframe_default(struct keyframe * const keyframe)
 
 void style_element_setup()
 {
-	al_use_shader(predraw_shader); 
+	al_use_shader(predraw_shader);
 	glDisable(GL_STENCIL_TEST);
 	al_set_shader_float("current_timestamp", current_timestamp);
 }
@@ -487,12 +489,12 @@ static inline size_t selection_data_size(enum SELECTION_ID id)
 
 static inline struct selection_data* get_selection(struct material* material)
 {
-	struct effect_data* const effect_data = (struct effect_data* const) material;
+	struct effect_data* const effect_data = (struct effect_data* const)material;
 	return (struct selection_data* const)((char*)material) + effect_data_size(effect_data->id);
 }
 
 void style_element_apply_material(
-	const struct style_element* const style_element, 
+	const struct style_element* const style_element,
 	struct material* material)
 {
 	if (!material)
@@ -502,7 +504,7 @@ void style_element_apply_material(
 		return;
 	}
 
-	struct effect_data* const effect_data = (struct effect_data* const) material;
+	struct effect_data* const effect_data = (struct effect_data* const)material;
 	struct selection_data* const selection_data = get_selection(material);
 
 	al_set_shader_int("effect_id", effect_data->id);
@@ -515,9 +517,9 @@ void style_element_apply_material(
 	case EFFECT_ID_RADIAL_RGB:
 		al_set_shader_float_vector("point", 2,
 			(float[]) {
-				((struct effect_radial_rgb*)effect_data)->center_x,
+			((struct effect_radial_rgb*)effect_data)->center_x,
 				((struct effect_radial_rgb*)effect_data)->center_y
-			}, 1);
+		}, 1);
 		return;
 	}
 }
@@ -529,16 +531,16 @@ struct material* material_new(
 	const size_t selection_block = selection_data_size(selection_id);
 	const size_t effect_block = effect_data_size(effect_id);
 
-	struct material* const output = malloc(selection_block+ effect_block);
+	struct material* const output = malloc(selection_block + effect_block);
 	if (!output)
 		return NULL;
 
-	struct effect_data* const effect_data = (struct effect_data* const) output;
+	struct effect_data* const effect_data = (struct effect_data* const)output;
 	struct selection_data* const selection_data = get_selection(output);
 
 	effect_data->id = effect_id;
 	selection_data->id = selection_id;
-	
+
 	return output;
 }
 
@@ -578,8 +580,8 @@ void material_effect_point(struct material* const element, double x, double y)
 	switch (effect_data->id)
 	{
 	case EFFECT_ID_RADIAL_RGB:
-		((struct effect_radial_rgb*) effect_data)->center_x = x;
-		((struct effect_radial_rgb*) effect_data)->center_y = y;
+		((struct effect_radial_rgb*)effect_data)->center_x = x;
+		((struct effect_radial_rgb*)effect_data)->center_y = y;
 		return;
 	default:
 		; //throw error

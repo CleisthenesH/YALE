@@ -16,7 +16,7 @@
 
 struct keyframe
 {
-	double timestamp,x, y, sx, sy, theta;
+	double timestamp, x, y, sx, sy, theta;
 };
 
 void keyframe_default(struct keyframe* const);

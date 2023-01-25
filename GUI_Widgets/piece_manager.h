@@ -10,6 +10,21 @@
 #include "lua/lauxlib.h"
 #include "lua/lualib.h"
 
+struct zone
+{
+	struct widget_interface* widget_interface;
+	const struct zone_jump_table* jump_table;
+	void* upcast;
+};
+
+struct piece
+{
+	struct widget_interface* widget_interface;
+	const struct piece_jump_table* jump_table;
+
+	void* upcast;
+};
+
 struct zone_jump_table
 {
 	void (*gc)(struct zone* const);

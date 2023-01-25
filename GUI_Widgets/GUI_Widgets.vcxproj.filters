@@ -43,6 +43,9 @@
     <Filter Include="piece_manager\pieces">
       <UniqueIdentifier>{bbc4b4a2-26f4-4db5-bbf0-ac35fe82bbbf}</UniqueIdentifier>
     </Filter>
+    <Filter Include="style_element\components">
+      <UniqueIdentifier>{d185aafe-7fd7-4ba6-81d9-59788b204e31}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="style_element.c">
@@ -177,6 +180,12 @@
     <ClCompile Include="square.c">
       <Filter>piece_manager\pieces</Filter>
     </ClCompile>
+    <ClCompile Include="tweener.c">
+      <Filter>style_element\components</Filter>
+    </ClCompile>
+    <ClCompile Include="material.c">
+      <Filter>style_element\components</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="style_element.h">
@@ -280,6 +289,9 @@
     </ClInclude>
     <ClInclude Include="piece_manager.h">
       <Filter>piece_manager</Filter>
+    </ClInclude>
+    <ClInclude Include="tweener.h">
+      <Filter>style_element\components</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

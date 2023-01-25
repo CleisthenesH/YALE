@@ -34,21 +34,6 @@ enum MANAGER_UVALUE
 	MANAGER_UVALUE_POSTMOVE
 };
 
-struct zone
-{
-	struct widget_interface* widget_interface;
-	const struct zone_jump_table* jump_table;
-	void* upcast;
-};
-
-struct piece
-{
-	struct widget_interface* widget_interface;
-	const struct piece_jump_table* jump_table;
-
-	void* upcast;
-};
-
 static void piece_gc(struct widget_interface* const widget)
 {
 	struct piece* const piece = (struct piece*)widget->upcast;

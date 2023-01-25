@@ -221,10 +221,7 @@ static inline void empty_event_queue()
     current_timestamp += delta_timestamp;
 
     // Update widgets
-    struct work_queue* queue = tweener_update();
-    thread_pool_concatenate(queue);
-
-    queue = style_element_update();
+    struct work_queue* queue = style_element_update();
     thread_pool_concatenate(queue);
 
     queue = widget_engine_widget_work();

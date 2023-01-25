@@ -26,7 +26,6 @@ void keyframe_build_transform(const struct keyframe* const, ALLEGRO_TRANSFORM* c
 //	The obfiscation is because the internal variables of a material can change wildly but the shaders requirements are exact.
 //	So I want to mantain the material's state where the user can't mess with it.
 //	Might add and update element method to them at later date, might not.
-struct material;
 
 enum EFFECT_ID
 {
@@ -42,6 +41,11 @@ enum SELECTION_ID
 {
 	SELECTION_ID_FULL,
 	SELECTION_ID_COLOR_BAND,
+};
+
+enum PARTICLE_ID
+{
+	PARTICLE_ID_CIRCLE,
 };
 
 struct material* material_new(enum EFFECT_ID, enum SELECTION_ID);
@@ -81,10 +85,6 @@ void style_element_apply_material(const struct style_element* const, struct mate
 //	So they are being implemented as a set and forget way atm, may comeback and change later.
 //	May need to add "layers" to particles in the style_element though?
 
-enum PARTICLE_ID
-{
-	PARTICLE_ID_CIRCLE,
-};
-
+// Particle methods
 void style_element_particle_new(struct style_element* const, enum PARTICLE_ID, void*);
 void style_element_draw_particles(const struct style_element* const);

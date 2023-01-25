@@ -13,9 +13,9 @@ piece_manager:new_zone("square"):set_keyframe{x=700, y=700}
 
 local checker = piece_manager:new_piece("checker")
 checker:set_keyframe{x=100, y=100}
-checker:new_keyframe{x=900, y=100, timestamp = current_time()+1}
-checker:new_keyframe{x=400, y=200, timestamp = current_time()+2}
-checker:enter_loop(1)
+--checker:new_keyframe{x=900, y=100, timestamp = current_time()+1}
+--checker:new_keyframe{x=400, y=200, timestamp = current_time()+2}
+--checker:enter_loop(1)
 
 function piece_manager.pre_move(manager, piece)
 	local a = {}

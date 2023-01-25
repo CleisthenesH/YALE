@@ -105,8 +105,9 @@ void main()
 	case 2: // Radial rgb
 		vec2 displacement = gl_FragCoord.xy - vec2(point.x,1200-point.y);
 		float angle = atan(displacement.y, displacement.x);
-		//angle = angle/3.14159265*2+1;
-		//angle += variation;
+		angle = angle/3.14159265*2+1;
+		angle += variation;
+		angle += current_timestamp;
 
 		effect_color = vec4(hsl2rgb(vec3(angle,0.5,0.5)),1);
 	break;

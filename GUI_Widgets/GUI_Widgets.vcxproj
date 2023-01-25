@@ -221,6 +221,7 @@
     <ClInclude Include="lua\lzio.h" />
     <ClInclude Include="style_element.h" />
     <ClInclude Include="thread_pool.h" />
+    <ClInclude Include="tweener.h" />
     <ClInclude Include="widget_interface.h" />
   </ItemGroup>
   <ItemGroup>
@@ -233,6 +234,7 @@
     </ClCompile>
     <ClCompile Include="checker.c" />
     <ClCompile Include="font_loader.c" />
+    <ClCompile Include="material.c" />
     <ClCompile Include="piece_manager.c" />
     <ClCompile Include="hash.c" />
     <ClCompile Include="lua\lapi.c" />
@@ -274,6 +276,7 @@
     <ClCompile Include="style_element.c" />
     <ClCompile Include="thread_pool.c" />
     <ClCompile Include="transform_utility.c" />
+    <ClCompile Include="tweener.c" />
     <ClCompile Include="widget_interface.c" />
   </ItemGroup>
   <ItemGroup>

@@ -6,109 +6,81 @@
 #include "thread_pool.h"
 
 // To handle the varity of effect and selection data I've implemented a very basic type system.
+// Instead of having a bunch of empty fields I directly manipulate memorry to make all the data next to eachother.
+// The hope is to locality will improve caching, not profiled to see if it improves proformace.
 
-enum SELECTION_COMPONENTS
+enum MATERIAL_COMPONENTS
 {
-	SELECTION_COMPONENT_COLOR = 1,
-	SELECTION_COMPONENT_CUTOFF = 2,
-	SELECTION_COMPONENT_POINT = 4,
+	MATERIAL_COMPONENTS_SELECTION_COLOR = 1,
+	MATERIAL_COMPONENTS_SELECTION_CUTOFF = 2,
+	MATERIAL_COMPONENTS_SELECTION_POINT = 4,
 	
-	SELECTION_COMPONENT_TOTAL = 3
+	MATERIAL_COMPONENTS_EFFECT_POINT = 8,
+	MATERIAL_COMPONENTS_EFFECT_COLOR = 16,
+
+	MATERIAL_COMPONENTS_CNT = 5,
 };
 
-enum EFFECT_COMPONENTS
+static enum MATERIAL_COMPONENTS effect_compents[] =
 {
-	EFFECT_COMPONENT_POINT = 1,
+	0,
+	MATERIAL_COMPONENTS_EFFECT_COLOR,
+	MATERIAL_COMPONENTS_EFFECT_POINT
+};
 
-	EFFECT_COMPONENT_TOTAL = 1,
+static enum MATERIAL_COMPONENTS selector_compents[] =
+{
+	0,
+	MATERIAL_COMPONENTS_SELECTION_CUTOFF | MATERIAL_COMPONENTS_SELECTION_COLOR
+};
+
+// ALLEGRO shaders only support floats, will upgrade to doubles if avalible
+static size_t material_component_size[MATERIAL_COMPONENTS_CNT] =
+{
+	sizeof(float) * 3,
+	sizeof(float),
+	sizeof(float) * 2,
+	sizeof(float) * 2,
+	sizeof(float) * 3,
 };
 
 struct material
 {
 	enum EFFECT_ID effect_id;
 	enum SELECTION_ID selection_id;
-	enum SELECTION_COMPONENTS selection_components;
-	enum EFFECT_COMPONENTS effect_components;
+	enum MATERIAL_COMPONENTS components;
 };
 
-static size_t selection_offset[SELECTION_COMPONENT_TOTAL] =
+static inline size_t component_size(enum MATERIAL_COMPONENTS components)
 {
-	sizeof(double)*3,
-	sizeof(double),
-	sizeof(double)*2
-};
+	size_t size = 0;
+	enum MATERIAL_COMPONENTS mask = 1;
 
-static size_t effect_offset[EFFECT_COMPONENT_TOTAL] =
-{
-	sizeof(double) * 3,
-};
+	for (size_t idx = 0; idx < MATERIAL_COMPONENTS_CNT; idx++, mask <<= 1)
+		if (mask & components)
+			size += material_component_size[idx];
 
-struct effect_data
-{
-	enum EFFECT_ID id;
-};
-
-struct selection_data
-{
-	enum SELECTION_ID id;
-};
-
-struct effect_radial_rgb // Not implemented yet
-{
-	struct effect_data;
-	float center_x, center_y;
-};
-
-struct selection_color_band
-{
-	struct selection_data;
-	ALLEGRO_COLOR color;
-	float cutoff;
-};
-
-static inline size_t effect_data_size(enum EFFECT_ID id)
-{
-	switch (id)
-	{
-	default:
-		return sizeof(struct effect_data);
-	}
-
-}
-
-static inline size_t selection_data_size(enum SELECTION_ID id)
-{
-	switch (id)
-	{
-	case SELECTION_ID_COLOR_BAND:
-		return sizeof(struct selection_color_band);
-	default:
-		return sizeof(struct selection_data);
-	}
-}
-
-static inline struct selection_data* get_selection(struct material* material)
-{
-	struct effect_data* const effect_data = (struct effect_data* const)material;
-	return (struct selection_data* const)((char*)material) + effect_data_size(effect_data->id);
+	return size;
 }
 
 struct material* material_new(
 	enum EFFECT_ID effect_id,
 	enum SELECTION_ID selection_id)
 {
-	const size_t selection_block = selection_data_size(selection_id);
-	const size_t effect_block = effect_data_size(effect_id);
+	const enum MATERIAL_COMPONENTS components = selector_compents[selection_id] | effect_compents[effect_id];
+	const size_t component_block = component_size(components);
 
-	struct material* const output = malloc(selection_block + effect_block);
+	struct material* const output = malloc(sizeof(struct material) + component_block);
+
 	if (!output)
 		return NULL;
 
-	struct effect_data* const effect_data = (struct effect_data* const)output;
-	struct selection_data* const selection_data = get_selection(output);
-
-	effect_data->id = effect_id;
-	selection_data->id = selection_id;
+	*output = (struct material)
+	{
+		.effect_id = effect_id,
+		.selection_id = selection_id,
+		.components = components,
+	};
 
 	return output;
 }
@@ -122,66 +94,99 @@ void material_set_shader(const struct material* const material)
 		return;
 	}
 
-	struct effect_data* const effect_data = (struct effect_data* const)material;
-	struct selection_data* const selection_data = get_selection(material);
-
-	al_set_shader_int("effect_id", effect_data->id);
-	al_set_shader_int("selection_id", selection_data->id);
+	al_set_shader_int("effect_id", material->effect_id);
+	al_set_shader_int("selection_id", material->selection_id);
 
 	al_set_blender(ALLEGRO_ADD, ALLEGRO_ONE, ALLEGRO_INVERSE_ALPHA);
 
-	switch (effect_data->id)
-	{
-	case EFFECT_ID_RADIAL_RGB:
-		al_set_shader_float_vector("point", 2,
-			(float[]) {
-			((struct effect_radial_rgb*)effect_data)->center_x,
-				((struct effect_radial_rgb*)effect_data)->center_y
-		}, 1);
-		return;
-	}
+	char* ptr = material;
+	ptr += sizeof(struct material);
+	float* cast;
+
+	enum MATERIAL_COMPONENTS mask = 1;
+
+	// TODO: obvious refactor
+	for (size_t idx = 0; idx < MATERIAL_COMPONENTS_CNT; idx++, mask <<= 1)
+		if (mask & material->components)
+		{
+			cast = (float*)ptr;
+
+			switch (mask)
+			{
+			case MATERIAL_COMPONENTS_SELECTION_COLOR:
+				al_set_shader_float_vector("selection_color", 3, (float*)ptr, 1);
+				break;
+
+			case MATERIAL_COMPONENTS_EFFECT_COLOR:
+				al_set_shader_float_vector("effect_color", 3, (float*)ptr, 1);
+				break;
+
+			case MATERIAL_COMPONENTS_SELECTION_CUTOFF:
+				al_set_shader_float("selection_cutoff", *(float*)ptr);
+				break;
+
+			case MATERIAL_COMPONENTS_SELECTION_POINT:
+				al_set_shader_float_vector("selection_point", 2, (float*)ptr, 1);
+				break;
+
+			case MATERIAL_COMPONENTS_EFFECT_POINT:
+				al_set_shader_float_vector("effect_point", 2, (float*) ptr, 1);
+				break;
+			}
+
+			ptr += material_component_size[idx];
+		}
+}
+
+// Maybe turninto a standalone itter since similar code is used in three spots.
+static inline char* get_component(struct material* const material, enum MATERIAL_COMPONENTS component)
+{
+	if (!(material->components & component))
+		return NULL;
+
+	char* ptr = (char*) material;
+	ptr += sizeof(struct material);
+
+	enum MATERIAL_COMPONENTS mask = 1;
+	for (size_t idx = 0; idx < MATERIAL_COMPONENTS_CNT; idx++, mask <<= 1)
+		if (mask & material->components)
+			if (component == mask)
+				break;
+			else
+				ptr += material_component_size[idx]; 
+	
+	return ptr;
 }
 
 void material_selection_color(struct material* const material, ALLEGRO_COLOR color)
 {
-	struct selection_data* const selection_data = get_selection(material);
+	float* const data = (float*)get_component(material, MATERIAL_COMPONENTS_SELECTION_COLOR);
 
-	switch (selection_data->id)
-	{
-	case SELECTION_ID_COLOR_BAND:
-		((struct selection_color_band*)selection_data)->color = color;
+	if (!data)
 		return;
-	default:
-		; // throw error
-	}
 
+	data[0] = color.r;
+	data[1] = color.g;
+	data[2] = color.b;
 }
 
 void material_selection_cutoff(struct material* const material, double cutoff)
 {
-	struct selection_data* const selection_data = get_selection(material);
+	float* const data = (float*)get_component(material, MATERIAL_COMPONENTS_SELECTION_CUTOFF);
 
-	switch (selection_data->id)
-	{
-	case SELECTION_ID_COLOR_BAND:
-		((struct selection_color_band*)selection_data)->cutoff = cutoff;
+	if (!data)
 		return;
-	default:
-		; // throw error
-	}
+
+	*data = cutoff;
 }
 
 void material_effect_point(struct material* const material, double x, double y)
 {
-	struct effect_data* const effect_data = (struct effect_data*)material;
+	float* const data = (float*)get_component(material, MATERIAL_COMPONENTS_EFFECT_POINT);
 
-	switch (effect_data->id)
-	{
-	case EFFECT_ID_RADIAL_RGB:
-		((struct effect_radial_rgb*)effect_data)->center_x = x;
-		((struct effect_radial_rgb*)effect_data)->center_y = y;
+	if (!data)
 		return;
-	default:
-		; //throw error
-	}
+
+	data[0] = x;
+	data[1] = y;
 }

@@ -23,8 +23,8 @@ static void draw(const struct piece* const checker)
 {
 	al_draw_filled_circle(0, 0, 50, al_map_rgb_f(1, 0, 0));
 
-	style_element_apply_material(checker->widget_interface->style_element, foil);
 	material_effect_point(foil, mouse_x, mouse_y);
+	style_element_apply_material(checker->widget_interface->style_element, foil);
 
 	al_draw_filled_circle(0, 0, 40, al_map_rgb_f(0.7, 0, 0));
 }

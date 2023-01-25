@@ -26,10 +26,10 @@ uniform float variation;
 
 // Selection Variables
 uniform vec3 selection_color;
-uniform float cutoff;
+uniform float selection_cutoff;
 
 // Effect Variables
-uniform vec2 point;
+uniform vec2 effect_point;
 uniform vec3 effect_color;
 
 // Trump effect Variables
@@ -73,18 +73,18 @@ void normal_behaviour()
 vec4 filtered()
 {
 //return varying_color * texture2D(al_tex, varying_texcoord+vec2(0.01,0));
-return varying_color *(0.5*texture2D(al_tex, varying_texcoord) +
-0.125*texture2D(al_tex, varying_texcoord+vec2(0.01,0)) +
-0.125*texture2D(al_tex, varying_texcoord+vec2(-0.01,0)) +
-0.125*texture2D(al_tex, varying_texcoord+vec2(0,0.01)) +
-0.125*texture2D(al_tex, varying_texcoord+vec2(0,-0.01)));
+	return varying_color *(0.5*texture2D(al_tex, varying_texcoord) +
+		0.125*texture2D(al_tex, varying_texcoord+vec2(0.01,0)) +
+		0.125*texture2D(al_tex, varying_texcoord+vec2(-0.01,0)) +
+		0.125*texture2D(al_tex, varying_texcoord+vec2(0,0.01)) +
+		0.125*texture2D(al_tex, varying_texcoord+vec2(0,-0.01)));
 }
 
 void main()
 {
 	// 
 	normal_behaviour();
-	vec4 effect_color = gl_FragColor;
+	vec4 normal_color = gl_FragColor;
 
 	switch(effect_id)
 	{
@@ -98,25 +98,27 @@ void main()
 		if(ref < 0.01)
 		{	
 			ref /= 0.01;
-			effect_color.xyz = (1-ref)*vec3(1)+ref*gl_FragColor.xyz;
+			normal_color.xyz = (1-ref)*vec3(1)+ref*gl_FragColor.xyz;
 		}
 	break;
 
 	case 2: // Radial rgb
-		vec2 displacement = gl_FragCoord.xy - vec2(point.x,1200-point.y);
+		vec2 displacement = gl_FragCoord.xy - vec2(effect_point.x,1200-effect_point.y);
+		//vec2 displacement = gl_FragCoord.xy - vec2(500,1200-500);
 		float angle = atan(displacement.y, displacement.x);
 		angle = angle/3.14159265*2+1;
-		angle += variation;
-		angle += current_timestamp;
+		//angle += variation;
+		//angle += current_timestamp;
 
-		effect_color = vec4(hsl2rgb(vec3(angle,0.5,0.5)),1);
+		normal_color = vec4(hsl2rgb(vec3(angle,0.5,0.5)),1);
+		//normal_color.xyz = vec3(fract(gl_FragCoord.xy*0.5),0);
 	break;
 	}
 
 	switch(selection_id)
 	{
 	case 0: // FULL Selection
-		gl_FragColor = effect_color;
+		gl_FragColor = normal_color;
 	break;
 	case 1: // COLOR BAND
 		vec3 displacement = filtered().xyz - selection_color;
@@ -126,7 +128,7 @@ void main()
 		{
 			ref /= 0.3;
 			ref = ref*ref*(3-2*ref);
-			gl_FragColor.xyz = mix(effect_color.xyz,gl_FragColor.xyz,ref);
+			gl_FragColor.xyz = mix(normal_color.xyz,gl_FragColor.xyz,ref);
 		}
 		
 	break;

@@ -18,11 +18,22 @@ extern void material_set_shader(const struct material* const);
 static ALLEGRO_SHADER* predraw_shader;
 static ALLEGRO_SHADER* postdraw_shader;
 
+struct particle
+{
+	void (*draw)(double);
+	double start_timestamp;
+	double end_timestamp;
+};
+
 struct style_element_internal
 {
 	struct style_element;
 	struct tweener* keyframe_tweener;
 	double variation;
+
+	struct particle* particles;
+	size_t particles_allocated;
+	size_t particles_used;
 };
 
 static struct style_element_internal* list;
@@ -89,6 +100,10 @@ struct style_element* style_element_new(size_t hint)
 	style_element->width = 0;
 	style_element->height = 0;
 
+	style_element->particles = NULL;
+	style_element->particles_allocated = 0;
+	style_element->particles_used = 0;
+
 	return (struct style_element*)style_element;
 }
 
@@ -100,6 +115,14 @@ void style_element_enter_loop(struct style_element* const style_element, double 
 
 static void style_element_update_work(struct style_element_internal* style_element)
 {
+	for (size_t i = 0; i < style_element->particles_used; i++)
+	{
+		const struct particle* const particle = style_element->particles + i;
+
+		if (particle->end_timestamp <= current_timestamp)
+			style_element->particles[i--] = style_element->particles[--style_element->particles_used];
+	}
+
 	double* keypoint = style_element->keyframe_tweener->current;
 
 	style_element->current.x = keypoint[0];
@@ -229,4 +252,41 @@ void style_element_apply_material(
 	struct material* material)
 {
 	material_set_shader(material);
+}
+
+void style_element_particle_new(struct style_element* const style_element, void (*draw)(double), double end_timestamp)
+{
+	struct style_element_internal* const internal = (struct style_element_internal* const)style_element;
+
+	if (internal->particles_allocated <= internal->particles_used)
+	{
+		const size_t new_cnt = 2 * internal->particles_allocated+1;
+
+		struct particle* memsafe_hande = realloc(internal->particles, new_cnt * sizeof(struct style_element_internal));
+
+		if (!memsafe_hande)
+			return;
+
+		internal->particles = memsafe_hande;
+		internal->particles_allocated = new_cnt;
+	}
+
+	struct particle* particle = internal->particles + internal->particles_used++;
+
+	particle->draw = draw;
+	particle->end_timestamp = current_timestamp+end_timestamp;
+	particle->start_timestamp = current_timestamp;
+}
+
+void style_element_draw_particles(const struct style_element* const style_element)
+{
+	struct style_element_internal* const internal = (struct style_element_internal* const)style_element;
+
+	for (size_t i = 0; i < internal->particles_used; i++)
+	{
+		const struct particle* const particle = internal->particles + i;
+
+		particle->draw(current_timestamp - particle->start_timestamp);
+	}
+
 }

@@ -207,7 +207,7 @@ void widget_engine_draw()
         widget->jump_table->draw((struct widget_interface*) widget);
  	}
 
-    if (1)
+    if (0)
     {
         al_use_shader(NULL);
         glDisable(GL_STENCIL_TEST);

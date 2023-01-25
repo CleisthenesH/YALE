@@ -6,6 +6,8 @@
 #include "piece_manager.h"
 #include "allegro5/allegro_primitives.h"
 
+#include <math.h>
+
 static struct material* foil;
 extern double mouse_x, mouse_y;
 
@@ -13,6 +15,12 @@ struct checker
 {
 	ALLEGRO_COLOR color;
 };
+
+static void particle(double timestamp)
+{
+	const double theta =  timestamp;
+	al_draw_filled_circle(100*sinf(theta), 100*cosf(theta), 10, al_map_rgb_f(0, 0, 1));
+}
 
 static void gc(struct piece* const checker)
 {
@@ -27,6 +35,10 @@ static void draw(const struct piece* const checker)
 	style_element_apply_material(checker->widget_interface->style_element, foil);
 
 	al_draw_filled_circle(0, 0, 40, al_map_rgb_f(0.7, 0, 0));
+
+	style_element_apply_material(checker->widget_interface->style_element, NULL);
+
+	style_element_draw_particles(checker->widget_interface->style_element);
 }
 
 static void mask(const struct piece* const checker)
@@ -48,5 +60,8 @@ void checker_new(lua_State* L)
 		foil = material_new(EFFECT_ID_RADIAL_RGB, SELECTION_ID_FULL);
 	}
 
-	piece_new(L, NULL, &checker_table);
+	struct piece* piece = piece_new(L, NULL, &checker_table);
+
+	style_element_particle_new(piece->widget_interface->style_element, particle, 3);
+
 }

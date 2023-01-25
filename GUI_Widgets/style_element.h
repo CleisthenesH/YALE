@@ -43,11 +43,6 @@ enum SELECTION_ID
 	SELECTION_ID_COLOR_BAND,
 };
 
-enum PARTICLE_ID
-{
-	PARTICLE_ID_CIRCLE,
-};
-
 struct material* material_new(enum EFFECT_ID, enum SELECTION_ID);
 
 void material_effect_point(struct material* const, double, double);
@@ -80,11 +75,6 @@ void style_element_callback(struct sytle_element* const, void (*)(void*), void*)
 // Material methods
 void style_element_apply_material(const struct style_element* const, struct material*);
 
-// An obficated struct for a rendering a particle.
-//  Particles have a limited life span and are likely to go stale so they don't exist seperate to the style element.
-//	So they are being implemented as a set and forget way atm, may comeback and change later.
-//	May need to add "layers" to particles in the style_element though?
-
 // Particle methods
-void style_element_particle_new(struct style_element* const, enum PARTICLE_ID, void*);
+void style_element_particle_new(struct style_element* const, void (*draw)(double), double);
 void style_element_draw_particles(const struct style_element* const);

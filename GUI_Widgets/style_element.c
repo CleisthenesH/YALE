@@ -21,6 +21,7 @@ static ALLEGRO_SHADER* postdraw_shader;
 struct particle
 {
 	void (*draw)(double);
+	size_t seed;
 	double start_timestamp;
 	double end_timestamp;
 };
@@ -116,12 +117,8 @@ void style_element_enter_loop(struct style_element* const style_element, double 
 static void style_element_update_work(struct style_element_internal* style_element)
 {
 	for (size_t i = 0; i < style_element->particles_used; i++)
-	{
-		const struct particle* const particle = style_element->particles + i;
-
-		if (particle->end_timestamp <= current_timestamp)
+		if (style_element->particles[i].end_timestamp <= current_timestamp)
 			style_element->particles[i--] = style_element->particles[--style_element->particles_used];
-	}
 
 	double* keypoint = style_element->keyframe_tweener->current;
 
@@ -254,7 +251,7 @@ void style_element_apply_material(
 	material_set_shader(material);
 }
 
-void style_element_particle_new(struct style_element* const style_element, void (*draw)(double), double end_timestamp)
+void style_element_particle_new(struct style_element* const style_element, void (*draw)(double,size_t), double end_timestamp, size_t seed)
 {
 	struct style_element_internal* const internal = (struct style_element_internal* const)style_element;
 
@@ -286,7 +283,7 @@ void style_element_draw_particles(const struct style_element* const style_elemen
 	{
 		const struct particle* const particle = internal->particles + i;
 
-		particle->draw(current_timestamp - particle->start_timestamp);
+		particle->draw(current_timestamp - particle->start_timestamp, particle->seed);
 	}
 
 }

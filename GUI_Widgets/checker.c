@@ -16,7 +16,7 @@ struct checker
 	ALLEGRO_COLOR color;
 };
 
-static void particle(double timestamp)
+static void particle(double timestamp, size_t seed)
 {
 	const double theta =  timestamp;
 	al_draw_filled_circle(100*sinf(theta), 100*cosf(theta), 10, al_map_rgb_f(0, 0, 1));
@@ -62,6 +62,6 @@ void checker_new(lua_State* L)
 
 	struct piece* piece = piece_new(L, NULL, &checker_table);
 
-	style_element_particle_new(piece->widget_interface->style_element, particle, 3);
+	style_element_particle_new(piece->widget_interface->style_element, particle, 3,0);
 
 }

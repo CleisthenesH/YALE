@@ -76,5 +76,5 @@ void style_element_callback(struct sytle_element* const, void (*)(void*), void*)
 void style_element_apply_material(const struct style_element* const, struct material*);
 
 // Particle methods
-void style_element_particle_new(struct style_element* const, void (*draw)(double), double);
+void style_element_particle_new(struct style_element* const, void (*draw)(double,size_t), double, size_t);
 void style_element_draw_particles(const struct style_element* const);

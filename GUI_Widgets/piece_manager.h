@@ -10,11 +10,36 @@
 #include "lua/lauxlib.h"
 #include "lua/lualib.h"
 
+enum PIECE_UVALUE
+{
+	PIECE_UVALUE_PAYLOAD = 1,
+	PIECE_UVALUE_ZONE,
+	PIECE_UVALUE_MANAGER,
+};
+
+enum ZONE_UVALUE
+{
+	ZONE_UVALUE_PAYLOAD = 1,
+	ZONE_UVALUE_PIECES,
+	ZONE_UVALUE_MANAGER,
+};
+
+enum MANAGER_UVALUE
+{
+	MANAGER_UVALUE_PIECES = 1,
+	MANAGER_UVALUE_ZONES,
+	MANAGER_UVALUE_PREMOVE,
+	MANAGER_UVALUE_POSTMOVE,
+	MANAGER_UVALUE_FLOATING_PIECE,
+};
+
 struct zone
 {
 	struct widget_interface* widget_interface;
 	const struct zone_jump_table* jump_table;
 	void* upcast;
+
+	bool highlight;
 };
 
 struct piece
@@ -30,6 +55,10 @@ struct zone_jump_table
 	void (*gc)(struct zone* const);
 	void (*draw)(const struct zone* const);
 	void (*mask)(const struct zone* const);
+	void (*update)(struct zone* const);
+
+	void (*highligh_start)(struct zone* const);
+	void (*highligh_end)(struct zone* const);
 };
 
 struct piece_jump_table

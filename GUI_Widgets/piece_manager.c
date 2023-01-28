@@ -12,27 +12,37 @@ static const struct widget_jump_table zone_to_widget_table;
 extern void checker_new(lua_State*);
 extern void square_new(lua_State*);
 
-enum PIECE_UVALUE
+static inline change_highlight(bool highlight)
 {
-	PIECE_UVALUE_PAYLOAD = 1,
-	PIECE_UVALUE_ZONE,
-	PIECE_UVALUE_MANAGER,
-};
+	lua_pushnil(main_lua_state);
+	while (lua_next(main_lua_state, -2) != 0)
+	{
+		struct widget_interface* const widget = check_widget(main_lua_state, -1, &zone_to_widget_table);
 
-enum ZONE_UVALUE
-{
-	ZONE_UVALUE_PAYLOAD = 1,
-	ZONE_UVALUE_PIECES,
-	ZONE_UVALUE_MANAGER,
-};
+		if (!widget)
+		{
+			lua_pop(main_lua_state, 1);
+			continue;
+		}
 
-enum MANAGER_UVALUE
-{
-	MANAGER_UVALUE_PIECES = 1,
-	MANAGER_UVALUE_ZONES,
-	MANAGER_UVALUE_PREMOVE,
-	MANAGER_UVALUE_POSTMOVE
-};
+		struct zone* const zone = widget->upcast;
+
+		widget->is_snappable = highlight;
+		zone->highlight = highlight;
+
+		if (highlight)
+		{
+			if (zone->jump_table->highligh_start)
+				zone->jump_table->highligh_start(zone);
+		}
+		else
+			if (zone->jump_table->highligh_end)
+				zone->jump_table->highligh_end(zone);
+
+		lua_pop(main_lua_state, 1);
+	}
+
+}
 
 static void piece_gc(struct widget_interface* const widget)
 {
@@ -55,15 +65,6 @@ static void piece_mask(const struct widget_interface* const widget)
 
 static void piece_hover_start(struct widget_interface* const widget)
 {
-}
-
-static void piece_hover_end(struct widget_interface* const widget)
-{
-	// some type of default snap and dragable ness?
-}
-
-static void piece_drag_start(struct widget_interface* const widget)
-{
 	// Convert the pointer to the widget 
 	lua_getglobal(main_lua_state, "widgets");
 	lua_pushlightuserdata(main_lua_state, widget);
@@ -73,17 +74,10 @@ static void piece_drag_start(struct widget_interface* const widget)
 	lua_getiuservalue(main_lua_state, -1, PIECE_UVALUE_MANAGER);
 
 	// Push the zones onto the st
-	lua_getfield(main_lua_state, -1, "zones");
+	lua_getiuservalue(main_lua_state, -1, MANAGER_UVALUE_ZONES);
 
 	// All zones are not snappable by default
-	lua_pushnil(main_lua_state);
-	while (lua_next(main_lua_state, -2) != 0)
-	{
-		lua_pushboolean(main_lua_state, false);
-		lua_setfield(main_lua_state, -2, "snappable");
-
-		lua_pop(main_lua_state, 1);
-	}
+	change_highlight(false);
 
 	// Push the function on the stack
 	lua_getiuservalue(main_lua_state, -2, MANAGER_UVALUE_PREMOVE);
@@ -98,49 +92,25 @@ static void piece_drag_start(struct widget_interface* const widget)
 
 	// Everything in the returned table 
 	if (lua_istable(main_lua_state, -1))
-	{
-		lua_pushnil(main_lua_state);
-		while (lua_next(main_lua_state, -2) != 0)
-		{
-			lua_pushboolean(main_lua_state, true);
-			lua_setfield(main_lua_state, -2, "snappable");
-
-			lua_pop(main_lua_state, 1);
-		}
-	}
+		change_highlight(true);
 
 	// Clean up the table
 	lua_pop(main_lua_state, 3);
 }
 
-static void piece_drag_end_no_drop(struct widget_interface* const widget)
-{
-	// Not actually a move, shouldn't trigger an event
-	if (0)
-	{
-		// Convert the pointer to the widget 
-		lua_getglobal(main_lua_state, "widgets");
-		lua_pushlightuserdata(main_lua_state, widget);
-		lua_gettable(main_lua_state, -2);
+static void piece_hover_end(struct widget_interface* const widget)
+{	
+	// Convert the pointer to the udata  
+	lua_getglobal(main_lua_state, "widgets");
+	lua_pushlightuserdata(main_lua_state, widget);
+	lua_gettable(main_lua_state, -2);
+	
+	lua_getiuservalue(main_lua_state, -1, PIECE_UVALUE_MANAGER);
+	lua_getiuservalue(main_lua_state, -1, MANAGER_UVALUE_ZONES);
 
-		// Push the manager on the stack
-		lua_getiuservalue(main_lua_state, -1, 3);
+	change_highlight(false);
 
-		// Push the function on the stack
-		lua_getiuservalue(main_lua_state, -1, 4);
-
-		// Manipuate the stack such that the top is:
-		// function, manager, piece, nil
-		lua_rotate(main_lua_state, -3, 1);
-		lua_rotate(main_lua_state, -2, 1);
-		lua_pushnil(main_lua_state);
-
-		// Call the post_move function
-		lua_call(main_lua_state, 3, 0);
-
-		// clean the stack
-		lua_pop(main_lua_state, 1);
-	}
+	lua_pop(main_lua_state, 4);
 }
 
 static int pieces_index(lua_State* L)
@@ -155,12 +125,6 @@ static int pieces_index(lua_State* L)
 		if (strcmp(key, "zone") == 0)
 		{
 			lua_getiuservalue(L, -2, PIECE_UVALUE_ZONE);
-			return 1;
-		}
-
-		if (strcmp(key, "manager") == 0)
-		{
-			lua_getiuservalue(L, -2, PIECE_UVALUE_MANAGER);
 			return 1;
 		}
 
@@ -186,6 +150,12 @@ static int pieces_new_index(lua_State* L)
 		if (strcmp(key, "payload") == 0)
 		{
 			lua_setiuservalue(L, -3, PIECE_UVALUE_PAYLOAD);
+			return 0;
+		}
+
+		if (strcmp(key, "pieces") == 0)
+		{
+			lua_setiuservalue(L, -3, ZONE_UVALUE_PIECES);
 			return 0;
 		}
 	}
@@ -272,7 +242,7 @@ static void zone_drag_end_drop(struct widget_interface* const zone, struct widge
 	lua_pushlightuserdata(main_lua_state, piece);
 	lua_gettable(main_lua_state, -2);
 
-	// Check if a table is assigned to piece
+	// Push the pieces current zone to the stack
 	lua_getiuservalue(main_lua_state, -1, PIECE_UVALUE_ZONE);
 
 	// If the piece was previously in a zone remove it
@@ -284,10 +254,18 @@ static void zone_drag_end_drop(struct widget_interface* const zone, struct widge
 		lua_pushnil(main_lua_state);
 		lua_settable(main_lua_state, -3);
 
-		lua_pop(main_lua_state, 4);
+		lua_pop(main_lua_state, 3);
 	}
 	else
 		lua_pop(main_lua_state, 2);
+
+	lua_pushlightuserdata(main_lua_state, piece);
+	lua_gettable(main_lua_state, -2);
+	// 
+	lua_pushlightuserdata(main_lua_state, zone);
+	lua_gettable(main_lua_state, -3);
+	lua_setiuservalue(main_lua_state, -2, PIECE_UVALUE_ZONE);
+	lua_pop(main_lua_state, 1);
 
 	// Push the zone udata back onto the stack
 	lua_pushlightuserdata(main_lua_state, zone);
@@ -308,6 +286,31 @@ static void zone_drag_end_drop(struct widget_interface* const zone, struct widge
 	lua_pop(main_lua_state, 3);
 }
 
+static int zone_new_index(lua_State* L)
+{
+	struct widget_interface* const widget = check_widget(L, -3, &zone_to_widget_table);
+	struct zone* const zone = widget->upcast;
+
+	if (lua_type(L, -2) == LUA_TSTRING)
+	{
+		const char* key = luaL_checkstring(L, -2);
+
+		if (strcmp(key, "payload") == 0)
+		{
+			lua_setiuservalue(L, -3, ZONE_UVALUE_PAYLOAD);
+			return 0;
+		}
+
+		if (strcmp(key, "pieces") == 0)
+		{
+			lua_setiuservalue(L, -3, ZONE_UVALUE_PIECES);
+			return 0;
+		}
+	}
+	return 0;
+
+}
+
 static int zone_index(lua_State* L)
 {
 	struct widget_interface* const widget = check_widget(L, -2, &zone_to_widget_table);
@@ -320,12 +323,6 @@ static int zone_index(lua_State* L)
 		if (strcmp(key, "pieces") == 0)
 		{
 			lua_getiuservalue(L, -2, ZONE_UVALUE_PIECES);
-			return 1;
-		}
-
-		if (strcmp(key, "manager") == 0)
-		{
-			lua_getiuservalue(L, -2, ZONE_UVALUE_MANAGER);
 			return 1;
 		}
 
@@ -370,6 +367,7 @@ static const struct widget_jump_table zone_to_widget_table =
 	.mask = zone_mask,
 	.drag_end_drop = zone_drag_end_drop,
 	.index = zone_index,
+	.newindex = zone_new_index,
 	.uservalues = 3,
 };
 
@@ -382,8 +380,6 @@ static const struct widget_jump_table piece_to_widget_table =
 	.hover_end = piece_hover_end,
 	.index = pieces_index,
 	.newindex = pieces_new_index,
-	.drag_start = piece_drag_start,
-	.drag_end_no_drop = piece_drag_end_no_drop,
 	.uservalues = 3,
 };
 

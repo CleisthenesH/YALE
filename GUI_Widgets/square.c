@@ -17,7 +17,10 @@ static void gc(struct zone* const square)
 
 static void draw(const struct zone* const square)
 {
-	al_draw_filled_rectangle(-50, -50, 50, 50, al_map_rgb_f(1, 1, 1));
+	if(square->highlight)
+		al_draw_filled_rectangle(-50, -50, 50, 50, al_map_rgb(255, 105, 180));
+	else
+		al_draw_filled_rectangle(-50, -50, 50, 50, al_map_rgb_f(1, 1, 1));
 }
 
 static void mask(const struct zone* const square)

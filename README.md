@@ -23,7 +23,19 @@ an object on screen and provide callbacks when the widget is interacted with.
 Example callbacks include
 
 ### Pieces and Zones
-A sub type of widget meant to manage 
+Pieces and Zones are types of widgets that are grouped with a Piece Manager to manage a "move" process.
+A move is a three step process of simply moving a piece from one zone to another.
+1. Premove : 
+	1. A piece is hovered triggering a manager callback to check which zones the piece can move to.
+	2. The list is stored and for each zone callback is called to start a "highlight" mode.
+2. Move :
+	1. The piece is dragged.
+	2. All zones on the list are set to draggable, all other zones are set no nonstackable.
+3. Postmove :
+	1. The zones' and pieces' state is changes such that piece is in the zone.
+	2. A zone callback is called to stop the highlight mode of potential zones.
+	3. A manager callback to inform what moves happened.
+
 
 ## Style Element
 Meant to provide a simple interface to more complex rendering options.
@@ -31,6 +43,7 @@ It consists of three public components and one internal sub class.
 
 ### Tweener
 The Tweener is the internal sub class and is basically a way to get smooth effects.
+Each tweener has n channels
 
 ### Keyframe
 

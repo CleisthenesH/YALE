@@ -20,7 +20,7 @@ static ALLEGRO_SHADER* postdraw_shader;
 
 struct particle
 {
-	void (*draw)(double);
+	void (*draw)(double, size_t);
 	size_t seed;
 	double start_timestamp;
 	double end_timestamp;
@@ -285,5 +285,4 @@ void style_element_draw_particles(const struct style_element* const style_elemen
 
 		particle->draw(current_timestamp - particle->start_timestamp, particle->seed);
 	}
-
 }

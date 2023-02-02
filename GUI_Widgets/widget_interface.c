@@ -57,17 +57,25 @@ extern lua_State* const main_lua_state;
 
 // TODO: clean up callbacks, add an argcnt column?
 #define FOR_CALLBACKS(DO) \
-	DO(right_click) \
-	DO(left_click) \
-	DO(hover_start) \
-	DO(hover_end) \
-	DO(click_off) \
-	DO(drag_start) \
-	DO(drag_end_drop) \
-	DO(drag_end_no_drop) \
-	DO(drop_start) \
-    DO(left_click_end) \
-	DO(drop_end) \
+	DO(right_click,1) \
+	DO(left_click,1) \
+    DO(left_click_end,1) \
+	DO(hover_start,1) \
+	DO(hover_end,1) \
+	DO(click_off,1) \
+	DO(drag_start,1) \
+	DO(drag_end_drop,1) \
+	DO(drag_end_no_drop,2) \
+	DO(drop_start,2) \
+	DO(drop_end,2) \
+
+#define UPVALUE(method,...) WIDGET
+enum WIDGET_UPVALUE
+{
+    WIDGET_UPVALUE_START = 0,
+
+
+};
 
 struct widget
 {
@@ -86,7 +94,7 @@ struct widget
     // Q: Why not use uservalues. A: The callback can be called from anycontext, i.e. not knowing the udata.
     struct
     {
-#define DECLARE(method) int method;
+#define DECLARE(method,...) int method;
         FOR_CALLBACKS(DECLARE)
     } lua;
 };
@@ -562,7 +570,7 @@ struct widget_interface* widget_interface_new(
 
         .jump_table = jump_table,
 
-#define CLEAR_LUA_REFNIL(method) .lua. ## method = LUA_REFNIL,
+#define CLEAR_LUA_REFNIL(method,...) .lua. ## method = LUA_REFNIL,
         FOR_CALLBACKS(CLEAR_LUA_REFNIL)
 
         .next = NULL,

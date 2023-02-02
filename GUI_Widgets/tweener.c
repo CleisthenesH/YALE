@@ -93,24 +93,40 @@ static inline void tweener_blend_nonlooping(struct tweener* tweener)
 static inline void tweener_blend_looping(struct tweener* tweener)
 {
 	// TODO: optimize this function
+	// Pretty sure it exits the loop one to early if idx = 0.
+	// That's why there is +loop_time in the blend	
+	// this will need to be fixed if we wish to store idx between calls
 
-	double loop_time = tweener->keypoints[(tweener->used - 1) * (tweener->channels + 1)] - tweener->keypoints[0] + tweener->looping_offset; // can delay calculating this
 	size_t loops = 0;
-	size_t idx = 0; // maybe keep this index between calls
+
+	// can delay calculating this
+	double loop_time = tweener->keypoints[(tweener->used - 1) * (tweener->channels + 1)] - tweener->keypoints[0] + tweener->looping_offset; 
+	
+	// maybe keep this index between calls	
+	// fint the first future frame
+	size_t idx = 0; 
 
 	while (tweener->keypoints[idx * (tweener->channels + 1)] <= current_timestamp - ((double)loops) * loop_time)
 		if (++idx == tweener->used)
 			loops++, idx = 0;
 
 	// adjust timestamps to proper range
-	for (size_t i = 0; i < tweener->used; i++)
-		tweener->keypoints[i * (tweener->channels + 1)] += ((double)loops) * loop_time;
+	if(loops)
+		for (size_t i = 0; i < tweener->used; i++)
+			tweener->keypoints[i * (tweener->channels + 1)] += ((double)loops) * loop_time;
 
 	//
 	const size_t end_idx = idx * (tweener->channels + 1);
 	const size_t start_idx = (tweener->channels + 1) * ((idx != 0) ? (idx - 1) : tweener->used - 1);
 
-	const double blend = (current_timestamp - tweener->keypoints[start_idx]) / (tweener->keypoints[end_idx] - tweener->keypoints[start_idx]);
+	double tmp_blend;
+
+	if (idx != 0)
+		tmp_blend = (current_timestamp - tweener->keypoints[start_idx]) / (tweener->keypoints[end_idx] - tweener->keypoints[start_idx]);
+	else
+		tmp_blend = (current_timestamp - tweener->keypoints[start_idx]+loop_time) / tweener->looping_offset;
+
+	const double blend = tmp_blend;
 
 	for (size_t i = 0; i < tweener->channels; i++)
 		tweener->current[i] = blend * tweener->keypoints[i + end_idx + 1] + (1 - blend) * tweener->keypoints[i + start_idx + 1];

@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 #include "widget_interface.h"
-#include "piece_manager.h"
+#include "pieces_manager.h"
 #include "allegro5/allegro_primitives.h"
 
 #include <math.h>
@@ -53,7 +53,7 @@ static struct piece_jump_table checker_table =
 	.gc = gc,
 };
 
-void checker_new(lua_State* L)
+struct piece* checker_new(lua_State* L)
 {
 	if (!foil)
 	{
@@ -64,4 +64,5 @@ void checker_new(lua_State* L)
 
 	style_element_particle_new(piece->widget_interface->style_element, particle, 3,0);
 
+	return piece;
 }

@@ -2,7 +2,7 @@
 // Use of this source code is governed by an MIT-style
 // license that can be found in the LICENSE file.
 
-#include "piece_manager.h"
+#include "pieces_manager.h"
 #include "allegro5/allegro_primitives.h"
 
 struct square
@@ -17,10 +17,13 @@ static void gc(struct zone* const square)
 
 static void draw(const struct zone* const square)
 {
-	if(square->highlight)
-		al_draw_filled_rectangle(-50, -50, 50, 50, al_map_rgb(255, 105, 180));
-	else
-		al_draw_filled_rectangle(-50, -50, 50, 50, al_map_rgb_f(1, 1, 1));
+	if(square->nominated)
+		al_draw_filled_rectangle(-50, -50, 50, 50, al_map_rgb_f(1, 1, 0));
+	else 
+		if (square->highlighted)
+			al_draw_filled_rectangle(-50, -50, 50, 50, al_map_rgb(255, 105, 180));
+		else
+			al_draw_filled_rectangle(-50, -50, 50, 50, al_map_rgb_f(1, 1, 1));
 }
 
 static void mask(const struct zone* const square)
@@ -35,7 +38,7 @@ static struct zone_jump_table square_table =
 	.gc = gc,
 };
 
-void square_new(lua_State* L)
+struct zone* square_new(lua_State* L)
 {
-	zone_new(L, NULL, &square_table);
+	return zone_new(L, NULL, &square_table);
 }

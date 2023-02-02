@@ -45,13 +45,13 @@ static inline int make_shader()
 {
 	predraw_shader = al_create_shader(ALLEGRO_SHADER_GLSL);
 
-	if (!al_attach_shader_source_file(predraw_shader, ALLEGRO_VERTEX_SHADER, "shaders/style_element_vertex_shader.glsl"))
+	if (!al_attach_shader_source_file(predraw_shader, ALLEGRO_VERTEX_SHADER, "shaders/style_element.vert"))
 	{
 		fprintf(stderr, "Failed to attach predraw vertex shader.\n%s\n", al_get_shader_log(predraw_shader));
 		return 0;
 	}
 
-	if (!al_attach_shader_source_file(predraw_shader, ALLEGRO_PIXEL_SHADER, "shaders/style_element_pixel_shader.glsl"))
+	if (!al_attach_shader_source_file(predraw_shader, ALLEGRO_PIXEL_SHADER, "shaders/style_element.frag"))
 	{
 		fprintf(stderr, "Failed to attach predraw pixel shader.\n%s\n", al_get_shader_log(predraw_shader));
 		return 0;

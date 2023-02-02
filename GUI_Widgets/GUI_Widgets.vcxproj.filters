@@ -171,13 +171,7 @@
     <ClCompile Include="hash.c">
       <Filter>hash</Filter>
     </ClCompile>
-    <ClCompile Include="piece_manager.c">
-      <Filter>piece_manager</Filter>
-    </ClCompile>
     <ClCompile Include="checker.c">
-      <Filter>piece_manager\pieces</Filter>
-    </ClCompile>
-    <ClCompile Include="square.c">
       <Filter>piece_manager\pieces</Filter>
     </ClCompile>
     <ClCompile Include="tweener.c">
@@ -185,6 +179,12 @@
     </ClCompile>
     <ClCompile Include="material.c">
       <Filter>style_element\components</Filter>
+    </ClCompile>
+    <ClCompile Include="pieces_manager.c">
+      <Filter>piece_manager</Filter>
+    </ClCompile>
+    <ClCompile Include="square.c">
+      <Filter>piece_manager\pieces</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -287,11 +287,11 @@
     <ClInclude Include="hash.h">
       <Filter>hash</Filter>
     </ClInclude>
-    <ClInclude Include="piece_manager.h">
-      <Filter>piece_manager</Filter>
-    </ClInclude>
     <ClInclude Include="tweener.h">
       <Filter>style_element\components</Filter>
+    </ClInclude>
+    <ClInclude Include="pieces_manager.h">
+      <Filter>piece_manager</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -303,16 +303,16 @@
       <Filter>scripts</Filter>
     </None>
     <None Include="..\README.md" />
-    <None Include="shaders\widget_pixel_shader.glsl">
+    <None Include="shaders\widget.frag">
       <Filter>widget_interface</Filter>
     </None>
-    <None Include="shaders\widget_vertex_shader.glsl">
+    <None Include="shaders\widget.vert">
       <Filter>widget_interface</Filter>
     </None>
-    <None Include="shaders\style_element_pixel_shader.glsl">
+    <None Include="shaders\style_element.frag">
       <Filter>style_element</Filter>
     </None>
-    <None Include="shaders\style_element_vertex_shader.glsl">
+    <None Include="shaders\style_element.vert">
       <Filter>style_element</Filter>
     </None>
     <None Include="sketch.lua">

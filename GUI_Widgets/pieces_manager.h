@@ -13,33 +13,20 @@
 enum PIECE_UVALUE
 {
 	PIECE_UVALUE_PAYLOAD = 1,
-	PIECE_UVALUE_ZONE,
-	PIECE_UVALUE_MANAGER,
 };
 
 enum ZONE_UVALUE
 {
 	ZONE_UVALUE_PAYLOAD = 1,
-	ZONE_UVALUE_PIECES,
-	ZONE_UVALUE_MANAGER,
 };
 
 enum MANAGER_UVALUE
 {
-	MANAGER_UVALUE_PIECES = 1,
+	MANAGER_UVALUE_VALID_MOVES = 1,
+	MANAGER_UVALUE_MOVE,
+	MANAGER_UVALUE_PIECES,
 	MANAGER_UVALUE_ZONES,
-	MANAGER_UVALUE_PREMOVE,
-	MANAGER_UVALUE_POSTMOVE,
-	MANAGER_UVALUE_FLOATING_PIECE,
-};
-
-struct zone
-{
-	struct widget_interface* widget_interface;
-	const struct zone_jump_table* jump_table;
-	void* upcast;
-
-	bool highlight;
+	MANAGER_UVALUE_INVALID_MOVE,
 };
 
 struct piece
@@ -48,6 +35,36 @@ struct piece
 	const struct piece_jump_table* jump_table;
 
 	void* upcast;
+	struct zone* zone;
+	struct manager* manager;
+};
+
+struct zone
+{
+	struct widget_interface* widget_interface;
+	const struct zone_jump_table* jump_table;
+	void* upcast;
+	struct manager* manager;
+
+	bool valid_move;
+	bool highlighted;
+	bool nominated;
+
+	size_t allocated;
+	size_t used;
+	struct piece** pieces;
+};
+
+struct manager
+{
+	int self;
+	struct piece* moving_piece;
+	struct zone* originating_zone;
+
+	bool auto_snap;					// When making a potential move automatically snap the piece valid zones.
+	bool auto_highlight;			// When making a potential move automatically highlight valid zone.
+	bool auto_transition;			// After making a move auto transition to the zones snap
+	bool auto_block_invalid_moves;	// A zone can only be nominated if it is a vaild move. (Not implemented)
 };
 
 struct zone_jump_table
@@ -59,6 +76,9 @@ struct zone_jump_table
 
 	void (*highligh_start)(struct zone* const);
 	void (*highligh_end)(struct zone* const);
+
+	void (*remove_piece)(struct zone* const, struct piece* const);
+	void (*append_piece)(struct zone* const, struct piece* const);
 };
 
 struct piece_jump_table

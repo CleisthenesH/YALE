@@ -55,6 +55,7 @@ extern void invert_transform_3D(ALLEGRO_TRANSFORM*);
 // If I'm going to have a global widget state i might as well have a gloabl lua state
 extern lua_State* const main_lua_state;
 
+// TODO: clean up callbacks, add an argcnt column?
 #define FOR_CALLBACKS(DO) \
 	DO(right_click) \
 	DO(left_click) \
@@ -363,12 +364,22 @@ static inline void widget_engine_update_drag_pointers()
         widget_engine_state == ENGINE_STATE_TO_DRAG ||
         widget_engine_state == ENGINE_STATE_TO_SNAP ))
     {
-		if (current_drop)
-			call(current_drop, drop_end);
+        if (current_drop)
+        {
+            if (current_drop->jump_table->drop_end)
+            {
+                call_va(current_drop, drop_end, (struct widget_interface*)current_hover);
+            }
+            call_lua(current_drop, drop_end)
+        }
 
 		if (new_pointer)
 		{
-			call(new_pointer, drop_start);
+            if (new_pointer->jump_table->drop_start)
+            {
+                call_va(new_pointer, drop_start, (struct widget_interface*)current_hover);
+            }
+            call_lua(new_pointer, drop_start)
 
 			if (new_pointer->is_snappable)
 			{
@@ -919,13 +930,13 @@ void widget_engine_init(lua_State* L)
     // Build the offscreen shader and bitmap
     offscreen_shader = al_create_shader(ALLEGRO_SHADER_GLSL);
 
-    if (!al_attach_shader_source_file(offscreen_shader, ALLEGRO_VERTEX_SHADER, "shaders/widget_vertex_shader.glsl"))
+    if (!al_attach_shader_source_file(offscreen_shader, ALLEGRO_VERTEX_SHADER, "shaders/widget.vert"))
     {
         fprintf(stderr, "Failed to attach vertex shader.\n%s\n", al_get_shader_log(offscreen_shader));
         return;
     }
 
-    if (!al_attach_shader_source_file(offscreen_shader, ALLEGRO_PIXEL_SHADER, "shaders/widget_pixel_shader.glsl"))
+    if (!al_attach_shader_source_file(offscreen_shader, ALLEGRO_PIXEL_SHADER, "shaders/widget.frag"))
     {
         fprintf(stderr, "Failed to attach pixel shader.\n%s\n", al_get_shader_log(offscreen_shader));
         return;

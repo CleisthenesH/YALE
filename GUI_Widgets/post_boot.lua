@@ -6,27 +6,33 @@
 
 piece_manager = piece_manager_new()
 
+local arbitary_zone = nil
+
 for i = 0,2 do
 	for j = 0,2 do
 		local zone = piece_manager:new_zone("square")
-		zone:set_keyframe{x=500+i*110,y=500+j*110}
-		zone.payload = (i+j)%2
+		zone:set_keyframe{x=300+110*i,y=300+110*j}
+
+		zone.payload = i+j
+
+		arbitary_zone = zone
 	end
 end
 
-piece_manager:new_piece("checker"):set_keyframe{x=300, y=100}
-
 local checker = piece_manager:new_piece("checker")
-checker:set_keyframe{x=100, y=100}
---checker:new_keyframe{x=900, y=100, timestamp = current_time()+1}
---checker:new_keyframe{x=400, y=200, timestamp = current_time()+2}
---checker:enter_loop(1)
+checker:set_keyframe{x=900,y=500}
 
-function piece_manager.pre_move(manager, piece)
+-- TODO: looping is glitchy
+local checker2 = piece_manager:new_piece("checker")
+checker2:set_keyframe{x=100, y=100}
+checker2:new_keyframe{x=900, y=100, timestamp = current_time()+1}
+checker2:enter_loop(1)
+
+function piece_manager.vaild_moves(manager, piece)
 	local a = {}
 
 	for k,v in pairs(manager.zones) do
-		if(v.payload == 0) and (next(v.pieces) == nil) then
+		if (v.payload % 2 == 0) and (next(v.pieces) == nil) then
 			a[k] = v
 		end
 	end
@@ -34,14 +40,11 @@ function piece_manager.pre_move(manager, piece)
 	return a
 end
 
-function piece_manager.post_move(manager, piece, zone)
-	destination = zone.destination_keyframe
-	current_timestamp = current_time()
+test_button = button_new()
+test_button:set_keyframe{x=1100,y=500}
 
-	destination.timestamp = current_timestamp + 0.1
-
-	piece:interupt()
-	piece:new_keyframe(destination)
+function test_button.left_click()
+	piece_manager:move(checker,arbitary_zone)
 end
 
 print("post boot complete")

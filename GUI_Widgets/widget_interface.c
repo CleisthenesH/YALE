@@ -56,6 +56,7 @@ extern void invert_transform_3D(ALLEGRO_TRANSFORM*);
 extern lua_State* const main_lua_state;
 
 // TODO: clean up callbacks, add an argcnt column?
+// Might need to add a lower case and uppercase version to clean code fully
 #define FOR_CALLBACKS(DO) \
 	DO(right_click,1) \
 	DO(left_click,1) \

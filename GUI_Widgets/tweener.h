@@ -20,8 +20,8 @@ struct tweener
 	double* keypoints; // could optimize better with flexable array member?
 
 	// Looping data
-	bool looping;
-	double looping_offset;
+	size_t looping_idx;
+	double looping_time;
 
 	// Callback when the path ends 
 	void (*funct)(void*);

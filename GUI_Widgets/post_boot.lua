@@ -22,12 +22,6 @@ end
 local checker = piece_manager:new_piece("checker")
 checker:set_keyframe{x=900,y=500}
 
--- TODO: looping is glitchy
-local checker2 = piece_manager:new_piece("checker")
-checker2:set_keyframe{x=100, y=100}
-checker2:new_keyframe{x=900, y=100, timestamp = current_time()+4}
-checker2:enter_loop(4)
-
 function piece_manager.vaild_moves(manager, piece)
 	local a = {}
 

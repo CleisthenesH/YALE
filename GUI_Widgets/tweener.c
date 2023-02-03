@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include <math.h>
 
 #include "thread_pool.h"
 #include "tweener.h"
@@ -47,9 +48,10 @@ struct tweener* tweener_new(size_t channels, size_t hint)
 	tweener->keypoints = malloc(hint * (channels + 1) * sizeof(double));
 	tweener->channels = channels;
 	tweener->current = malloc(channels * sizeof(double));
-	tweener->looping = false;
+	tweener->looping_time = -1;
 	tweener->funct = NULL;
 	tweener->data = NULL;
+	tweener->looping_idx = 0;
 
 	return (struct tweener*)tweener;
 }
@@ -92,62 +94,48 @@ static inline void tweener_blend_nonlooping(struct tweener* tweener)
 
 static inline void tweener_blend_looping(struct tweener* tweener)
 {
-	// TODO: optimize this function
-	// Pretty sure it exits the loop one to early if idx = 0.
-	// That's why there is +loop_time in the blend	
-	// this will need to be fixed if we wish to store idx between calls
+	while (tweener->keypoints[tweener->looping_idx * (tweener->channels + 1)] <= current_timestamp)
+	{
+		const size_t back_idx = (tweener->looping_idx >= 1) ? 
+			tweener->looping_idx - 1 : tweener->used - 1;
 
-	size_t loops = 0;
+		tweener->keypoints[back_idx * (tweener->channels + 1)] += tweener->looping_time;
 
-	// can delay calculating this
-	double loop_time = tweener->keypoints[(tweener->used - 1) * (tweener->channels + 1)] - tweener->keypoints[0] + tweener->looping_offset; 
+		tweener->looping_idx = (tweener->looping_idx != SIZE_MAX) ? 
+			(tweener->looping_idx + 1) % tweener->used : 0;
+	}
+
+	const size_t end_idx = tweener->looping_idx * (tweener->channels + 1);
+	const size_t start_idx = (tweener->channels + 1) * ((tweener->looping_idx >= 1) ? 
+		(tweener->looping_idx - 1) : tweener->used - 1);
 	
-	// maybe keep this index between calls	
-	// fint the first future frame
-	size_t idx = 0; 
-
-	while (tweener->keypoints[idx * (tweener->channels + 1)] <= current_timestamp - ((double)loops) * loop_time)
-		if (++idx == tweener->used)
-			loops++, idx = 0;
-
-	// adjust timestamps to proper range
-	if(loops)
-		for (size_t i = 0; i < tweener->used; i++)
-			tweener->keypoints[i * (tweener->channels + 1)] += ((double)loops) * loop_time;
-
-	//
-	const size_t end_idx = idx * (tweener->channels + 1);
-	const size_t start_idx = (tweener->channels + 1) * ((idx != 0) ? (idx - 1) : tweener->used - 1);
-
-	double tmp_blend;
-
-	if (idx != 0)
-		tmp_blend = (current_timestamp - tweener->keypoints[start_idx]) / (tweener->keypoints[end_idx] - tweener->keypoints[start_idx]);
-	else
-		tmp_blend = (current_timestamp - tweener->keypoints[start_idx]+loop_time) / tweener->looping_offset;
-
-	const double blend = tmp_blend;
+	const double blend = (current_timestamp - tweener->keypoints[start_idx]) / 
+		(tweener->keypoints[end_idx] - tweener->keypoints[start_idx]);
 
 	for (size_t i = 0; i < tweener->channels; i++)
-		tweener->current[i] = blend * tweener->keypoints[i + end_idx + 1] + (1 - blend) * tweener->keypoints[i + start_idx + 1];
+		tweener->current[i] = blend * tweener->keypoints[i + end_idx + 1] + 
+			(1 - blend) * tweener->keypoints[i + start_idx + 1];
 }
 
-static void tweener_blend_keypoints(struct tweener* tweener)
+static inline void tweener_blend_keypoints(struct tweener* const tweener)
 {
-	if (tweener->looping)
-		tweener_blend_looping(tweener);
-	else
-		tweener_blend_nonlooping(tweener);
+	if (tweener->used > 1)
+		if (tweener->looping_time > 0)
+			tweener_blend_looping(tweener);
+		else
+			tweener_blend_nonlooping(tweener);
 }
 
 struct work_queue* tweener_update()
 {
 	struct work_queue* work_queue = work_queue_create();
 
-	// optimize this by doing the looping check before appding the work item
 	for (size_t i = 0; i < tweeners_used; i++)
 		if (tweeners_list[i].used > 1)
-			work_queue_push(work_queue, tweener_blend_keypoints, tweeners_list + i);
+			if(tweeners_list[i].looping_time > 0)
+				work_queue_push(work_queue, tweener_blend_looping, tweeners_list + i);
+			else
+				work_queue_push(work_queue, tweener_blend_nonlooping, tweeners_list + i);
 
 	return work_queue;
 }
@@ -188,8 +176,24 @@ double* tweener_new_point(struct tweener* tweener)
 
 void tweener_enter_loop(struct tweener* tweener, double loop_offset)
 {
-	tweener->looping = true;
-	tweener->looping_offset = loop_offset;
+	if (tweener->used < 2)
+		return;
+
+	// Can optimize using a division to get loops
+	size_t idx = 0;
+	size_t loops = 0;
+	const double loop_time = tweener->keypoints[(tweener->used - 1) * (tweener->channels + 1)] - tweener->keypoints[0] + loop_offset;
+
+	while (tweener->keypoints[idx * (tweener->channels + 1)] <= current_timestamp - ((double)loops) * loop_time)
+		if (++idx == tweener->used)
+			loops++, idx = 0;
+
+	if (loops)
+		for (size_t i = 0; i < tweener->used; i++)
+			tweener->keypoints[i * (tweener->channels + 1)] += ((double)loops) * loop_time;
+
+	tweener->looping_idx = idx;
+	tweener->looping_time = loop_time;
 }
 
 void tweener_interupt(struct tweener* const tweener)
@@ -197,7 +201,7 @@ void tweener_interupt(struct tweener* const tweener)
 	if (tweener->used > 1)
 		tweener_blend_keypoints(tweener);
 
-	tweener->looping = false;
+	tweener->looping_time = -1;
 
 	tweener_set(tweener, tweener->current);
 }

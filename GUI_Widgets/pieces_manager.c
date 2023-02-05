@@ -622,7 +622,6 @@ static int piece_manager_index(lua_State* L)
 
 static int piece_manager_new(lua_State* L)
 {
-	// TODO: implements hints for zone and pice size
 	struct manager* const piece_manager = lua_newuserdatauv(L, sizeof(struct manager), 5);
 
 	if (!piece_manager)

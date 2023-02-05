@@ -41,7 +41,6 @@ static void mask(const struct widget_interface* const widget)
 	al_draw_filled_rectangle(center - 2, -2, center + 2, 2, al_color_name("white"));
 }	
 
-// TODO: create a "update on hover" method
 static void update(const struct widget_interface* const widget)
 {
 	 struct slider* const slider = (struct slider*)widget->upcast;

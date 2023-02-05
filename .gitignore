@@ -361,3 +361,5 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+/GUI_Widgets/res/character_art
+/GUI_Widgets/res/icons

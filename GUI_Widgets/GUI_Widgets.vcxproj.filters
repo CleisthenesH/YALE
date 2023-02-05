@@ -293,6 +293,7 @@
     <ClInclude Include="pieces_manager.h">
       <Filter>piece_manager</Filter>
     </ClInclude>
+    <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

@@ -218,6 +218,7 @@
     <ClInclude Include="lua\lundump.h" />
     <ClInclude Include="lua\lvm.h" />
     <ClInclude Include="lua\lzio.h" />
+    <ClInclude Include="resource.h" />
     <ClInclude Include="style_element.h" />
     <ClInclude Include="thread_pool.h" />
     <ClInclude Include="tweener.h" />

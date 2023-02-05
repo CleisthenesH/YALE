@@ -51,8 +51,6 @@ extern ALLEGRO_EVENT current_event;
 extern const ALLEGRO_TRANSFORM identity_transform;
 extern void invert_transform_3D(ALLEGRO_TRANSFORM*);
 
-// TODO: try to remove, still used in calling lua methods
-// If I'm going to have a global widget state i might as well have a gloabl lua state
 extern lua_State* const main_lua_state;
 
 // TODO: clean up callbacks, add an argcnt column?

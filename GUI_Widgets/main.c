@@ -55,8 +55,6 @@ double delta_timestamp;
 const ALLEGRO_TRANSFORM identity_transform;
 const ALLEGRO_FONT* debug_font; 
 
-// TODO: Make static and non global
-// Still used in lua function calls in widget_engine.c
 const lua_State* main_lua_state;
 
 // Initalze the lua enviroment.

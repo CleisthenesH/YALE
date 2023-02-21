@@ -3,6 +3,7 @@
 // license that can be found in the LICENSE file.
 
 #include "widget_interface.h"
+#include "resource_manager.h"
 
 #include <allegro5/allegro5.h>
 #include <allegro5/allegro_font.h>
@@ -78,7 +79,7 @@ int button_new(lua_State* L)
 	*button = (struct button)
 	{
 		.widget_interface = widget_interface_new(L,button,&button_jump_table_entry),
-		.font = test_font,
+		.font = resource_manager_font(FONT_ID_SHINYPEABERRY),
 		.text = "test",
 		.color = al_map_rgb(72, 91, 122),
 	};

@@ -20,7 +20,7 @@
 #include "lua/lualib.h"
 
 #include "thread_pool.h"
-extern void thread_pool_create(size_t);
+extern void thread_pool_init(size_t);
 extern void thread_pool_destroy();
 
 #include "style_element.h"
@@ -38,7 +38,8 @@ extern void widget_engine_event_handler();
 
 extern void piece_manager_setglobal(lua_State*);
 
-ALLEGRO_FONT* emily_huo_font(const char*);
+#include "resource_manager.h"
+void resource_manager_init();
 
 static ALLEGRO_DISPLAY* display;
 static ALLEGRO_EVENT_QUEUE* main_event_queue;
@@ -69,6 +70,54 @@ static inline int lua_init()
     piece_manager_setglobal(main_lua_state);
 
     return 1;
+}
+
+// Config and create display
+static inline void create_display()
+{
+    ALLEGRO_MONITOR_INFO monitor_info;
+    ALLEGRO_DISPLAY_MODE display_mode;
+
+    al_set_new_display_option(ALLEGRO_DEPTH_SIZE, 32, ALLEGRO_SUGGEST);
+    al_set_new_display_option(ALLEGRO_STENCIL_SIZE, 8, ALLEGRO_SUGGEST);
+    al_set_new_display_option(ALLEGRO_SAMPLE_BUFFERS, 1, ALLEGRO_REQUIRE);
+    al_set_new_display_option(ALLEGRO_SAMPLES, 8, ALLEGRO_REQUIRE);
+
+    al_set_new_display_flags(ALLEGRO_PROGRAMMABLE_PIPELINE | ALLEGRO_OPENGL | ALLEGRO_FULLSCREEN);
+
+    // Will improve monitor implementation when lua is itegrated
+    al_get_monitor_info(0, &monitor_info);
+    al_set_new_display_adapter(0);
+    al_get_display_mode(al_get_num_display_modes() - 1, &display_mode);
+
+    if (0)
+        display = al_create_display(
+            monitor_info.x2 - monitor_info.x1,
+            monitor_info.y2 - monitor_info.y1);
+    else
+        display = al_create_display(display_mode.width, display_mode.height);
+
+    al_set_render_state(ALLEGRO_ALPHA_TEST, 1);
+    al_set_render_state(ALLEGRO_ALPHA_FUNCTION, ALLEGRO_RENDER_NOT_EQUAL);
+    al_set_render_state(ALLEGRO_ALPHA_TEST_VALUE, 0);
+
+    al_set_new_bitmap_flags(ALLEGRO_VIDEO_BITMAP | ALLEGRO_NO_PRESERVE_TEXTURE);
+
+    if (!display) {
+        fprintf(stderr, "failed to create display!\n");
+        return;
+    }
+    al_set_target_bitmap(al_get_backbuffer(display));
+}
+
+// Create event queue and register sources
+static inline void create_event_queue()
+{
+    main_event_queue = al_create_event_queue();
+
+    al_register_event_source(main_event_queue, al_get_display_event_source(display));
+    al_register_event_source(main_event_queue, al_get_mouse_event_source());
+    al_register_event_source(main_event_queue, al_get_keyboard_event_source());
 }
 
 // Initalize the allegro enviroment.
@@ -116,56 +165,10 @@ static inline int allegro_init()
         return 0;
     }
 
+    create_display();
+    create_event_queue();
 
     return 1;
-}
-
-//  Config and create display
-static inline void create_display()
-{
-    ALLEGRO_MONITOR_INFO monitor_info;
-    ALLEGRO_DISPLAY_MODE display_mode;
-
-    al_set_new_display_option(ALLEGRO_DEPTH_SIZE, 32, ALLEGRO_SUGGEST);
-    al_set_new_display_option(ALLEGRO_STENCIL_SIZE, 8, ALLEGRO_SUGGEST);
-    al_set_new_display_option(ALLEGRO_SAMPLE_BUFFERS, 1, ALLEGRO_REQUIRE);
-    al_set_new_display_option(ALLEGRO_SAMPLES, 8, ALLEGRO_REQUIRE);
-
-    al_set_new_display_flags(ALLEGRO_PROGRAMMABLE_PIPELINE | ALLEGRO_OPENGL | ALLEGRO_FULLSCREEN);
-
-    // Will improve monitor implementation when lua is itegrated
-    al_get_monitor_info(0, &monitor_info);
-    al_set_new_display_adapter(0);
-    al_get_display_mode(al_get_num_display_modes()-1, &display_mode);
-
-    if (0)
-        display = al_create_display(
-            monitor_info.x2 - monitor_info.x1,
-            monitor_info.y2 - monitor_info.y1);
-    else
-        display = al_create_display(display_mode.width, display_mode.height);
-
-    al_set_render_state(ALLEGRO_ALPHA_TEST, 1);
-    al_set_render_state(ALLEGRO_ALPHA_FUNCTION, ALLEGRO_RENDER_NOT_EQUAL);
-    al_set_render_state(ALLEGRO_ALPHA_TEST_VALUE, 0);
-
-    al_set_new_bitmap_flags(ALLEGRO_VIDEO_BITMAP | ALLEGRO_NO_PRESERVE_TEXTURE);
-
-    if (!display) {
-        fprintf(stderr, "failed to create display!\n");
-        return;
-    }
-    al_set_target_bitmap(al_get_backbuffer(display));
-}
-
-// Create event queue and register sources
-static inline void create_event_queue()
-{
-    main_event_queue = al_create_event_queue();
-
-    al_register_event_source(main_event_queue, al_get_display_event_source(display));
-    al_register_event_source(main_event_queue, al_get_mouse_event_source());
-    al_register_event_source(main_event_queue, al_get_keyboard_event_source());
 }
 
 // Initalize the global enviroment.
@@ -210,8 +213,6 @@ static inline void process_event()
 }
 
 // On an empty queue update and draw.
-ALLEGRO_FONT* test_font;
-
 static inline void empty_event_queue()
 {
     // Update globals
@@ -249,7 +250,7 @@ static inline void empty_event_queue()
 }
 
 // Error call   
-static inline void error_call(const char* file_name)
+static inline void main_state_dofile(const char* file_name)
 {
     int error = luaL_dofile(main_lua_state, file_name);
 
@@ -292,20 +293,16 @@ int main()
 {
     lua_init();
 
-    error_call("boot.lua");
+    main_state_dofile("boot.lua");
 
     allegro_init();
-
-    test_font = emily_huo_font("ShinyPeaberry");
-
-    create_display();
-    create_event_queue();
+    resource_manager_init();
     global_init();
-    thread_pool_create(8);
+    thread_pool_init(8);
     style_element_init();
     widget_engine_init(main_lua_state);
 
-    error_call("post_boot.lua");
+    main_state_dofile("post_boot.lua");
 
     while (!do_exit)
         if (al_get_next_event(main_event_queue, &current_event))

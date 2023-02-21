@@ -9,14 +9,51 @@
 #include <allegro5/allegro_ttf.h>
 #include <allegro5/allegro_color.h>
 
+#include "resource_manager.h"
+
 #include "lua/lua.h"
 #include "lua/lualib.h"
 #include "lua/lauxlib.h"
 #include "lua/lualib.h"
 
+static const char* const font_names[] =
+{
+	"BasicPupBlack",
+	"BasicPupWhite",
+	"BoldBasic",
+	"BoldBlocks",
+	"BoldBubblegum",
+	"BoldCheese",
+	"BoldTwilight",
+	"CakeIcing",
+	"CleanBasic",
+	"CleanCraters",
+	"CleanPlate",
+	"CleanVictory",
+	"DigitalPup",
+	"GoldPeaberry",
+	"IndigoPaint",
+	"IndigoPeaberry",
+	"PaintBasic",
+	"PoolParty",
+	"RaccoonSerif - Base",
+	"RaccoonSerif - Bold",
+	"RaccoonSerif - Medium",
+	"RaccoonSerif - Mini",
+	"RaccoonSerif - Mono",
+	"RedPeaberry",
+	"ShinyPeaberry",
+	"WhitePeaberry",
+	"WhitePeaberryOutline"
+};
+
+static ALLEGRO_FONT* font_table[FONT_ID_COUNT];
+static ALLEGRO_BITMAP* icon_table[ICON_ID_COUNT] = {NULL};
+static ALLEGRO_BITMAP* character_art_table[CHARACTER_ART_ID_COUNT] = {NULL};
+
 // Turns the bitmap and lua file uploaded by Emily Huo to itch.io into a ALLEGRO_FONT
 // Currently ignores kerling and xoffset
-ALLEGRO_FONT* emily_huo_font(const char* font_name)
+static ALLEGRO_FONT* emily_huo_font(const char* font_name)
 {
 	char file_name_buffer[256] = "res/fonts/";
 
@@ -24,7 +61,7 @@ ALLEGRO_FONT* emily_huo_font(const char* font_name)
 	strcat_s(file_name_buffer, 256, ".png");
 
 	ALLEGRO_BITMAP* bitmap = al_load_bitmap(file_name_buffer);
-	
+
 	strcpy_s(file_name_buffer, 256, "res/fonts/");
 	strcat_s(file_name_buffer, 256, font_name);
 	strcat_s(file_name_buffer, 256, ".lua");
@@ -130,15 +167,44 @@ ALLEGRO_FONT* emily_huo_font(const char* font_name)
 		lua_gettable(lua, -6);
 		yoffset = luaL_checkinteger(lua, -1);
 
-		al_draw_filled_rectangle(xadvance,1, xadvance + w, 1 + max_height, al_map_rgba(0, 0, 0, 0));
-		al_draw_bitmap_region(bitmap, x, y, w, h, xadvance, 1+yoffset, 0);
+		al_draw_filled_rectangle(xadvance, 1, xadvance + w, 1 + max_height, al_map_rgba(0, 0, 0, 0));
+		al_draw_bitmap_region(bitmap, x, y, w, h, xadvance, 1 + yoffset, 0);
 
-		xadvance += w + 1; 
+		xadvance += w + 1;
 
 		lua_pop(lua, 6);
 	}
 
-	int ranges[2] = {32,126 };
-	
+	int ranges[2] = { 32,126 };
+
 	return al_grab_font_from_bitmap(bitmap_font, 1, ranges);
+}
+
+void resource_manager_init()
+{
+	for (size_t i = 0; i < FONT_ID_COUNT; i++)
+		font_table[i] = emily_huo_font(font_names[i]);
+}
+
+ALLEGRO_FONT* resource_manager_font(enum font_id id)
+{
+	return font_table[id];
+}
+
+ALLEGRO_BITMAP* resource_manager_icon(enum icon_id id)
+{
+	if (!icon_table[id])
+	{
+		char file_name_buffer[256];
+		sprintf_s(file_name_buffer, 256, "res/icons/%d.png", id);
+
+		icon_table[id] = al_load_bitmap(file_name_buffer);
+	}
+
+	return icon_table[id];
+}
+
+ALLEGRO_BITMAP* resource_manager_character_art(enum character_art_id id)
+{
+	return NULL;
 }

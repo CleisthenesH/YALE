@@ -1,4 +1,4 @@
-// Copyright 2022 Kieran W Harvie. All rights reserved.
+// Copyright 2023 Kieran W Harvie. All rights reserved.
 // Use of this source code is governed by an MIT-style
 // license that can be found in the LICENSE file.
 
@@ -149,7 +149,7 @@ static void* worker_function(void* arg)
 
 // Create and detach the thread pool
 // Only visable to the main thread
-void thread_pool_create(size_t thread_cnt)
+void thread_pool_init(size_t thread_cnt)
 {
 	if (thread_cnt == 0)
 		thread_cnt = 2;
@@ -208,7 +208,8 @@ void thread_pool_wait()
 	al_lock_mutex(thread_pool.read_write_mutex);
 
 	while (1)
-		if ((!thread_pool.shutting_down && thread_pool.working_cnt != 0) || (thread_pool.shutting_down && thread_pool.thread_cnt != 0))
+		if ((!thread_pool.shutting_down && thread_pool.queue.first) ||
+			(thread_pool.shutting_down && thread_pool.thread_cnt != 0))
 			al_wait_cond(thread_pool.idle_cond, thread_pool.read_write_mutex);
 		else
 			break;

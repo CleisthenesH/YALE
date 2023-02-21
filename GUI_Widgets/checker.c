@@ -11,6 +11,8 @@
 static struct material* foil;
 extern double mouse_x, mouse_y;
 
+#include "resource_manager.h"
+
 struct checker
 {
 	ALLEGRO_COLOR color;
@@ -39,6 +41,9 @@ static void draw(const struct piece* const checker)
 	style_element_apply_material(checker->widget_interface->style_element, NULL);
 
 	style_element_draw_particles(checker->widget_interface->style_element);
+
+	al_draw_bitmap(resource_manager_icon(ICON_ID_ACCORDION),0,0,0);
+
 }
 
 static void mask(const struct piece* const checker)

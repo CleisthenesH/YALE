@@ -218,7 +218,8 @@
     <ClInclude Include="lua\lundump.h" />
     <ClInclude Include="lua\lvm.h" />
     <ClInclude Include="lua\lzio.h" />
-    <ClInclude Include="resource.h" />
+    <ClInclude Include="resource_manager.h" />
+    <ClInclude Include="resource_manager_ids.h" />
     <ClInclude Include="style_element.h" />
     <ClInclude Include="thread_pool.h" />
     <ClInclude Include="tweener.h" />
@@ -239,9 +240,9 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="font_loader.c" />
     <ClCompile Include="material.c" />
     <ClCompile Include="pieces_manager.c" />
+    <ClCompile Include="resource_manager.c" />
     <ClCompile Include="square.c" />
     <ClCompile Include="hash.c" />
     <ClCompile Include="lua\lapi.c" />
@@ -281,7 +282,7 @@
     <ClCompile Include="slider.c" />
     <ClCompile Include="style_element.c" />
     <ClCompile Include="thread_pool.c" />
-    <ClCompile Include="transform_utility.c" />
+    <ClCompile Include="miscellaneous.c" />
     <ClCompile Include="tweener.c" />
     <ClCompile Include="widget_interface.c" />
   </ItemGroup>
@@ -296,6 +297,7 @@
     <None Include="shaders\widget.frag" />
     <None Include="shaders\widget.vert" />
     <None Include="sketch.lua" />
+    <None Include="to-do.md" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="..\LICENSE.txt" />

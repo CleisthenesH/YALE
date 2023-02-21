@@ -46,6 +46,9 @@
     <Filter Include="style_element\components">
       <UniqueIdentifier>{d185aafe-7fd7-4ba6-81d9-59788b204e31}</UniqueIdentifier>
     </Filter>
+    <Filter Include="resource_manager">
+      <UniqueIdentifier>{818fcb03-30f7-42b3-877b-9bf11791f03e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="style_element.c">
@@ -160,14 +163,13 @@
     <ClCompile Include="lua\lzio.c">
       <Filter>lua</Filter>
     </ClCompile>
-    <ClCompile Include="font_loader.c" />
     <ClCompile Include="button.c">
       <Filter>widget\button</Filter>
     </ClCompile>
     <ClCompile Include="slider.c">
       <Filter>widget\slider</Filter>
     </ClCompile>
-    <ClCompile Include="transform_utility.c" />
+    <ClCompile Include="miscellaneous.c" />
     <ClCompile Include="hash.c">
       <Filter>hash</Filter>
     </ClCompile>
@@ -185,6 +187,9 @@
     </ClCompile>
     <ClCompile Include="square.c">
       <Filter>piece_manager\pieces</Filter>
+    </ClCompile>
+    <ClCompile Include="resource_manager.c">
+      <Filter>resource_manager</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -293,7 +298,12 @@
     <ClInclude Include="pieces_manager.h">
       <Filter>piece_manager</Filter>
     </ClInclude>
-    <ClInclude Include="resource.h" />
+    <ClInclude Include="resource_manager.h">
+      <Filter>resource_manager</Filter>
+    </ClInclude>
+    <ClInclude Include="resource_manager_ids.h">
+      <Filter>resource_manager</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
@@ -322,6 +332,7 @@
     <None Include="example_workflow.lua">
       <Filter>scripts</Filter>
     </None>
+    <None Include="to-do.md" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="..\LICENSE.txt" />

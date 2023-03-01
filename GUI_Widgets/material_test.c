@@ -12,10 +12,14 @@
 #include <allegro5/allegro_font.h>
 #include "allegro5/allegro_primitives.h"
 
+extern double mouse_x, mouse_y;
+
 struct material_test
 {
 	struct widget_interface* widget_interface;
 	struct material* material;
+
+	int effect_id, selection_id;
 };
 
 static void draw(const struct widget_interface* const widget)
@@ -34,6 +38,8 @@ static void mask(const struct widget_interface* const widget)
 
 static void update(const struct widget_interface* const widget)
 {
+	struct material_test* const handle = (struct material_test* const)widget->upcast;
+	material_effect_point(handle->material, mouse_x, mouse_y);
 }
 
 static const struct widget_jump_table material_test_table_entry =
@@ -73,6 +79,8 @@ int material_test_new(lua_State* L)
 	{
 		.widget_interface = widget_interface_new(L,handle,&material_test_table_entry),
 		.material = material_new(material_id, selection_id),
+		.effect_id = material_id,
+		.selection_id = selection_id
 	};
 
 	handle->widget_interface->is_draggable = true;

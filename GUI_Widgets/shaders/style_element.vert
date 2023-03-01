@@ -16,7 +16,10 @@ uniform float displacement;
 varying vec4 varying_color;
 varying vec2 varying_texcoord;
 
-varying vec3 pixel_position;
+varying vec3 local_position;
+
+uniform vec2 display_dimensions;
+uniform vec2 object_dimensions;
 
 //uniform float saturate;
 
@@ -31,7 +34,7 @@ void main()
 	else
 		varying_texcoord = al_texcoord;
 
-	pixel_position = al_pos.xyz;
+	local_position = al_pos.xyz;
 
 	//varying_color.xyz = max(varying_color.xyz,saturate);
 	

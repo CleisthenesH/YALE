@@ -63,6 +63,13 @@ static inline int make_shader()
 		return 0;
 	}
 
+	ALLEGRO_DISPLAY* const display = al_get_current_display();
+	const float dimensions[2] = { al_get_display_width(display),al_get_display_height(display) };
+
+	al_use_shader(predraw_shader);
+	al_set_shader_float_vector("display_dimensions", 2, dimensions, 1);
+	al_use_shader(NULL);
+
 	return 1;
 }
 

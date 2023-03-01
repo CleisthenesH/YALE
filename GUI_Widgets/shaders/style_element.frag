@@ -1,4 +1,4 @@
-// Copyright 2022 Kieran W Harvie. All rights reserved.
+// Copyright 2023 Kieran W Harvie. All rights reserved.
 // Use of this source code is governed by an MIT-style
 // license that can be found in the LICENSE file.
 //
@@ -17,6 +17,8 @@ uniform float al_alpha_test_val;
 
 varying vec4 varying_color;
 varying vec2 varying_texcoord;
+
+varying vec3 pixel_position;
 
 // General State
 uniform float current_timestamp;
@@ -55,6 +57,11 @@ bool alpha_test_func(float x, int op, float compare)
 	return false;
 }
 
+float hash(vec2 p)
+{
+	return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);   
+}
+
 void normal_behaviour()
 {
 	vec4 c;
@@ -68,6 +75,38 @@ void normal_behaviour()
 		gl_FragColor = c;
 	else
 		discard;
+}
+
+vec4 voronoi()
+{
+	vec2 swivvle = pixel_position.xy / vec2(180.0,254.0);
+
+	swivvle -= vec2(0.5,0.5);
+	swivvle *= 10.0;
+
+    vec2 p = floor(swivvle);
+    vec2 f = fract(swivvle);
+
+	vec2 closest_point;
+	float closest_distance = 100.0;
+
+	for(int i = -1; i <= 1; i++)
+	for(int j = -1; j <= 1; j++)
+	{
+		vec2 r = vec2(hash(vec2(p.x+i,p.y+j)),hash(vec2(p.y+j,p.x+i)));
+		r += vec2(i,j);
+		r = f-r;
+
+		float d = dot(r,r);
+
+		if(d < closest_distance)
+		{
+			closest_distance = d;
+			closest_point = vec2(i,j);
+		}	
+	}
+
+	return vec4(vec3(hash(closest_point+p)),1);
 }
 
 vec4 filtered()
@@ -112,6 +151,9 @@ void main()
 
 		normal_color = vec4(hsl2rgb(vec3(angle,0.5,0.5)),1);
 		//normal_color.xyz = vec3(fract(gl_FragCoord.xy*0.5),0);
+
+	case 3: // Voronoi
+		normal_color = voronoi();
 	break;
 	}
 

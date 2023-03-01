@@ -1,4 +1,4 @@
-// Copyright 2022 Kieran W Harvie. All rights reserved.
+// Copyright 2023 Kieran W Harvie. All rights reserved.
 // Use of this source code is governed by an MIT-style
 // license that can be found in the LICENSE file.
 //
@@ -12,8 +12,11 @@ uniform mat4 al_projview_matrix;
 uniform bool al_use_tex_matrix;
 uniform mat4 al_tex_matrix;
 uniform float displacement;
+
 varying vec4 varying_color;
 varying vec2 varying_texcoord;
+
+varying vec3 pixel_position;
 
 //uniform float saturate;
 
@@ -27,6 +30,8 @@ void main()
 	}
 	else
 		varying_texcoord = al_texcoord;
+
+	pixel_position = al_pos.xyz;
 
 	//varying_color.xyz = max(varying_color.xyz,saturate);
 	

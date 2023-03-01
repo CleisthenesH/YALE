@@ -189,6 +189,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClInclude>
+    <ClInclude Include="card_render_data.h" />
     <ClInclude Include="hash.h" />
     <ClInclude Include="lua\lapi.h" />
     <ClInclude Include="lua\lauxlib.h" />
@@ -234,6 +235,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="card_render_data.c" />
     <ClCompile Include="checker.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</ExcludedFromBuild>
@@ -241,6 +243,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="material.c" />
+    <ClCompile Include="material_test.c" />
     <ClCompile Include="pieces_manager.c" />
     <ClCompile Include="resource_manager.c" />
     <ClCompile Include="square.c" />
@@ -281,6 +284,7 @@
     <ClCompile Include="rectangle.c" />
     <ClCompile Include="slider.c" />
     <ClCompile Include="style_element.c" />
+    <ClCompile Include="prototype_widget.c" />
     <ClCompile Include="thread_pool.c" />
     <ClCompile Include="miscellaneous.c" />
     <ClCompile Include="tweener.c" />
@@ -291,6 +295,7 @@
     <None Include="boot.lua" />
     <None Include="example_workflow.lua" />
     <None Include="packages.config" />
+    <None Include="piece_manager.lua" />
     <None Include="post_boot.lua" />
     <None Include="shaders\style_element.frag" />
     <None Include="shaders\style_element.vert" />
@@ -301,9 +306,6 @@
   </ItemGroup>
   <ItemGroup>
     <Text Include="..\LICENSE.txt" />
-  </ItemGroup>
-  <ItemGroup>
-    <Image Include="res\alex.bmp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

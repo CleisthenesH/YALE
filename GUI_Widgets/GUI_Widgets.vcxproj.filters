@@ -19,9 +19,6 @@
     <Filter Include="widget\card">
       <UniqueIdentifier>{6bb96bc3-ba09-4bb8-b029-fab321f9a4f1}</UniqueIdentifier>
     </Filter>
-    <Filter Include="art">
-      <UniqueIdentifier>{c5780451-b52c-482d-9a48-a2e1b16d00b9}</UniqueIdentifier>
-    </Filter>
     <Filter Include="lua">
       <UniqueIdentifier>{59e0a93c-aa26-4d6f-a333-0818623d2c0d}</UniqueIdentifier>
     </Filter>
@@ -48,6 +45,18 @@
     </Filter>
     <Filter Include="resource_manager">
       <UniqueIdentifier>{818fcb03-30f7-42b3-877b-9bf11791f03e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="card_render_data">
+      <UniqueIdentifier>{2d770f8d-1bd9-4935-8868-94a8c536b14e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="scripts\examples">
+      <UniqueIdentifier>{290690d1-8945-427a-abef-45b8ae9a30a2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="widget\prototype_widget">
+      <UniqueIdentifier>{c6bbde1b-c956-44a2-932f-099e17858ab3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="widget\material_test">
+      <UniqueIdentifier>{a4af5221-1395-4c4a-80fa-fa70fdbd927f}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -191,6 +200,15 @@
     <ClCompile Include="resource_manager.c">
       <Filter>resource_manager</Filter>
     </ClCompile>
+    <ClCompile Include="card_render_data.c">
+      <Filter>card_render_data</Filter>
+    </ClCompile>
+    <ClCompile Include="prototype_widget.c">
+      <Filter>widget\prototype_widget</Filter>
+    </ClCompile>
+    <ClCompile Include="material_test.c">
+      <Filter>widget\material_test</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="style_element.h">
@@ -304,6 +322,9 @@
     <ClInclude Include="resource_manager_ids.h">
       <Filter>resource_manager</Filter>
     </ClInclude>
+    <ClInclude Include="card_render_data.h">
+      <Filter>card_render_data</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
@@ -326,20 +347,18 @@
     <None Include="shaders\style_element.vert">
       <Filter>style_element</Filter>
     </None>
-    <None Include="sketch.lua">
-      <Filter>scripts</Filter>
+    <None Include="to-do.md" />
+    <None Include="piece_manager.lua">
+      <Filter>scripts\examples</Filter>
     </None>
     <None Include="example_workflow.lua">
-      <Filter>scripts</Filter>
+      <Filter>scripts\examples</Filter>
     </None>
-    <None Include="to-do.md" />
+    <None Include="sketch.lua">
+      <Filter>scripts\examples</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Text Include="..\LICENSE.txt" />
-  </ItemGroup>
-  <ItemGroup>
-    <Image Include="res\alex.bmp">
-      <Filter>art</Filter>
-    </Image>
   </ItemGroup>
 </Project>

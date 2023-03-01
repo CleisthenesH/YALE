@@ -206,5 +206,13 @@ ALLEGRO_BITMAP* resource_manager_icon(enum icon_id id)
 
 ALLEGRO_BITMAP* resource_manager_character_art(enum character_art_id id)
 {
-	return NULL;
+	if (!character_art_table[id])
+	{
+		char file_name_buffer[256];
+		sprintf_s(file_name_buffer, 256, "res/character_art/%d.png", id);
+
+		character_art_table[id] = al_load_bitmap(file_name_buffer);
+	}
+
+	return character_art_table[id];
 }

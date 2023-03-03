@@ -241,6 +241,13 @@ void style_element_predraw(const struct style_element* const style_element)
 	//al_set_shader_float("saturate", style_element->current.saturate);
 	al_set_shader_float("variation", internal->variation);
 
+	// You don't actually have to send this everytime, should track a count of materials that need it.
+	if (style_element->width != 0 && style_element->height != 0)
+	{
+		const float dimensions[2] = { 2.0/ style_element->width, 2.0 / style_element->height };
+		al_set_shader_float_vector("object_scale", 2, dimensions, 1);
+	}
+
 	ALLEGRO_TRANSFORM buffer;
 	keyframe_build_transform(&style_element->current, &buffer);
 

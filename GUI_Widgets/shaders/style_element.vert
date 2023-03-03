@@ -19,7 +19,7 @@ varying vec2 varying_texcoord;
 varying vec3 local_position;
 
 uniform vec2 display_dimensions;
-uniform vec2 object_dimensions;
+uniform vec2 object_scale;
 
 //uniform float saturate;
 

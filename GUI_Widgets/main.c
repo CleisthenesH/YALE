@@ -232,6 +232,7 @@ static inline void empty_event_queue()
     // Process predraw then wait
     al_set_target_bitmap(al_get_backbuffer(display));
     al_set_blender(ALLEGRO_ADD, ALLEGRO_ONE, ALLEGRO_INVERSE_ALPHA);
+    //al_set_blender(ALLEGRO_ADD, ALLEGRO_ALPHA, ALLEGRO_INVERSE_ALPHA);
     al_set_render_state(ALLEGRO_ALPHA_TEST, 1);
 
     glStencilMask(0xFF);

@@ -19,7 +19,7 @@ struct material_test
 	struct widget_interface* widget_interface;
 	struct material* material;
 
-	int effect_id, selection_id;
+	int material_id, selection_id;
 };
 
 static void draw(const struct widget_interface* const widget)
@@ -39,7 +39,7 @@ static void mask(const struct widget_interface* const widget)
 static void update(const struct widget_interface* const widget)
 {
 	struct material_test* const handle = (struct material_test* const)widget->upcast;
-	material_effect_point(handle->material, mouse_x, mouse_y);
+	material_point(handle->material, mouse_x, mouse_y);
 }
 
 static const struct widget_jump_table material_test_table_entry =
@@ -64,10 +64,10 @@ int material_test_new(lua_State* L)
 	if (lua_isinteger(L, -1))
 		selection_id = luaL_checkinteger(L, -1);
 
-	if (material_id >= EFFECT_ID_MAX)
+	if (material_id >= MATERIAL_ID_MAX)
 		material_id = 0;
 
-	if (selection_id >= EFFECT_ID_MAX)
+	if (selection_id >= SELECTION_ID_MAX)
 		selection_id = 0;
 	
 	lua_pop(L, 3);
@@ -79,11 +79,14 @@ int material_test_new(lua_State* L)
 	{
 		.widget_interface = widget_interface_new(L,handle,&material_test_table_entry),
 		.material = material_new(material_id, selection_id),
-		.effect_id = material_id,
+		.material_id = material_id,
 		.selection_id = selection_id
 	};
 
 	handle->widget_interface->is_draggable = true;
+
+	handle->widget_interface->style_element->width  = 180;
+	handle->widget_interface->style_element->height = 254;
 
 	return 1;
 }

@@ -88,7 +88,7 @@ void material_set_shader(const struct material* const material)
 {
 	if (!material)
 	{
-		al_set_shader_int("effect_id", EFFECT_ID_NULL);
+		al_set_shader_int("effect_id", MATERIAL_ID_NULL);
 		al_set_shader_int("selection_id", SELECTION_ID_FULL);
 		return;
 	}
@@ -179,7 +179,7 @@ void material_selection_cutoff(struct material* const material, double cutoff)
 	*data = cutoff;
 }
 
-void material_effect_point(struct material* const material, double x, double y)
+void material_point(struct material* const material, double x, double y)
 {
 	float* const data = (float*)get_component(material, MATERIAL_COMPONENTS_EFFECT_POINT);
 

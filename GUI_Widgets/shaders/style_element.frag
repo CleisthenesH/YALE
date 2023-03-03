@@ -26,7 +26,7 @@ uniform int effect_id;
 uniform int selection_id;
 uniform float variation;
 uniform vec2 display_dimensions;
-uniform vec2 object_dimensions;
+uniform vec2 object_scale;
 
 // Material Selection Variables
 uniform vec3 selection_color;
@@ -84,15 +84,10 @@ void normal_behaviour()
 		discard;
 }
 
-vec4 voronoi()
+vec4 voronoi(vec2 position)
 {
-	vec2 point = local_position.xy / vec2(180.0,254.0);
-
-	point -= vec2(0.5,0.5);
-	point *= 10.0;
-
-    vec2 p = floor(point);
-    vec2 f = fract(point);
+    vec2 p = floor(position);
+    vec2 f = fract(position);
 
 	float closest_distance = 100.0;
 	vec2 closest_point;
@@ -117,15 +112,31 @@ vec4 voronoi()
 	return vec4(closest_cell,closest_point);
 }
 
-vec3 voronoi_sdf()
+vec3 noised( vec2 p )
 {
-	vec2 position = local_position.xy / vec2(180.0,254.0);
+    vec2 i = floor( p );
+    vec2 f = fract( p );
 
-	position -= vec2(0.5,0.5);
-	position *= 10.0;
+    vec2 u = f*f*f*(f*(f*6.0-15.0)+10.0);
+    vec2 du = 30.0*f*f*(f*(f-2.0)+1.0);
+    
+    vec2 ga = hash2( i+ vec2(0.0,0.0) );
+    vec2 gb = hash2( i+ vec2(1.0,0.0) );
+    vec2 gc = hash2( i+ vec2(0.0,1.0) );
+    vec2 gd = hash2( i+ vec2(1.0,1.0) );
+    
+    float va = dot( ga, f - vec2(0.0,0.0) );
+    float vb = dot( gb, f - vec2(1.0,0.0) );
+    float vc = dot( gc, f - vec2(0.0,1.0) );
+    float vd = dot( gd, f - vec2(1.0,1.0) );
 
-	position += vec2(1,-2)*current_timestamp;
+    return vec3( va + u.x*(vb-va) + u.y*(vc-va) + u.x*u.y*(va-vb-vc+vd),   // value
+                 ga + u.x*(gb-ga) + u.y*(gc-ga) + u.x*u.y*(ga-gb-gc+gd) +  // derivatives
+                 du * (u.yx*(va-vb-vc+vd) + vec2(vb,vc) - va));
+}
 
+vec3 voronoi_sdf(vec2 position)
+{
     vec2 cell = floor(position);
     vec2 point = position - cell;
 
@@ -167,7 +178,14 @@ vec3 voronoi_sdf()
 
 vec4 snake()
 {
-	vec3 voronoi = voronoi_sdf();
+	vec2 position = local_position.xy * object_scale;
+
+	position -= vec2(0.5,0.5);
+	position *= 10.0;
+
+	position += vec2(1,-2)*current_timestamp;
+
+	vec3 voronoi = voronoi_sdf(position);
 
 	if(voronoi.z < 0.1)
 		return vec4(vec3(0),1);
@@ -181,12 +199,60 @@ vec4 snake()
 
 vec4 magma()
 {
-	vec3 voronoi = voronoi_sdf();
+	vec2 position = local_position.xy * object_scale;
+
+	position -= vec2(0.5,0.5);
+	position *= 10.0;
+
+	position += vec2(1,-2)*current_timestamp;
+
+	vec3 voronoi = voronoi_sdf(position);
 
 	if(voronoi.z < 0.1)
 		return vec4((1-voronoi.z*10)*hsl2rgb(vec3(0.1/2*(sin(current_timestamp)+1),1,.5)),1-voronoi.z*10);
 	else
 		return vec4(0,0,0,0);
+}
+
+vec4 burn()
+{
+	vec2 p = local_position.xy * object_scale;
+
+	float ref = p.x+p.y +3 - max(0,current_timestamp-3);
+
+	float noise1 = 0.2+0.4*noised(0.02*gl_FragCoord.xy).x;
+
+	ref += noise1;
+
+	if(ref >= 1)
+		return vec4(1,0,0,1);
+
+	if(ref < 0.05 && ref > -0.05)
+	{
+		ref = (ref + 0.05)*10.0;
+		return vec4(hsl2rgb(vec3(35.0/360.0,1.0, .54 +.1*ref)),1);
+	}
+
+	if(ref > 0)
+		return vec4(ref,0,0,1);
+
+	float a= min((1-max(abs(p.x),abs(p.y))),1);
+	float noise2 = 0.2+0.4*noised(0.02*gl_FragCoord.xy+vec2(1,-1)*current_timestamp).x;
+	float noise3 = 0.2+0.4*noised(0.2*gl_FragCoord.xy+vec2(1,-1)*current_timestamp).x;
+
+	noise3 *= noise3;
+	
+	ref -= noise2+noise3-a;
+	ref *= -1.0;
+
+	if(ref > 1.0 )
+		return vec4(0);
+
+	ref = clamp(0.0,1.0,ref);
+
+	ref = ref*ref*(3.0-2.0*ref);
+
+	return vec4(vec3(1.0-ref),1.0-ref);
 }
 
 vec4 filtered()
@@ -201,6 +267,8 @@ vec4 filtered()
 
 void main()
 {
+	// Run selection first and fill gl_FragColor with the "selection color" and a blend coeffiecent.
+	// then if the blend is bigger than zero
 	// 
 	normal_behaviour();
 	vec4 normal_color = gl_FragColor;
@@ -234,6 +302,10 @@ void main()
 	case 3: // Voronoi
 		normal_color = snake();// voronoi_edge();
 	break;
+
+	case 4:
+		normal_color =  burn();
+	break;
 	}
 
 	switch(selection_id)
@@ -259,6 +331,7 @@ void main()
 
 	// Saturate effect
 	gl_FragColor.xyz = max(gl_FragColor.xyz,saturate);
+
 }
 
 

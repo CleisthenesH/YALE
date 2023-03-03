@@ -27,16 +27,18 @@ void keyframe_build_transform(const struct keyframe* const, ALLEGRO_TRANSFORM* c
 //	So I want to mantain the material's state where the user can't mess with it.
 //	Might add and update element method to them at later date, might not.
 
-enum EFFECT_ID
+enum MATERIAL_ID
 {
-	EFFECT_ID_NULL,
-	EFFECT_ID_PLAIN_FOIL,
-	EFFECT_ID_RADIAL_RGB,
-	EFFECT_ID_VORONOI,
+	MATERIAL_ID_NULL,
+	MATERIAL_ID_PLAIN_FOIL,
+	MATERIAL_ID_RADIAL_RGB,
+	MATERIAL_ID_VORONOI,	
+
+	MATERIAL_ID_TEST,
 	/*
-		EFFECT_ID_SHEEN,
+		MATERIAL_ID_SHEEN,
 	*/
-	EFFECT_ID_MAX
+	MATERIAL_ID_MAX
 };
 
 enum SELECTION_ID
@@ -47,11 +49,11 @@ enum SELECTION_ID
 	SELECTION_ID_MAX
 };
 
-struct material* material_new(enum EFFECT_ID, enum SELECTION_ID);
+struct material* material_new(enum MATERIAL_ID, enum SELECTION_ID);
 
-void material_effect_point(struct material* const, double, double);
-void material_effect_color(struct material* const, ALLEGRO_COLOR);
-void material_effect_cutoff(struct material* const, double);
+void material_point(struct material* const, double, double);
+void material_color(struct material* const, ALLEGRO_COLOR);
+void material_cutoff(struct material* const, double);
 
 void material_selection_color(struct material* const, ALLEGRO_COLOR);
 void material_selection_cutoff(struct material* const, double);
@@ -82,3 +84,12 @@ void style_element_apply_material(const struct style_element* const, struct mate
 // Particle methods
 void style_element_particle_new(struct style_element* const, void (*draw)(double,size_t), double, size_t);
 void style_element_draw_particles(const struct style_element* const);
+
+// Effect 
+enum STYLE_EFFECT_ID
+{
+	STYLE_EFFECT_ID_SATURATE,
+	STYLE_EFFECT_ID_BURN,
+	STYLE_EFFECT_ID_FREEZE
+};
+void style_element_effect(struct style_element* const, enum STYLE_EFFECT_ID, double);

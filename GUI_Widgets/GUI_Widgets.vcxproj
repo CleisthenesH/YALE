@@ -183,12 +183,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="card.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </ClInclude>
     <ClInclude Include="card_render_data.h" />
     <ClInclude Include="hash.h" />
     <ClInclude Include="lua\lapi.h" />
@@ -226,15 +220,10 @@
     <ClInclude Include="tweener.h" />
     <ClInclude Include="widget_interface.h" />
     <ClInclude Include="pieces_manager.h" />
+    <ClInclude Include="widget_style_sheet.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="button.c" />
-    <ClCompile Include="card.c">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="card_render_data.c" />
     <ClCompile Include="checker.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
@@ -289,6 +278,7 @@
     <ClCompile Include="miscellaneous.c" />
     <ClCompile Include="tweener.c" />
     <ClCompile Include="widget_interface.c" />
+    <ClCompile Include="widget_style_sheet.c" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\README.md" />

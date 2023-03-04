@@ -13,32 +13,6 @@
 #include <float.h>
 #include <math.h>
 
-void stack_dump(lua_State* L)
-{
-    int top = lua_gettop(L);
-    printf("Stack Dump (%d):\n", top);
-    for (int i = 1; i <= top; i++) {
-        printf("\t%d\t%s\t", i, luaL_typename(L, i));
-        switch (lua_type(L, i)) {
-        case LUA_TNUMBER:
-            printf("\t%g\n", lua_tonumber(L, i));
-            break;
-        case LUA_TSTRING:
-            printf("\t%s\n", lua_tostring(L, i));
-            break;
-        case LUA_TBOOLEAN:
-            printf("\t%s\n", (lua_toboolean(L, i) ? "true" : "false"));
-            break;
-        case LUA_TNIL:
-            printf("\t%s\n", "nil");
-            break;
-        default:
-            printf("\t%p\n", lua_topointer(L, i));
-            break;
-        }
-    }
-}
-
 extern void style_element_setup();
 extern void style_element_predraw(const struct style_element* const);
 
@@ -72,8 +46,6 @@ extern lua_State* const main_lua_state;
 enum WIDGET_UPVALUE
 {
     WIDGET_UPVALUE_START = 0,
-
-
 };
 
 struct widget

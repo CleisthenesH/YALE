@@ -35,6 +35,7 @@ extern void widget_engine_draw();
 extern struct work_queue* widget_engine_widget_work();
 extern void widget_engine_update();
 extern void widget_engine_event_handler();
+extern void widget_style_sheet_init();
 
 extern void piece_manager_setglobal(lua_State*);
 
@@ -301,6 +302,7 @@ int main()
     global_init();
     thread_pool_init(8);
     style_element_init();
+    widget_style_sheet_init();
     widget_engine_init(main_lua_state);
 
     main_state_dofile("post_boot.lua");

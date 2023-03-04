@@ -13,23 +13,11 @@
     <Filter Include="widget">
       <UniqueIdentifier>{d6b945da-9595-4aff-9694-ddb4abdd2799}</UniqueIdentifier>
     </Filter>
-    <Filter Include="widget\rectangle">
-      <UniqueIdentifier>{9272ed0b-8a26-458c-a7b2-c9c8bb010588}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="widget\card">
-      <UniqueIdentifier>{6bb96bc3-ba09-4bb8-b029-fab321f9a4f1}</UniqueIdentifier>
-    </Filter>
     <Filter Include="lua">
       <UniqueIdentifier>{59e0a93c-aa26-4d6f-a333-0818623d2c0d}</UniqueIdentifier>
     </Filter>
     <Filter Include="scripts">
       <UniqueIdentifier>{d1104b60-9157-4fa5-816f-82d8815d0850}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="widget\button">
-      <UniqueIdentifier>{56bb3da1-34bd-4071-a095-874278d9cfe0}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="widget\slider">
-      <UniqueIdentifier>{1b473e1f-47b6-4819-9d3f-873b9811f156}</UniqueIdentifier>
     </Filter>
     <Filter Include="hash">
       <UniqueIdentifier>{9c016a3b-ba3c-40e4-9d2c-b41745712971}</UniqueIdentifier>
@@ -52,11 +40,11 @@
     <Filter Include="scripts\examples">
       <UniqueIdentifier>{290690d1-8945-427a-abef-45b8ae9a30a2}</UniqueIdentifier>
     </Filter>
-    <Filter Include="widget\prototype_widget">
-      <UniqueIdentifier>{c6bbde1b-c956-44a2-932f-099e17858ab3}</UniqueIdentifier>
+    <Filter Include="widget\GUI">
+      <UniqueIdentifier>{b14fb858-1c43-4e94-ad81-f84b54e6ee58}</UniqueIdentifier>
     </Filter>
-    <Filter Include="widget\material_test">
-      <UniqueIdentifier>{a4af5221-1395-4c4a-80fa-fa70fdbd927f}</UniqueIdentifier>
+    <Filter Include="widget\test_widgets">
+      <UniqueIdentifier>{b0aca275-00e9-49a6-8bfa-fe85e9d0e05e}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -69,12 +57,6 @@
     <ClCompile Include="main.c" />
     <ClCompile Include="widget_interface.c">
       <Filter>widget_interface</Filter>
-    </ClCompile>
-    <ClCompile Include="rectangle.c">
-      <Filter>widget\rectangle</Filter>
-    </ClCompile>
-    <ClCompile Include="card.c">
-      <Filter>widget\card</Filter>
     </ClCompile>
     <ClCompile Include="lua\lapi.c">
       <Filter>lua</Filter>
@@ -172,12 +154,6 @@
     <ClCompile Include="lua\lzio.c">
       <Filter>lua</Filter>
     </ClCompile>
-    <ClCompile Include="button.c">
-      <Filter>widget\button</Filter>
-    </ClCompile>
-    <ClCompile Include="slider.c">
-      <Filter>widget\slider</Filter>
-    </ClCompile>
     <ClCompile Include="miscellaneous.c" />
     <ClCompile Include="hash.c">
       <Filter>hash</Filter>
@@ -203,11 +179,23 @@
     <ClCompile Include="card_render_data.c">
       <Filter>card_render_data</Filter>
     </ClCompile>
+    <ClCompile Include="widget_style_sheet.c">
+      <Filter>widget</Filter>
+    </ClCompile>
     <ClCompile Include="prototype_widget.c">
-      <Filter>widget\prototype_widget</Filter>
+      <Filter>widget\test_widgets</Filter>
+    </ClCompile>
+    <ClCompile Include="rectangle.c">
+      <Filter>widget\test_widgets</Filter>
     </ClCompile>
     <ClCompile Include="material_test.c">
-      <Filter>widget\material_test</Filter>
+      <Filter>widget\test_widgets</Filter>
+    </ClCompile>
+    <ClCompile Include="button.c">
+      <Filter>widget\GUI</Filter>
+    </ClCompile>
+    <ClCompile Include="slider.c">
+      <Filter>widget\GUI</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -219,9 +207,6 @@
     </ClInclude>
     <ClInclude Include="widget_interface.h">
       <Filter>widget_interface</Filter>
-    </ClInclude>
-    <ClInclude Include="card.h">
-      <Filter>widget\card</Filter>
     </ClInclude>
     <ClInclude Include="lua\lapi.h">
       <Filter>lua</Filter>
@@ -324,6 +309,9 @@
     </ClInclude>
     <ClInclude Include="card_render_data.h">
       <Filter>card_render_data</Filter>
+    </ClInclude>
+    <ClInclude Include="widget_style_sheet.h">
+      <Filter>widget</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

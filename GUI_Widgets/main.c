@@ -47,6 +47,12 @@ static ALLEGRO_EVENT_QUEUE* main_event_queue;
 struct thread_pool* thread_pool;
 static bool do_exit;
 
+// A simple background for testing
+#define EASY_BACKGROUND
+#ifdef EASY_BACKGROUND
+static ALLEGRO_BITMAP* easy_background;
+#endif
+
 // These varitables are keep seperate from their normal use so they don't change during processing  
 // Also allows custom mapping on things like mouse or add a slow down factor for timestamps
 double mouse_x, mouse_y;
@@ -108,6 +114,32 @@ static inline void create_display()
         fprintf(stderr, "failed to create display!\n");
         return;
     }
+
+#ifdef EASY_BACKGROUND
+    easy_background = al_create_bitmap(al_get_display_width(display), al_get_display_height(display));
+
+    al_set_target_bitmap(easy_background);
+
+    // Keeping these here incase I change init call order
+    // 
+	//al_use_transform(&identity_transform);
+	//al_use_shader(NULL);
+
+	al_clear_to_color(al_color_name("aliceblue"));
+	unsigned int i, j;
+
+    const unsigned int height = al_get_display_height(display) / 10;
+    const unsigned int width = al_get_display_width(display) / 10;
+
+	for (i = 0; i <= width; i++)
+		for (j = 0; j <= height; j++)
+			if (i % 10 == 0 && j % 10 == 0)
+				al_draw_circle(10 * i, 10 * j, 2, al_color_name("darkgray"), 2);
+			else
+				al_draw_circle(10 * i, 10 * j, 1, al_color_name("grey"), 0);
+
+#endif
+
     al_set_target_bitmap(al_get_backbuffer(display));
 }
 
@@ -233,7 +265,6 @@ static inline void empty_event_queue()
     // Process predraw then wait
     al_set_target_bitmap(al_get_backbuffer(display));
     al_set_blender(ALLEGRO_ADD, ALLEGRO_ONE, ALLEGRO_INVERSE_ALPHA);
-    //al_set_blender(ALLEGRO_ADD, ALLEGRO_ALPHA, ALLEGRO_INVERSE_ALPHA);
     al_set_render_state(ALLEGRO_ALPHA_TEST, 1);
 
     glStencilMask(0xFF);
@@ -242,6 +273,13 @@ static inline void empty_event_queue()
     al_reset_clipping_rectangle();
 
     style_element_setup();
+ 
+#ifdef EASY_BACKGROUND
+    al_use_transform(&identity_transform);
+    style_element_apply_material(NULL, NULL);
+    al_draw_bitmap(easy_background, 0, 0, 0);
+#endif
+
     thread_pool_wait();
 
     // Draw

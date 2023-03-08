@@ -521,55 +521,6 @@ void widget_engine_event_handler()
     }
 }
 
-// Allocate a new widget interface and wire it into the widget engine.
-struct widget_interface* widget_interface_new(
-    lua_State* L,
-    const void* const upcast,
-    const struct widget_jump_table* const jump_table )
-{
-    const size_t widget_size = sizeof(struct widget);
-
-    struct widget* const widget = L ? lua_newuserdatauv(L, widget_size,(int) jump_table->uservalues) : malloc(widget_size);
-
-    if (!widget)
-        return NULL;
-
-    *widget = (struct widget)
-    {
-        .upcast = upcast,
-        .style_element = style_element_new(1),
-
-        .jump_table = jump_table,
-
-#define CLEAR_LUA_REFNIL(method,...) .lua. ## method = LUA_REFNIL,
-        FOR_CALLBACKS(CLEAR_LUA_REFNIL)
-
-        .next = NULL,
-        .previous = queue_tail,
-        .is_draggable = false,
-        .is_snappable = false
-    };
-
-    if (queue_tail)
-        queue_tail->next = widget;
-    else
-        queue_head = widget;
-
-    queue_tail = widget;
-
-    luaL_getmetatable(L, "widget_mt");
-    lua_setmetatable(L, -2);
-
-    lua_getglobal(L, "widgets");
-    lua_pushlightuserdata(L, widget);
-    lua_pushvalue(L, -3);
-    
-    lua_settable(L, -3);
-    lua_pop(L, 1);
-    
-    return (struct widget_interface*) widget;
-}
-
 // Convert a screen position to the cordinate used when drawng
 void widget_screen_to_local(const struct widget_interface* const widget, double* x, double* y)
 {
@@ -874,7 +825,6 @@ static int newindex(lua_State* L)
     DO(slider) \
     DO(prototype) \
     DO(material_test) 
-	//DO(card) \
 
 #define EXTERN(widget) extern int widget ## _new(lua_State*);
 
@@ -962,5 +912,65 @@ void widget_engine_init(lua_State* L)
     luaL_setfuncs(L, garbage_collection, 0);
 
     lua_pop(L, 2);
+}
+
+// Allocate a new widget interface and wire it into the widget engine.
+// Consumes a table, if given
+struct widget_interface* widget_interface_new(
+    lua_State* L,
+    const void* const upcast,
+    const struct widget_jump_table* const jump_table)
+{
+    const size_t widget_size = sizeof(struct widget);
+
+    struct widget* const widget = L ? lua_newuserdatauv(L, widget_size, (int)jump_table->uservalues) : malloc(widget_size);
+
+    if (!widget)
+        return NULL;
+
+    *widget = (struct widget)
+    {
+        .upcast = upcast,
+        .style_element = style_element_new(1),
+
+        .jump_table = jump_table,
+
+#define CLEAR_LUA_REFNIL(method,...) .lua. ## method = LUA_REFNIL,
+        FOR_CALLBACKS(CLEAR_LUA_REFNIL)
+
+        .next = NULL,
+        .previous = queue_tail,
+        .is_draggable = false,
+        .is_snappable = false
+    };
+
+    // Set Metatable
+    luaL_getmetatable(L, "widget_mt");
+    lua_setmetatable(L, -2);
+
+    lua_getglobal(L, "widgets");
+    lua_pushlightuserdata(L, widget);
+    lua_pushvalue(L, -3);
+
+    lua_settable(L, -3);
+    lua_pop(L, 1);
+
+    // If a table is avalible, treat it like a init table
+    if (LUA_TTABLE == lua_type(L, -2))
+    {
+        lua_rotate(L, -2, 1);
+        set_keyframe(L);
+        lua_pop(L, 1);
+    }
+
+    // Wire the widget into the queue
+    if (queue_tail)
+        queue_tail->next = widget;
+    else
+        queue_head = widget;
+
+    queue_tail = widget;
+
+    return (struct widget_interface*)widget;
 }
 

@@ -9,16 +9,12 @@ prototype = prototype_new()
 prototype:set_keyframe{x=1100,y=500}
 --]]
 
-material2 = material_test_new{effect=2,selection=0}
-material2:set_keyframe{x=750,y=500}
+material2 = material_test_new{x=750, y=500, effect=2, selection=0}
 
-material3 = material_test_new{effect=1,selection=0}
-material3:set_keyframe{x=1000,y=500}
+material3 = material_test_new{x=1000, y=500, effect=1, selection=0}
 
-material1 = material_test_new{effect=3,selection=0}
-material1:set_keyframe{x=500,y=500}
+material1 = material_test_new{x=500, y=500, effect=3, selection=0}
 
-material4 = material_test_new{effect=4,selection=0}
-material4:set_keyframe{x=1250,y=500}
+material4 = material_test_new{x=1250, y=500, effect=4, selection=0}
 
 print("post-boot complete")

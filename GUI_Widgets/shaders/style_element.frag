@@ -255,6 +255,64 @@ vec4 burn()
 	return vec4(vec3(1.0-ref),1.0-ref);
 }
 
+vec4 circle()
+{
+	vec2 p = local_position.xy * object_scale;
+
+	vec3 noise = noised(0.01*gl_FragCoord.xy+current_timestamp);
+
+	float dist = length(p) + noise.x;
+
+	dist /= length(noise.yz);
+	dist *= current_timestamp*0.1;
+
+	if(dist > 0.2 && dist < 0.25)
+		return vec4(1);
+	
+	return vec4(vec3(0),1);
+
+	return vec4(p,0,1);
+}
+
+vec4 froth()
+{
+	vec2 p = local_position.xy * object_scale ;
+	vec2 noise_cord = p + current_timestamp*vec2(0,-1); 
+	noise_cord.x *= 10;
+	noise_cord.y *= 2;
+
+	vec3 noise = noised(noise_cord);
+
+	float val = noise_cord.y+2*noise.x;
+	val = fract(val);
+
+
+	if(val > 0.2)
+		return vec4(0,0,0,1);
+	else
+		return vec4(-val*0.2+0.2,0,0,1);
+	return vec4(hsl2rgb(vec3(hash(vec2(floor(val))),0.5,fract(val))),1);
+}
+
+vec4 glitch()
+{
+	vec2 p = local_position.xy * object_scale;
+		
+	vec2 noise_cord = vec2(current_timestamp,p.x+0.1*p.y); 
+	noise_cord.x *= 1.0;
+	noise_cord.y *= 100.0;
+
+	vec3 noise = noised(noise_cord);
+
+	p.y += noise.y*0.1;
+	p.y = sign(p.y)*p.y*p.y;
+
+	if(abs(p.y) < 0.1)
+		return vec4(1,0,0,1);
+
+	return vec4(0,0,0,1);
+}
+
 vec4 filtered()
 {
 //return varying_color * texture2D(al_tex, varying_texcoord+vec2(0.01,0));
@@ -304,7 +362,7 @@ void main()
 	break;
 
 	case 4:
-		normal_color =  burn();
+		normal_color = froth();// burn();
 	break;
 	}
 

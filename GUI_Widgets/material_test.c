@@ -70,7 +70,7 @@ int material_test_new(lua_State* L)
 	if (selection_id >= SELECTION_ID_MAX)
 		selection_id = 0;
 	
-	lua_pop(L, 3);
+	lua_pop(L, 2);
 
 	if (!handle)
 		return 0;

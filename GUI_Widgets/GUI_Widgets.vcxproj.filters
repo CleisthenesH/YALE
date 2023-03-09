@@ -342,9 +342,6 @@
     <None Include="example_workflow.lua">
       <Filter>scripts\examples</Filter>
     </None>
-    <None Include="sketch.lua">
-      <Filter>scripts\examples</Filter>
-    </None>
   </ItemGroup>
   <ItemGroup>
     <Text Include="..\LICENSE.txt" />

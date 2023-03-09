@@ -12,6 +12,8 @@ const float card_half_height = 191;
 const float class_icon = 50;
 const float advantage_icon = 40;
 
+extern void al_draw_scaled_text(ALLEGRO_FONT* font, ALLEGRO_COLOR color, float x, float y, float dy, float scale, int flag, const char* text);
+
 /* RAW EXPORT
 const struct
 {
@@ -87,8 +89,10 @@ void card_render_draw(struct card_render_data* card, struct style_element* eleme
 	al_draw_scaled_bitmap(resource_manager_character_art(CHARACTER_ART_ID_SCHOLAR),
 		0, 0, 512, 512,
 		coordinates[3].x0, coordinates[3].y0,
-		coordinates[3].x1- coordinates[3].x0, coordinates[3].y1- coordinates[3].y0,
+		coordinates[3].x1 - coordinates[3].x0, coordinates[3].y1 - coordinates[3].y0,
 		0);	
+
+
 
 	al_draw_rectangle(
 		coordinates[3].x0, coordinates[3].y0,
@@ -110,39 +114,12 @@ void card_render_draw(struct card_render_data* card, struct style_element* eleme
 	rounded(7, "dimgray", "black");
 	rounded(10, "dimgray", "black");
 
-	const ALLEGRO_TRANSFORM* const buffer = al_get_current_transform();
-	ALLEGRO_TRANSFORM tmp;
-
-	// IT's weird that neither work? try glyph
-	if (1)
-	{
-		al_identity_transform(&tmp);
-		al_build_transform(&tmp, 0, 0, 1, 2, 0);
-		al_compose_transform(&tmp, buffer);
-	}
-	else
-	{
-		al_copy_transform(&tmp, buffer);
-		al_scale_transform(&tmp, 1, 1);
-	}
-
-	al_use_transform(&tmp);
-	
-	if (0)
-		al_draw_text(resource_manager_font(FONT_ID_WHITEPEABERRYOUTLINE),
-			al_map_rgb(255, 255, 255),
-			0.5 * (coordinates[10].x0 + coordinates[10].x1),
-			0.5 * (coordinates[10].y0 + coordinates[10].y1),
-			ALLEGRO_ALIGN_CENTRE, "7");
-	else
-		al_draw_glyph(resource_manager_font(FONT_ID_WHITEPEABERRYOUTLINE),
-			al_map_rgb(255, 255, 255),
-			0.5 * (coordinates[10].x0 + coordinates[10].x1),
-			0.5 * (coordinates[10].y0 + coordinates[10].y1),
-			55);
-
-	al_use_transform(buffer);
-
+	al_draw_scaled_text(resource_manager_font(FONT_ID_WHITEPEABERRYOUTLINE),
+		al_map_rgb(255, 255, 255),
+		0.5 * (coordinates[10].x0 + coordinates[10].x1),
+		0.5 * (coordinates[10].y0 + coordinates[10].y1),
+		16, 3, 0,
+		"7");
 }
 
 void card_render_mask(struct card_render_data* card, struct style_element* element)

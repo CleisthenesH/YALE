@@ -3,12 +3,33 @@
 // license that can be found in the LICENSE file.
 
 #include <allegro5/allegro.h>
+#include "allegro5/allegro_font.h"
 #include <stdio.h>
 
 #include "lua/lua.h"
 #include "lua/lualib.h"
 #include "lua/lauxlib.h"
 #include "lua/lualib.h"
+
+void al_draw_scaled_text(ALLEGRO_FONT* font,ALLEGRO_COLOR color,float x,float y,float dy,float scale,int flag,const char* text)
+{
+	const ALLEGRO_TRANSFORM* const buffer = al_get_current_transform();
+	ALLEGRO_TRANSFORM tmp;
+
+	al_build_transform(&tmp, 
+		x, y - dy * scale, 
+		scale, scale, 0);
+	al_compose_transform(&tmp, buffer);
+
+	al_use_transform(&tmp);
+
+	al_draw_text(font,
+		color,
+		0, 0,
+		ALLEGRO_ALIGN_CENTRE, text);
+
+	al_use_transform(buffer);
+}
 
 void stack_dump(lua_State* L)
 {

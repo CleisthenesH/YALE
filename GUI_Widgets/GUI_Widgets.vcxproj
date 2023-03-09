@@ -291,7 +291,6 @@
     <None Include="shaders\style_element.vert" />
     <None Include="shaders\widget.frag" />
     <None Include="shaders\widget.vert" />
-    <None Include="sketch.lua" />
     <None Include="to-do.md" />
   </ItemGroup>
   <ItemGroup>

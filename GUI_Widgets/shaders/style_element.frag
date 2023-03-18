@@ -112,6 +112,37 @@ vec4 voronoi(vec2 position)
 	return vec4(closest_cell,closest_point);
 }
 
+vec4 voronoi_mod_dist(vec2 position)
+{
+    vec2 p = floor(position);
+    vec2 f = fract(position);
+
+	float closest_distance = 100.0;
+	vec2 closest_point;
+	vec2 closest_cell;
+
+	for(int i = -1; i <= 1; i++)
+	for(int j = -1; j <= 1; j++)
+	{
+		vec2 r = hash2(p+vec2(i,j));
+		r += vec2(i,j);
+
+		vec2 cords = f-r;
+		cords = abs(cords);
+
+		float d = min(cords.x,cords.y);
+
+		if(d < closest_distance)
+		{
+			closest_distance = d;
+			closest_cell = vec2(i,j);
+			closest_point = r;
+		}	
+	}
+
+	return vec4(closest_cell,closest_point);
+}
+
 vec3 noised( vec2 p )
 {
     vec2 i = floor( p );
@@ -362,7 +393,7 @@ void main()
 	break;
 
 	case 4:
-		normal_color = froth();// burn();
+		normal_color = voronoi_mod_dist(local_position.xy * object_scale);// burn();
 	break;
 	}
 

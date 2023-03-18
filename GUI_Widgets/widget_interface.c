@@ -14,7 +14,7 @@
 #include <math.h>
 
 extern void style_element_setup();
-extern void style_element_predraw(const struct style_element* const);
+extern void style_element_predraw(const struct render_interface* const);
 
 extern double mouse_x;
 extern double mouse_y;
@@ -182,7 +182,7 @@ void widget_engine_draw()
     // Maybe add a second pass for stencil effect?
     for(struct widget* widget = queue_head; widget; widget = widget->next)
 	{
-        const struct style_element* const style_element  = widget->style_element;
+        const struct render_interface* const style_element  = widget->style_element;
         style_element_predraw(style_element);
         widget->jump_table->draw((struct widget_interface*) widget);
  	}
@@ -295,18 +295,18 @@ static inline void update_transition_timestamp(struct widget* widget, double x, 
 // Updates current_hover keyframes to move towards the drag
 static inline void widget_set_drag()
 {
-    style_element_interupt(current_hover->style_element);
+    render_interface_interupt(current_hover->style_element);
 
     update_transition_timestamp(current_hover, drag_offset_x + mouse_x, drag_offset_y + mouse_y);
 
     struct keyframe keyframe;
-    style_element_copy_destination(current_hover->style_element, &keyframe);
+    render_interface_copy_destination(current_hover->style_element, &keyframe);
 
     keyframe.x = drag_offset_x + mouse_x;
     keyframe.y = drag_offset_y + mouse_y;
     keyframe.timestamp = transition_timestamp;
 
-    style_element_push_keyframe(current_hover->style_element, &keyframe);
+    render_interface_push_keyframe(current_hover->style_element, &keyframe);
 }
 
 // Updates and calls any callbacks for the last_click, current_hover, current_drop pointers
@@ -362,10 +362,10 @@ static inline void widget_engine_update_drag_pointers()
 
 			if (new_pointer->is_snappable)
 			{
-				style_element_interupt(current_hover->style_element);
+				render_interface_interupt(current_hover->style_element);
 
                 struct keyframe snap_target;
-                style_element_copy_destination(current_hover->style_element, &snap_target);
+                render_interface_copy_destination(current_hover->style_element, &snap_target);
 
 				snap_target.x = new_pointer->style_element->current.x + snap_offset_x;
 				snap_target.y = new_pointer->style_element->current.y + snap_offset_y;
@@ -374,7 +374,7 @@ static inline void widget_engine_update_drag_pointers()
 
                 snap_target.timestamp = transition_timestamp;
 
-                style_element_push_keyframe(current_hover->style_element, &snap_target);
+                render_interface_push_keyframe(current_hover->style_element, &snap_target);
 
 				widget_engine_state = ENGINE_STATE_TO_SNAP;
 			}
@@ -426,7 +426,7 @@ void widget_engine_update()
         current_hover->style_element->current.x = drag_offset_x + mouse_x;
         current_hover->style_element->current.y = drag_offset_y + mouse_y;
 
-        style_element_align_tweener(current_hover->style_element);
+        render_interface_align_tweener(current_hover->style_element);
         break;
     }
 
@@ -462,7 +462,7 @@ void widget_engine_event_handler()
 
             drag_offset_x = current_hover->style_element->current.x - mouse_x;
             drag_offset_y = current_hover->style_element->current.y - mouse_y;
-            style_element_copy_destination(current_hover->style_element, &drag_release);
+            render_interface_copy_destination(current_hover->style_element, &drag_release);
 
             if (current_hover != last_click)
             {
@@ -493,12 +493,12 @@ void widget_engine_event_handler()
         case ENGINE_STATE_SNAP:
         case ENGINE_STATE_TO_SNAP:
         case ENGINE_STATE_TO_DRAG:
-            style_element_interupt(current_hover->style_element);
+            render_interface_interupt(current_hover->style_element);
 
             update_transition_timestamp(current_hover, drag_release.x, drag_release.y);
             drag_release.timestamp = transition_timestamp;
 
-            style_element_push_keyframe(current_hover->style_element, &drag_release);
+            render_interface_push_keyframe(current_hover->style_element, &drag_release);
 
             if (current_drop)
             {
@@ -592,7 +592,7 @@ static int set_keyframe(lua_State* L)
     keyframe_default(&keyframe);
     read_transform(L, &keyframe);
 
-    style_element_set(widget->style_element, &keyframe);
+    render_interface_set(widget->style_element, &keyframe);
 
     return 0;
 }
@@ -608,7 +608,7 @@ static int set_keyframes(lua_State* L)
     keyframe_default(&keyframe);
     read_transform(L, &keyframe);
 
-    style_element_set(widget->style_element, &keyframe);
+    render_interface_set(widget->style_element, &keyframe);
     
     lua_settop(L,-2);
 
@@ -621,7 +621,7 @@ static int set_keyframes(lua_State* L)
 
         lua_settop(L, -2);
 
-        style_element_push_keyframe(widget->style_element, &keyframe);
+        render_interface_push_keyframe(widget->style_element, &keyframe);
         
         lua_geti(L, -1, i);
     }
@@ -646,7 +646,7 @@ static int destination_keyframe(lua_State* L)
     struct widget_interface* const widget = (struct widget_interface*)luaL_checkudata(L, -2, "widget_mt");
 
     struct keyframe keyframe;
-    style_element_copy_destination(widget->style_element, &keyframe);
+    render_interface_copy_destination(widget->style_element, &keyframe);
 
     write_transform(L, &keyframe);
 
@@ -664,7 +664,7 @@ static int new_keyframe(lua_State* L)
 
 	read_transform(L,&keyframe);
 
-    style_element_push_keyframe(widget->style_element, &keyframe);
+    render_interface_push_keyframe(widget->style_element, &keyframe);
 	return 0;
 }
 
@@ -673,7 +673,7 @@ static int interupt(lua_State* L)
 {
     struct widget_interface* const widget = (struct widget_interface*)luaL_checkudata(L, -1, "widget_mt");
 
-    style_element_interupt(widget->style_element);
+    render_interface_interupt(widget->style_element);
 
     return 0;
 }
@@ -684,7 +684,7 @@ static int enter_loop(lua_State* L)
     struct widget_interface* const widget = (struct widget_interface*)luaL_checkudata(L, -2, "widget_mt");
     const double looping_offset = luaL_checknumber(L, -1);
 
-    style_element_enter_loop(widget->style_element, looping_offset);
+    render_interface_enter_loop(widget->style_element, looping_offset);
 
     return 0;
 }
@@ -931,7 +931,7 @@ struct widget_interface* widget_interface_new(
     *widget = (struct widget)
     {
         .upcast = upcast,
-        .style_element = style_element_new(1),
+        .style_element = render_interface_new(1),
 
         .jump_table = jump_table,
 

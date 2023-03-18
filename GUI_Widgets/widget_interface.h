@@ -41,7 +41,7 @@ struct widget_jump_table
 
 struct widget_interface
 {
-	struct style_element* style_element;
+	struct render_interface* style_element;
 	void* upcast;
 
 	bool is_draggable;

@@ -10,6 +10,7 @@
 //	The user should be using the style_element.
 // 
 //	TODO: Include more complex tweening options like keypoint weight and tangent.
+#pragma once
 
 struct tweener
 {

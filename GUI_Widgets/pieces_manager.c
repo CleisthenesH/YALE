@@ -164,13 +164,13 @@ static inline void move_piece(struct zone* zone, struct piece* piece)
 
 	if (zone->manager->auto_transition)
 	{
-		struct style_element* const style = piece->widget_interface->style_element;
+		struct render_interface* const style = piece->widget_interface->style_element;
 		struct keyframe keyframe;
-		style_element_interupt(style);
+		render_interface_interupt(style);
 
-		style_element_copy_destination(zone->widget_interface->style_element, &keyframe);
+		render_interface_copy_destination(zone->widget_interface->style_element, &keyframe);
 		keyframe.timestamp = current_timestamp + 0.2;
-		style_element_push_keyframe(style, &keyframe);
+		render_interface_push_keyframe(style, &keyframe);
 	}
 }
 

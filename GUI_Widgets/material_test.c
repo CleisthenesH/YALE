@@ -7,6 +7,7 @@
 #include "widget_interface.h"
 
 #include "card_render_data.h"
+#include "material.h"
 
 #include <allegro5/allegro5.h>
 #include <allegro5/allegro_font.h>
@@ -26,7 +27,7 @@ static void draw(const struct widget_interface* const widget)
 {
 	struct material_test* const handle = (struct material_test* const)widget->upcast;
 
-	style_element_apply_material(widget->style_element, handle->material);
+	material_apply(handle->material);
 
 	al_draw_filled_rounded_rectangle(-90, -127, 90, 127, 10, 10, al_color_name("forestgreen"));
 }

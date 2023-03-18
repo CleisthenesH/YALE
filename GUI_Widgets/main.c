@@ -51,6 +51,7 @@ static bool do_exit;
 #define EASY_BACKGROUND
 #ifdef EASY_BACKGROUND
 static ALLEGRO_BITMAP* easy_background;
+#include "material.h"
 #endif
 
 // These varitables are keep seperate from their normal use so they don't change during processing  
@@ -85,12 +86,22 @@ static inline void create_display()
     ALLEGRO_MONITOR_INFO monitor_info;
     ALLEGRO_DISPLAY_MODE display_mode;
 
+    al_set_new_display_flags(ALLEGRO_PROGRAMMABLE_PIPELINE | ALLEGRO_OPENGL | ALLEGRO_FULLSCREEN);
+
     al_set_new_display_option(ALLEGRO_DEPTH_SIZE, 32, ALLEGRO_SUGGEST);
     al_set_new_display_option(ALLEGRO_STENCIL_SIZE, 8, ALLEGRO_SUGGEST);
     al_set_new_display_option(ALLEGRO_SAMPLE_BUFFERS, 1, ALLEGRO_REQUIRE);
-    al_set_new_display_option(ALLEGRO_SAMPLES, 8, ALLEGRO_REQUIRE);
+    al_set_new_display_option(ALLEGRO_SAMPLES, 16, ALLEGRO_REQUIRE);
 
-    al_set_new_display_flags(ALLEGRO_PROGRAMMABLE_PIPELINE | ALLEGRO_OPENGL | ALLEGRO_FULLSCREEN);
+#define ALLEGRO_BILINEAR_FILTER ALLEGRO_MIN_LINEAR | ALLEGRO_MAG_LINEAR
+#define ALLEGRO_TRILINEAR_FILTER ALLEGRO_BILINEAR_FILTER | ALLEGRO_MIPMAP
+
+    // One makes the text look nice the other the icons.
+    // al_set_new_bitmap_samples
+    if(1)
+    al_set_new_bitmap_flags(ALLEGRO_MIN_LINEAR | ALLEGRO_MAG_LINEAR | ALLEGRO_VIDEO_BITMAP | ALLEGRO_NO_PRESERVE_TEXTURE);
+    else
+    al_set_new_bitmap_flags(ALLEGRO_VIDEO_BITMAP | ALLEGRO_NO_PRESERVE_TEXTURE);
 
     // Will improve monitor implementation when lua is itegrated
     al_get_monitor_info(0, &monitor_info);
@@ -107,8 +118,6 @@ static inline void create_display()
     al_set_render_state(ALLEGRO_ALPHA_TEST, 1);
     al_set_render_state(ALLEGRO_ALPHA_FUNCTION, ALLEGRO_RENDER_NOT_EQUAL);
     al_set_render_state(ALLEGRO_ALPHA_TEST_VALUE, 0);
-
-    al_set_new_bitmap_flags(ALLEGRO_VIDEO_BITMAP | ALLEGRO_NO_PRESERVE_TEXTURE);
 
     if (!display) {
         fprintf(stderr, "failed to create display!\n");
@@ -276,7 +285,7 @@ static inline void empty_event_queue()
  
 #ifdef EASY_BACKGROUND
     al_use_transform(&identity_transform);
-    style_element_apply_material(NULL, NULL);
+    material_apply( NULL);
     al_draw_bitmap(easy_background, 0, 0, 0);
 #endif
 

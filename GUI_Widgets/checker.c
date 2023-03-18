@@ -5,6 +5,7 @@
 #include "widget_interface.h"
 #include "pieces_manager.h"
 #include "allegro5/allegro_primitives.h"
+#include "material.h"
 
 #include <math.h>
 
@@ -34,13 +35,13 @@ static void draw(const struct piece* const checker)
 	al_draw_filled_circle(0, 0, 50, al_map_rgb_f(1, 0, 0));
 
 	material_point(foil, mouse_x, mouse_y);
-	style_element_apply_material(checker->widget_interface->style_element, foil);
+	material_apply(foil);
 
 	al_draw_filled_circle(0, 0, 40, al_map_rgb_f(0.7, 0, 0));
 
-	style_element_apply_material(checker->widget_interface->style_element, NULL);
+	material_apply(NULL);
 
-	style_element_draw_particles(checker->widget_interface->style_element);
+	//style_element_draw_particles(checker->widget_interface->style_element);
 
 	al_draw_bitmap(resource_manager_icon(ICON_ID_ACCORDION),0,0,0);
 
@@ -67,7 +68,7 @@ struct piece* checker_new(lua_State* L)
 
 	struct piece* piece = piece_new(L, NULL, &checker_table);
 
-	style_element_particle_new(piece->widget_interface->style_element, particle, 3,0);
+	//style_element_particle_new(piece->widget_interface->style_element, particle, 3,0);
 
 	return piece;
 }

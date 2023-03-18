@@ -19,5 +19,5 @@ struct card_render_data
 	char* text_box;
 };
 
-void card_render_draw(struct card_render_data*, struct style_element*);
-void card_render_mask(struct card_render_data*, struct style_element*);
+void card_render_draw(struct card_render_data*, struct render_interface*);
+void card_render_mask(struct card_render_data*, struct render_interface*);

@@ -82,7 +82,7 @@ static inline void rounded(size_t i, const char* color, const char* second_color
 	);
 }
 
-void card_render_draw(struct card_render_data* card, struct style_element* element)
+void card_render_draw(struct card_render_data* card, struct render_interface* element)
 {
 	rounded(2, "darkorchid","goldenrod");
 
@@ -122,7 +122,7 @@ void card_render_draw(struct card_render_data* card, struct style_element* eleme
 		"7");
 }
 
-void card_render_mask(struct card_render_data* card, struct style_element* element)
+void card_render_mask(struct card_render_data* card, struct render_interface* element)
 {
 
 }

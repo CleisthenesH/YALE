@@ -213,6 +213,8 @@
     <ClInclude Include="lua\lundump.h" />
     <ClInclude Include="lua\lvm.h" />
     <ClInclude Include="lua\lzio.h" />
+    <ClInclude Include="material.h" />
+    <ClInclude Include="particle.h" />
     <ClInclude Include="resource_manager.h" />
     <ClInclude Include="resource_manager_ids.h" />
     <ClInclude Include="style_element.h" />
@@ -233,6 +235,7 @@
     </ClCompile>
     <ClCompile Include="material.c" />
     <ClCompile Include="material_test.c" />
+    <ClCompile Include="particle.c" />
     <ClCompile Include="pieces_manager.c" />
     <ClCompile Include="resource_manager.c" />
     <ClCompile Include="square.c" />

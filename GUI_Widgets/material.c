@@ -2,7 +2,8 @@
 // Use of this source code is governed by an MIT-style
 // license that can be found in the LICENSE file.
 
-#include "style_element.h"
+//#include "style_element.h"
+#include "material.h"
 
 // To handle the varity of effect and selection data I've implemented a very basic type system.
 // Instead of having a bunch of empty fields I directly manipulate memorry to make all the data next to eachother.
@@ -84,7 +85,7 @@ struct material* material_new(
 	return output;
 }
 
-void material_set_shader(const struct material* const material)
+void material_apply(const struct material* const material)
 {
 	if (!material)
 	{

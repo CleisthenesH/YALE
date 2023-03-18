@@ -5,12 +5,17 @@
 #include "style_element.h"
 #include "thread_pool.h"
 #include "tweener.h"
+#include "material.h"
 
 #include <stdio.h>
 #include <math.h>
 #include <allegro5/allegro_opengl.h>
 
 extern double current_timestamp;
+
+#include "particle.h"
+
+// TODO: Externs are kind of messy
 extern void tweener_init();
 extern struct work_queue* tweener_update();
 extern void material_set_shader(const struct material* const);
@@ -18,23 +23,14 @@ extern void material_set_shader(const struct material* const);
 static ALLEGRO_SHADER* predraw_shader;
 static ALLEGRO_SHADER* postdraw_shader;
 
-struct particle
-{
-	void (*draw)(double, size_t);
-	size_t seed;
-	double start_timestamp;
-	double end_timestamp;
-};
-
 struct style_element_internal
 {
-	struct style_element;
+	struct render_interface;
 	struct tweener* keyframe_tweener;
 	double variation;
 
-	struct particle* particles;
-	size_t particles_allocated;
-	size_t particles_used;
+	size_t particle_bins_cnt;
+	struct particle_bin* particle_bins;
 };
 
 static struct style_element_internal* list;
@@ -83,7 +79,7 @@ void style_element_init()
 	tweener_init();
 }
 
-struct style_element* style_element_new(size_t hint)
+struct render_interface* render_interface_new(size_t hint)
 {
 	if (allocated <= used)
 	{
@@ -108,14 +104,16 @@ struct style_element* style_element_new(size_t hint)
 	style_element->width = 0;
 	style_element->height = 0;
 
-	style_element->particles = NULL;
-	style_element->particles_allocated = 0;
-	style_element->particles_used = 0;
+	// TODO: Refactor
+	const int bins = 2;
 
-	return (struct style_element*)style_element;
+	style_element->particle_bins = calloc(bins, sizeof(struct particle_bin));
+	style_element->particle_bins_cnt = bins;
+
+	return (struct render_interface*)style_element;
 }
 
-void style_element_enter_loop(struct style_element* const style_element, double looping_offset)
+void render_interface_enter_loop(struct render_interface* const style_element, double looping_offset)
 {
 	struct style_element_internal* const internal = (struct style_element_internal* const)style_element;
 	tweener_enter_loop(internal->keyframe_tweener, looping_offset);
@@ -123,9 +121,6 @@ void style_element_enter_loop(struct style_element* const style_element, double 
 
 static void style_element_update_work(struct style_element_internal* style_element)
 {
-	for (size_t i = 0; i < style_element->particles_used; i++)
-		if (style_element->particles[i].end_timestamp <= current_timestamp)
-			style_element->particles[i--] = style_element->particles[--style_element->particles_used];
 
 	double* keypoint = style_element->keyframe_tweener->current;
 
@@ -146,7 +141,7 @@ struct work_queue* style_element_update()
 	return work_queue;
 }
 
-void style_element_set(struct style_element* const style_element, struct keyframe* const set)
+void render_interface_set(struct render_interface* const style_element, struct keyframe* const set)
 {
 	struct style_element_internal* const internal = (struct style_element_internal* const)style_element;
 	struct tweener* const tweener = internal->keyframe_tweener;
@@ -156,7 +151,7 @@ void style_element_set(struct style_element* const style_element, struct keyfram
 	memcpy(&style_element->current, set, sizeof(struct keyframe));  // maybe can be optimized out
 }
 
-void style_element_callback(struct sytle_element* const style_element, void (*funct)(void*), void* data)
+void render_interface_callback(struct sytle_element* const style_element, void (*funct)(void*), void* data)
 {
 	struct style_element_internal* const internal = (struct style_element_internal* const)style_element;
 	struct tweener* const tweener = internal->keyframe_tweener;
@@ -164,7 +159,7 @@ void style_element_callback(struct sytle_element* const style_element, void (*fu
 	tweener_set_callback(tweener, funct, data);
 }
 
-void style_element_push_keyframe(struct style_element* const style_element, struct keyframe* frame)
+void render_interface_push_keyframe(struct render_interface* const style_element, struct keyframe* frame)
 {
 	struct style_element_internal* const internal = (struct style_element_internal* const)style_element;
 	double* new_point = tweener_new_point(internal->keyframe_tweener);
@@ -177,7 +172,7 @@ void style_element_push_keyframe(struct style_element* const style_element, stru
 	new_point[5] = frame->theta;
 }
 
-void style_element_copy_destination(struct style_element* const style_element, struct keyframe* keyframe)
+void render_interface_copy_destination(struct render_interface* const style_element, struct keyframe* keyframe)
 {
 	struct style_element_internal* const internal = (struct style_element_internal* const)style_element;
 
@@ -192,12 +187,12 @@ void style_element_copy_destination(struct style_element* const style_element, s
 }
 
 // Align the tweener's current with the style_element's current
-void style_element_align_tweener(struct style_element* const style_element)
+void render_interface_align_tweener(struct render_interface* const style_element)
 {
-	style_element_set(style_element, &style_element->current);
+	render_interface_set(style_element, &style_element->current);
 }
 
-void style_element_interupt(struct style_element* const style_element)
+void render_interface_interupt(struct render_interface* const style_element)
 {
 	struct style_element_internal* const internal = (struct style_element_internal* const)style_element;
 
@@ -234,7 +229,7 @@ void style_element_setup()
 	al_set_shader_float("current_timestamp", current_timestamp);
 }
 
-void style_element_predraw(const struct style_element* const style_element)
+void style_element_predraw(const struct render_interface* const style_element)
 {
 	struct style_element_internal* const internal = (struct style_element_internal* const)style_element;
 
@@ -251,21 +246,16 @@ void style_element_predraw(const struct style_element* const style_element)
 	ALLEGRO_TRANSFORM buffer;
 	keyframe_build_transform(&style_element->current, &buffer);
 
-	style_element_apply_material(style_element, NULL);
+	material_apply(NULL);
 
 	al_use_transform(&buffer);
 
 	glDisable(GL_STENCIL_TEST);
 }
 
-void style_element_apply_material(
-	const struct style_element* const style_element,
-	struct material* material)
-{
-	material_set_shader(material);
-}
-
-void style_element_particle_new(struct style_element* const style_element, void (*draw)(double,size_t), double end_timestamp, size_t seed)
+/*
+void style_element_particle_bin_append(struct render_interface* const style_element, 
+	void (*draw)(double,size_t), double end_timestamp, size_t seed)
 {
 	struct style_element_internal* const internal = (struct style_element_internal* const)style_element;
 
@@ -289,14 +279,10 @@ void style_element_particle_new(struct style_element* const style_element, void 
 	particle->start_timestamp = current_timestamp;
 }
 
-void style_element_draw_particles(const struct style_element* const style_element)
+void style_element_draw_particles(const struct render_interface* const style_element)
 {
 	struct style_element_internal* const internal = (struct style_element_internal* const)style_element;
 
-	for (size_t i = 0; i < internal->particles_used; i++)
-	{
-		const struct particle* const particle = internal->particles + i;
 
-		particle->draw(current_timestamp - particle->start_timestamp, particle->seed);
-	}
 }
+*/

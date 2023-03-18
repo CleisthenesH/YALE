@@ -10,9 +10,9 @@ material2 = material_test_new{x=750, y=500, effect=2, selection=0}
 material3 = material_test_new{x=1000, y=500, effect=1, selection=0}
 
 material1 = material_test_new{x=500, y=500, effect=3, selection=0}
+--]]
 
 material4 = material_test_new{x=1250, y=500, effect=4, selection=0}
---]]
 
 button = button_new{x=100, y=100}
 

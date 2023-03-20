@@ -5,7 +5,7 @@
 // An object for holding all the data to render a card and card effects.
 #pragma once
 
-#include "style_element.h"
+#include "renderer_interface.h"
 
 struct card_render_data
 {

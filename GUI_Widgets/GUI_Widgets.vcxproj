@@ -217,7 +217,7 @@
     <ClInclude Include="particle.h" />
     <ClInclude Include="resource_manager.h" />
     <ClInclude Include="resource_manager_ids.h" />
-    <ClInclude Include="style_element.h" />
+    <ClInclude Include="renderer_interface.h" />
     <ClInclude Include="thread_pool.h" />
     <ClInclude Include="tweener.h" />
     <ClInclude Include="widget_interface.h" />
@@ -275,7 +275,7 @@
     <ClCompile Include="main.c" />
     <ClCompile Include="rectangle.c" />
     <ClCompile Include="slider.c" />
-    <ClCompile Include="style_element.c" />
+    <ClCompile Include="renderer_interface.c" />
     <ClCompile Include="prototype_widget.c" />
     <ClCompile Include="thread_pool.c" />
     <ClCompile Include="miscellaneous.c" />
@@ -285,13 +285,13 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\README.md" />
-    <None Include="boot.lua" />
+    <None Include="config.lua" />
     <None Include="example_workflow.lua" />
     <None Include="packages.config" />
     <None Include="piece_manager.lua" />
-    <None Include="post_boot.lua" />
-    <None Include="shaders\style_element.frag" />
-    <None Include="shaders\style_element.vert" />
+    <None Include="boot.lua" />
+    <None Include="shaders\main_renderer.frag" />
+    <None Include="shaders\main_renderer.vert" />
     <None Include="shaders\widget.frag" />
     <None Include="shaders\widget.vert" />
     <None Include="to-do.md" />

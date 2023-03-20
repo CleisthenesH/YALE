@@ -51,7 +51,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="style_element.c">
+    <ClCompile Include="renderer_interface.c">
       <Filter>core\renderer</Filter>
     </ClCompile>
     <ClCompile Include="thread_pool.c">
@@ -205,7 +205,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="style_element.h">
+    <ClInclude Include="renderer_interface.h">
       <Filter>core\renderer</Filter>
     </ClInclude>
     <ClInclude Include="thread_pool.h">
@@ -328,10 +328,10 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
-    <None Include="boot.lua">
+    <None Include="config.lua">
       <Filter>scripts</Filter>
     </None>
-    <None Include="post_boot.lua">
+    <None Include="boot.lua">
       <Filter>scripts</Filter>
     </None>
     <None Include="..\README.md" />
@@ -341,10 +341,10 @@
     <None Include="shaders\widget.vert">
       <Filter>core\widget_interface</Filter>
     </None>
-    <None Include="shaders\style_element.frag">
+    <None Include="shaders\main_renderer.frag">
       <Filter>core\renderer</Filter>
     </None>
-    <None Include="shaders\style_element.vert">
+    <None Include="shaders\main_renderer.vert">
       <Filter>core\renderer</Filter>
     </None>
     <None Include="to-do.md" />

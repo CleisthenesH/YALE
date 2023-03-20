@@ -13,8 +13,8 @@
 #include <float.h>
 #include <math.h>
 
-extern void style_element_setup();
-extern void style_element_predraw(const struct render_interface* const);
+extern void render_interface_global_predraw();
+extern void render_interface_predraw(const struct render_interface* const);
 
 extern double mouse_x;
 extern double mouse_y;
@@ -177,13 +177,13 @@ void widget_interface_pop(struct widget_interface* const ptr)
 // Draw the widgets in queue order.
 void widget_engine_draw()
 {
-    style_element_setup();
+    render_interface_global_predraw();
 
     // Maybe add a second pass for stencil effect?
     for(struct widget* widget = queue_head; widget; widget = widget->next)
 	{
         const struct render_interface* const style_element  = widget->style_element;
-        style_element_predraw(style_element);
+        render_interface_predraw(style_element);
         widget->jump_table->draw((struct widget_interface*) widget);
  	}
 

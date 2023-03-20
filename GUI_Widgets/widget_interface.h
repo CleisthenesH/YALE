@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 #pragma once
 
-#include "style_element.h"
+#include "renderer_interface.h"
 
 #include "lua/lua.h"
 #include "lua/lualib.h"

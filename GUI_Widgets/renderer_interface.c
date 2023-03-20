@@ -2,7 +2,7 @@
 // Use of this source code is governed by an MIT-style
 // license that can be found in the LICENSE file.
 
-#include "style_element.h"
+#include "renderer_interface.h"
 #include "thread_pool.h"
 #include "tweener.h"
 #include "material.h"
@@ -13,24 +13,13 @@
 
 extern double current_timestamp;
 
-#include "particle.h"
-
-// TODO: Externs are kind of messy
-extern void tweener_init();
-extern struct work_queue* tweener_update();
-extern void material_set_shader(const struct material* const);
-
-static ALLEGRO_SHADER* predraw_shader;
-static ALLEGRO_SHADER* postdraw_shader;
+static ALLEGRO_SHADER* shader;
 
 struct style_element_internal
 {
 	struct render_interface;
 	struct tweener* keyframe_tweener;
 	double variation;
-
-	size_t particle_bins_cnt;
-	struct particle_bin* particle_bins;
 };
 
 static struct style_element_internal* list;
@@ -39,44 +28,43 @@ static size_t used;
 
 static inline int make_shader()
 {
-	predraw_shader = al_create_shader(ALLEGRO_SHADER_GLSL);
+	shader = al_create_shader(ALLEGRO_SHADER_GLSL);
 
-	if (!al_attach_shader_source_file(predraw_shader, ALLEGRO_VERTEX_SHADER, "shaders/style_element.vert"))
+	if (!al_attach_shader_source_file(shader, ALLEGRO_VERTEX_SHADER, "shaders/main_renderer.vert"))
 	{
-		fprintf(stderr, "Failed to attach predraw vertex shader.\n%s\n", al_get_shader_log(predraw_shader));
+		fprintf(stderr, "Failed to attach main renderer vertex shader.\n%s\n", al_get_shader_log(shader));
 		return 0;
 	}
 
-	if (!al_attach_shader_source_file(predraw_shader, ALLEGRO_PIXEL_SHADER, "shaders/style_element.frag"))
+	if (!al_attach_shader_source_file(shader, ALLEGRO_PIXEL_SHADER, "shaders/main_renderer.frag"))
 	{
-		fprintf(stderr, "Failed to attach predraw pixel shader.\n%s\n", al_get_shader_log(predraw_shader));
+		fprintf(stderr, "Failed to attach main renderer pixel shader.\n%s\n", al_get_shader_log(shader));
 		return 0;
 	}
 
-	if (!al_build_shader(predraw_shader))
+	if (!al_build_shader(shader))
 	{
-		fprintf(stderr, "Failed to build predraw shader.\n%s\n", al_get_shader_log(predraw_shader));
+		fprintf(stderr, "Failed to build main renderer shader.\n%s\n", al_get_shader_log(shader));
 		return 0;
 	}
 
 	ALLEGRO_DISPLAY* const display = al_get_current_display();
 	const float dimensions[2] = { al_get_display_width(display),al_get_display_height(display) };
 
-	al_use_shader(predraw_shader);
+	al_use_shader(shader);
 	al_set_shader_float_vector("display_dimensions", 2, dimensions, 1);
 	al_use_shader(NULL);
 
 	return 1;
 }
 
-void style_element_init()
+void render_interface_init()
 {
 	used = 0;
 	allocated = 100;
 	list = malloc(allocated * sizeof(struct style_element_internal));
 
 	make_shader();
-	tweener_init();
 }
 
 struct render_interface* render_interface_new(size_t hint)
@@ -104,12 +92,6 @@ struct render_interface* render_interface_new(size_t hint)
 	style_element->width = 0;
 	style_element->height = 0;
 
-	// TODO: Refactor
-	const int bins = 2;
-
-	style_element->particle_bins = calloc(bins, sizeof(struct particle_bin));
-	style_element->particle_bins_cnt = bins;
-
 	return (struct render_interface*)style_element;
 }
 
@@ -119,9 +101,8 @@ void render_interface_enter_loop(struct render_interface* const style_element, d
 	tweener_enter_loop(internal->keyframe_tweener, looping_offset);
 }
 
-static void style_element_update_work(struct style_element_internal* style_element)
+static void render_interface_update_work(struct style_element_internal* style_element)
 {
-
 	double* keypoint = style_element->keyframe_tweener->current;
 
 	style_element->current.x = keypoint[0];
@@ -131,12 +112,12 @@ static void style_element_update_work(struct style_element_internal* style_eleme
 	style_element->current.theta = keypoint[4];
 }
 
-struct work_queue* style_element_update()
+struct work_queue* render_interface_update()
 {
-	struct work_queue* work_queue = tweener_update();
+	struct work_queue* work_queue = work_queue_create();
 
 	for (size_t i = 0; i < used; i++)
-		work_queue_push(work_queue, style_element_update_work, list + i);
+		work_queue_push(work_queue, render_interface_update_work, list + i);
 
 	return work_queue;
 }
@@ -222,14 +203,14 @@ void keyframe_default(struct keyframe* const keyframe)
 	};
 }
 
-void style_element_setup()
+void render_interface_global_predraw()
 {
-	al_use_shader(predraw_shader);
+	al_use_shader(shader);
 	glDisable(GL_STENCIL_TEST);
 	al_set_shader_float("current_timestamp", current_timestamp);
 }
 
-void style_element_predraw(const struct render_interface* const style_element)
+void render_interface_predraw(const struct render_interface* const style_element)
 {
 	struct style_element_internal* const internal = (struct style_element_internal* const)style_element;
 
@@ -252,37 +233,3 @@ void style_element_predraw(const struct render_interface* const style_element)
 
 	glDisable(GL_STENCIL_TEST);
 }
-
-/*
-void style_element_particle_bin_append(struct render_interface* const style_element, 
-	void (*draw)(double,size_t), double end_timestamp, size_t seed)
-{
-	struct style_element_internal* const internal = (struct style_element_internal* const)style_element;
-
-	if (internal->particles_allocated <= internal->particles_used)
-	{
-		const size_t new_cnt = 2 * internal->particles_allocated+1;
-
-		struct particle* memsafe_hande = realloc(internal->particles, new_cnt * sizeof(struct style_element_internal));
-
-		if (!memsafe_hande)
-			return;
-
-		internal->particles = memsafe_hande;
-		internal->particles_allocated = new_cnt;
-	}
-
-	struct particle* particle = internal->particles + internal->particles_used++;
-
-	particle->draw = draw;
-	particle->end_timestamp = current_timestamp+end_timestamp;
-	particle->start_timestamp = current_timestamp;
-}
-
-void style_element_draw_particles(const struct render_interface* const style_element)
-{
-	struct style_element_internal* const internal = (struct style_element_internal* const)style_element;
-
-
-}
-*/

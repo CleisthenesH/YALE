@@ -109,7 +109,7 @@ vec4 voronoi(vec2 position)
 		}	
 	}
 
-	return vec4(closest_cell,closest_point);
+	return vec4(closest_cell+p,closest_point);
 }
 
 vec4 voronoi_mod_dist(vec2 position)
@@ -121,8 +121,8 @@ vec4 voronoi_mod_dist(vec2 position)
 	vec2 closest_point;
 	vec2 closest_cell;
 
-	for(int i = -1; i <= 1; i++)
-	for(int j = -1; j <= 1; j++)
+	for(int i = -2; i <= 2; i++)
+	for(int j = -2; j <= 2; j++)
 	{
 		vec2 r = hash2(p+vec2(i,j));
 		r += vec2(i,j);
@@ -140,7 +140,7 @@ vec4 voronoi_mod_dist(vec2 position)
 		}	
 	}
 
-	return vec4(closest_cell,closest_point);
+	return vec4(closest_cell+p,closest_point);
 }
 
 vec3 noised( vec2 p )
@@ -344,6 +344,15 @@ vec4 glitch()
 	return vec4(0,0,0,1);
 }
 
+vec4 medusa()
+{
+	vec4 voronoi = voronoi_mod_dist(local_position.xy * object_scale);
+
+	//return vec4(local_position.xy * object_scale,0,1);
+
+	return vec4(hash2(voronoi.xy),0,1);
+}
+
 vec4 filtered()
 {
 //return varying_color * texture2D(al_tex, varying_texcoord+vec2(0.01,0));
@@ -393,7 +402,7 @@ void main()
 	break;
 
 	case 4:
-		normal_color = voronoi_mod_dist(local_position.xy * object_scale);// burn();
+		normal_color = medusa();// burn();
 	break;
 	}
 

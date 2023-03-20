@@ -2,7 +2,7 @@
 // Use of this source code is governed by an MIT-style
 // license that can be found in the LICENSE file.
 
-//#include "style_element.h"
+//#include "renderer_interface.h"
 #include "material.h"
 
 // To handle the varity of effect and selection data I've implemented a very basic type system.

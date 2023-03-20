@@ -2,6 +2,10 @@
 // Use of this source code is governed by an MIT-style
 // license that can be found in the LICENSE file.
 
+// Some quick and easy compile options
+#define EASY_BACKGROUND
+#define EASY_FPS
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -19,17 +23,23 @@
 #include "lua/lauxlib.h"
 #include "lua/lualib.h"
 
+// Thread Pool includes
 #include "thread_pool.h"
 extern void thread_pool_init(size_t);
 extern void thread_pool_destroy();
 
-#include "style_element.h"
-extern struct work_queue* style_element_update();
-extern struct work_queue* tweener_update();
-extern void style_element_init();
-extern void style_element_setup();
+// Renderer includes
+extern struct work_queue* render_interface_update();
+extern void render_interface_init();
+extern void render_interface_global_predraw();
 
-#include "widget_interface.h"
+extern void tweener_init();
+extern struct work_queue* tweener_update();
+
+extern void particle_engine_init();
+extern struct work_queue* particle_engine_update();
+
+// Widget Interface includes
 extern void widget_engine_init(lua_State*);
 extern void widget_engine_draw();
 extern struct work_queue* widget_engine_widget_work();
@@ -39,16 +49,16 @@ extern void widget_style_sheet_init();
 
 extern void piece_manager_setglobal(lua_State*);
 
-#include "resource_manager.h"
+// Resource Manager includes
 void resource_manager_init();
 
+// Static variable declaration
 static ALLEGRO_DISPLAY* display;
 static ALLEGRO_EVENT_QUEUE* main_event_queue;
 struct thread_pool* thread_pool;
 static bool do_exit;
 
 // A simple background for testing
-#define EASY_BACKGROUND
 #ifdef EASY_BACKGROUND
 static ALLEGRO_BITMAP* easy_background;
 #include "material.h"
@@ -261,13 +271,24 @@ static inline void empty_event_queue()
     delta_timestamp = al_get_time() - current_timestamp;
     current_timestamp += delta_timestamp;
 
-    // Update widgets
-    struct work_queue* queue = style_element_update();
+    // Update tweeners
+    struct work_queue* queue = tweener_update();
     thread_pool_concatenate(queue);
 
-    queue = widget_engine_widget_work();
+    // Update render_interfaces
+    // (Currently only copies changes from keyframe tweeners across.)
+    queue = render_interface_update();
+    thread_pool_concatenate(queue);
 
+    // Update the particle engine
+    queue = particle_engine_update();
+    thread_pool_concatenate(queue);
+
+    // Create the widget work queue, but do not concatinate to the thread pool.
+    queue = widget_engine_widget_work();
     thread_pool_wait();
+
+    // Do a global widget_engine update then concatinate the widget work to the threadpool.
     widget_engine_update();
     thread_pool_concatenate(queue);
 
@@ -281,7 +302,7 @@ static inline void empty_event_queue()
     glEnable(GL_STENCIL_TEST);
     al_reset_clipping_rectangle();
 
-    style_element_setup();
+    render_interface_global_predraw();
  
 #ifdef EASY_BACKGROUND
     al_use_transform(&identity_transform);
@@ -293,6 +314,12 @@ static inline void empty_event_queue()
 
     // Draw
     widget_engine_draw();
+
+#ifdef EASY_FPS
+    al_use_transform(&identity_transform);
+    material_apply(NULL);
+    al_draw_textf(debug_font, al_map_rgb_f(0, 1, 0), 0, 0, 0, "FPS:%lf",1/delta_timestamp);
+#endif
 
     // Flip
     al_flip_display();
@@ -340,20 +367,31 @@ static inline void main_state_dofile(const char* file_name)
 // Main
 int main()
 {
+    // Init Lua first so we can read a config file to inform later inits
     lua_init();
+    main_state_dofile("config.lua");
 
-    main_state_dofile("boot.lua");
-
+    // Init the Allegro Environment
     allegro_init();
+    thread_pool_init(8);
+
+    // Init resources and resource managers
     resource_manager_init();
     global_init();
-    thread_pool_init(8);
-    style_element_init();
+
+    // Init renderers
+    tweener_init();
+    particle_engine_init();
+    render_interface_init();
+
+    // Init Widgets
     widget_style_sheet_init();
     widget_engine_init(main_lua_state);
 
-    main_state_dofile("post_boot.lua");
+    // Run the boot script
+    main_state_dofile("boot.lua");
 
+    // Main loop
     while (!do_exit)
         if (al_get_next_event(main_event_queue, &current_event))
             process_event();

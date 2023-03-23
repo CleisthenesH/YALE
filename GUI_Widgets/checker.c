@@ -42,9 +42,6 @@ static void draw(const struct piece* const checker)
 	material_apply(NULL);
 
 	//style_element_draw_particles(checker->widget_interface->style_element);
-
-	al_draw_bitmap(resource_manager_icon(ICON_ID_ACCORDION),0,0,0);
-
 }
 
 static void mask(const struct piece* const checker)

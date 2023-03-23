@@ -2,6 +2,12 @@
 // Use of this source code is governed by an MIT-style
 // license that can be found in the LICENSE file.
 
+// Need to update this code from previous 
+//  - Type checking with "check_widget"
+//  - Something broke when we changed to a weak widget table in lua
+//  - After some expermentation I think that manager shouldn't be sent of the callbacks
+//     - Headless mode might make it more intgratable
+
 #include "pieces_manager.h"
 
 extern lua_State* const main_lua_state;
@@ -10,6 +16,7 @@ extern double current_timestamp;
 static const struct widget_jump_table piece_to_widget_table;
 static const struct widget_jump_table zone_to_widget_table;
 
+// Test widgets
 extern struct piece* checker_new(lua_State*);
 extern struct zone* square_new(lua_State*);
 
@@ -256,6 +263,9 @@ static void piece_drag_end(struct widget_interface* const widget)
 }
 
 // TODO: clean up
+// The zone shouldn't be dragged?
+// How do I know that it's a zone I've been droped on?
+// Need to add a buch of type checking.
 void zone_drag_end_drop(struct widget_interface* const zone_widget, struct widget_interface* const piece_widget);
 static void piece_drag_end_drop(struct widget_interface* const droppedon_widget, struct widget_interface* const piece_widget)
 {
@@ -469,7 +479,7 @@ static const struct widget_jump_table zone_to_widget_table =
 	.gc = zone_gc,
 	.draw = zone_draw,
 	.mask = zone_mask,
-	.drag_end_drop = zone_drag_end_drop,
+	//.drag_end_drop = zone_drag_end_drop,
 	.drop_start = zone_drop_start,
 	.drop_end = zone_drop_end,
 	.index = zone_index,
@@ -492,6 +502,7 @@ static int piece_manager_move(lua_State* L)
 static inline int piece_manager_new_zone(lua_State* L)
 {
 	struct manager* const manager = (struct manager*)luaL_checkudata(L, -2, "piece_manager_mt");
+	stack_dump(L);
 
 	if (lua_type(L, -1) == LUA_TSTRING)
 	{
@@ -501,8 +512,13 @@ static inline int piece_manager_new_zone(lua_State* L)
 		{
 			lua_getiuservalue(L, -2, MANAGER_UVALUE_ZONES);
 			struct zone* const zone = square_new(L);
+
+
+			/* asigning the pointer to some table, I think this is outdated code
 			lua_pushvalue(L, -1);
+			stack_dump(L);
 			lua_rawsetp(L, -3, zone);
+			*/
 
 			zone->manager = manager;
 			
@@ -526,8 +542,11 @@ static inline int piece_manager_new_piece(lua_State* L)
 			lua_getiuservalue(L, -2, MANAGER_UVALUE_PIECES);
 			struct piece* const piece = checker_new(L);
 			piece->manager = manager;
+
+			/* asigning the pointer to some table, I think this is outdated code
 			lua_pushvalue(L, -1);
 			lua_rawsetp(L, -3, piece);
+			*/
 
 			return 1;
 		}

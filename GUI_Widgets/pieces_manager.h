@@ -10,6 +10,8 @@
 #include "lua/lauxlib.h"
 #include "lua/lualib.h"
 
+//TODO: Rename Payload to Key or Name or Identifier
+// ALso maybe position manager would be better
 enum PIECE_UVALUE
 {
 	PIECE_UVALUE_PAYLOAD = 1,

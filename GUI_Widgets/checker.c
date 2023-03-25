@@ -3,7 +3,6 @@
 // license that can be found in the LICENSE file.
 
 #include "widget_interface.h"
-#include "pieces_manager.h"
 #include "allegro5/allegro_primitives.h"
 #include "material.h"
 
@@ -12,7 +11,7 @@
 static struct material* foil;
 extern double mouse_x, mouse_y;
 
-#include "resource_manager.h"
+#include "board_manager.h"
 
 struct checker
 {

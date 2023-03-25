@@ -2,7 +2,7 @@
 // Use of this source code is governed by an MIT-style
 // license that can be found in the LICENSE file.
 
-#include "pieces_manager.h"
+#include "board_manager.h"
 #include "allegro5/allegro_primitives.h"
 
 struct square

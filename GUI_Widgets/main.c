@@ -25,29 +25,29 @@
 
 // Thread Pool includes
 #include "thread_pool.h"
-extern void thread_pool_init(size_t);
-extern void thread_pool_destroy();
+void thread_pool_init(size_t);
+void thread_pool_destroy();
 
 // Renderer includes
-extern struct work_queue* render_interface_update();
-extern void render_interface_init();
-extern void render_interface_global_predraw();
+struct work_queue* render_interface_update();
+void render_interface_init();
+void render_interface_global_predraw();
 
-extern void tweener_init();
-extern struct work_queue* tweener_update();
+void tweener_init();
+struct work_queue* tweener_update();
 
-extern void particle_engine_init();
-extern struct work_queue* particle_engine_update();
+void particle_engine_init();
+struct work_queue* particle_engine_update();
 
 // Widget Interface includes
-extern void widget_engine_init(lua_State*);
-extern void widget_engine_draw();
-extern struct work_queue* widget_engine_widget_work();
-extern void widget_engine_update();
-extern void widget_engine_event_handler();
-extern void widget_style_sheet_init();
+void widget_engine_init(lua_State*);
+void widget_engine_draw();
+struct work_queue* widget_engine_widget_work();
+void widget_engine_update();
+void widget_engine_event_handler();
+void widget_style_sheet_init();
 
-extern void piece_manager_setglobal(lua_State*);
+void board_manager_init(lua_State*);
 
 // Resource Manager includes
 void resource_manager_init();
@@ -85,7 +85,7 @@ static inline int lua_init()
         return 0;
 
     luaL_openlibs(main_lua_state);
-    piece_manager_setglobal(main_lua_state);
+    board_manager_init(main_lua_state);
 
     return 1;
 }

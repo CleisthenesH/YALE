@@ -183,6 +183,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="board_manager.h" />
     <ClInclude Include="card_render_data.h" />
     <ClInclude Include="hash.h" />
     <ClInclude Include="lua\lapi.h" />
@@ -221,10 +222,16 @@
     <ClInclude Include="thread_pool.h" />
     <ClInclude Include="tweener.h" />
     <ClInclude Include="widget_interface.h" />
-    <ClInclude Include="pieces_manager.h" />
+    <ClInclude Include="pieces_manager.h">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClInclude>
     <ClInclude Include="widget_style_sheet.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="board_manager.c" />
     <ClCompile Include="button.c" />
     <ClCompile Include="card_render_data.c" />
     <ClCompile Include="checker.c">
@@ -236,7 +243,12 @@
     <ClCompile Include="material.c" />
     <ClCompile Include="material_test.c" />
     <ClCompile Include="particle.c" />
-    <ClCompile Include="pieces_manager.c" />
+    <ClCompile Include="pieces_manager.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="resource_manager.c" />
     <ClCompile Include="square.c" />
     <ClCompile Include="hash.c" />
@@ -285,8 +297,10 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\README.md" />
+    <None Include="board_manager.lua" />
     <None Include="config.lua" />
     <None Include="example_workflow.lua" />
+    <None Include="material_test.lua" />
     <None Include="packages.config" />
     <None Include="piece_manager.lua" />
     <None Include="boot.lua" />

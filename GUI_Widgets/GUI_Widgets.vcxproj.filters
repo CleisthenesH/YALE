@@ -7,9 +7,6 @@
     <Filter Include="piece_manager">
       <UniqueIdentifier>{544d5bbc-863e-46b8-a67b-9d9cd6e6ae64}</UniqueIdentifier>
     </Filter>
-    <Filter Include="piece_manager\pieces">
-      <UniqueIdentifier>{bbc4b4a2-26f4-4db5-bbf0-ac35fe82bbbf}</UniqueIdentifier>
-    </Filter>
     <Filter Include="card_render_data">
       <UniqueIdentifier>{2d770f8d-1bd9-4935-8868-94a8c536b14e}</UniqueIdentifier>
     </Filter>
@@ -48,6 +45,12 @@
     </Filter>
     <Filter Include="core\renderer\components">
       <UniqueIdentifier>{d185aafe-7fd7-4ba6-81d9-59788b204e31}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="board_manager">
+      <UniqueIdentifier>{1102756d-4793-4f4e-963b-80f2a4e68574}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="board_manager\zones_and_pieces">
+      <UniqueIdentifier>{bbc4b4a2-26f4-4db5-bbf0-ac35fe82bbbf}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -162,7 +165,7 @@
       <Filter>core\hash</Filter>
     </ClCompile>
     <ClCompile Include="checker.c">
-      <Filter>piece_manager\pieces</Filter>
+      <Filter>board_manager\zones_and_pieces</Filter>
     </ClCompile>
     <ClCompile Include="tweener.c">
       <Filter>core\renderer\components</Filter>
@@ -174,7 +177,7 @@
       <Filter>piece_manager</Filter>
     </ClCompile>
     <ClCompile Include="square.c">
-      <Filter>piece_manager\pieces</Filter>
+      <Filter>board_manager\zones_and_pieces</Filter>
     </ClCompile>
     <ClCompile Include="resource_manager.c">
       <Filter>core\resource_manager</Filter>
@@ -202,6 +205,9 @@
     </ClCompile>
     <ClCompile Include="particle.c">
       <Filter>core\renderer\components</Filter>
+    </ClCompile>
+    <ClCompile Include="board_manager.c">
+      <Filter>board_manager</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -325,6 +331,9 @@
     <ClInclude Include="material.h">
       <Filter>core\renderer\components</Filter>
     </ClInclude>
+    <ClInclude Include="board_manager.h">
+      <Filter>board_manager</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
@@ -352,6 +361,12 @@
       <Filter>scripts\examples</Filter>
     </None>
     <None Include="example_workflow.lua">
+      <Filter>scripts\examples</Filter>
+    </None>
+    <None Include="board_manager.lua">
+      <Filter>scripts\examples</Filter>
+    </None>
+    <None Include="material_test.lua">
       <Filter>scripts\examples</Filter>
     </None>
   </ItemGroup>

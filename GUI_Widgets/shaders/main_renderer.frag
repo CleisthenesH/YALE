@@ -84,6 +84,22 @@ void normal_behaviour()
 		discard;
 }
 
+// For showing the procedual grid
+vec4 debug_grid(vec2 position)
+{
+    vec2 p = floor(position);
+    vec2 f = fract(position);
+	vec2 r = hash2(p);
+
+	if(length(r-f) < 0.1)
+		return vec4(1,0,0,1);
+
+	if(f.x < 0.1 || f.y < 0.1)
+		return vec4(0,1,0,1);
+
+	return vec4(1);
+}
+
 vec4 voronoi(vec2 position)
 {
     vec2 p = floor(position);
@@ -117,18 +133,17 @@ vec4 voronoi_mod_dist(vec2 position)
     vec2 p = floor(position);
     vec2 f = fract(position);
 
-	float closest_distance = 100.0;
+	float closest_distance = 1000.0;
 	vec2 closest_point;
 	vec2 closest_cell;
 
-	for(int i = -2; i <= 2; i++)
-	for(int j = -2; j <= 2; j++)
+	for(float i = -2; i <= 2; i++)
+	for(float j = -2; j <= 2; j++)
 	{
 		vec2 r = hash2(p+vec2(i,j));
 		r += vec2(i,j);
 
-		vec2 cords = f-r;
-		cords = abs(cords);
+		vec2 cords = vec2(abs(f.x-r.x),abs(f.y-r.y));
 
 		float d = min(cords.x,cords.y);
 
@@ -141,6 +156,90 @@ vec4 voronoi_mod_dist(vec2 position)
 	}
 
 	return vec4(closest_cell+p,closest_point);
+}
+
+vec4 medusa()
+{
+	vec2 global_position = local_position.xy * object_scale*4;
+
+	vec2 current_cell = floor(global_position);
+	vec2 local_position = global_position - current_cell;
+
+	// Draw grid
+	if(false)
+	{
+		vec2 r = hash2(current_cell);
+
+	if(length(r-local_position) < 0.1)
+		return vec4(1,0,0,1);
+
+	if(local_position.x < 0.1 || local_position.y < 0.1)
+		return vec4(0,0,1,1);
+	}
+
+	float closest_distance = 1000.0;
+	vec2 closest_point;
+	vec2 closest_cell;
+
+	for(float i = -1; i <= 1; i+=1)
+	for(float j = -1; j <= 1; j+=1)
+	{
+		vec2 candidate = hash2(current_cell + vec2(i,j));
+		candidate += vec2(i,j);
+
+		vec2 displacement = abs(candidate-local_position);
+		float distance = max(displacement.x,displacement.y);
+
+		if(distance < closest_distance)
+		{
+			closest_distance = distance;
+			closest_cell = vec2(i,j);
+			closest_point = candidate;
+		}	
+	}
+
+	closest_cell += current_cell;
+
+	//return vec4((closest_cell+4)/8,0,1);
+
+	if(mod(closest_cell.y,2) == 0)
+		return vec4(vec3(0.5),1);
+
+	if(mod(closest_cell.x,2) == 0)
+		return vec4(1);
+
+	return vec4(0,0,0,1);
+}
+
+// Input: position
+// Output: .xy distance to closest hexagon cell center, .zw hexagon cell id
+vec4 hex_cell(vec2 p)
+{    
+	const vec2 s = vec2(1.7320508, 1.0);
+    
+    vec4 c = floor(vec4(p, p - vec2(1, .5))/s.xyxy) + .5;
+    vec4 h = vec4(p - c.xy*s, p - (c.zw + .5)*s);
+
+	if (dot(h.xy, h.xy) < dot(h.zw, h.zw))
+		return  vec4(h.xy, c.xy);
+    
+    return vec4(h.zw, c.zw + .5);
+}
+
+// isolines for hexagon at (0,0)
+float isohex(vec2 position)
+{
+		const vec2 s = vec2(1.7320508, 1.0);
+		position = abs(position);
+
+		return max(dot(position, s*0.5), position.y);
+}
+
+vec4 hex()
+{
+	vec2 position = local_position.xy * object_scale*2.0;
+
+	return vec4(hash2(hex_cell(position).zw),0,1);
 }
 
 vec3 noised( vec2 p )
@@ -261,7 +360,7 @@ vec4 burn()
 	if(ref < 0.05 && ref > -0.05)
 	{
 		ref = (ref + 0.05)*10.0;
-		return vec4(hsl2rgb(vec3(35.0/360.0,1.0, .54 +.1*ref)),1);
+		return vec4(hsl2rgb(vec3(35.0/360.0,1.0, .24 +.3*ref)),1);
 	}
 
 	if(ref > 0)
@@ -344,14 +443,7 @@ vec4 glitch()
 	return vec4(0,0,0,1);
 }
 
-vec4 medusa()
-{
-	vec4 voronoi = voronoi_mod_dist(local_position.xy * object_scale);
 
-	//return vec4(local_position.xy * object_scale,0,1);
-
-	return vec4(hash2(voronoi.xy),0,1);
-}
 
 vec4 filtered()
 {
@@ -402,7 +494,7 @@ void main()
 	break;
 
 	case 4:
-		normal_color = medusa();// burn();
+		normal_color =  hex(); //medusa();// burn
 	break;
 	}
 

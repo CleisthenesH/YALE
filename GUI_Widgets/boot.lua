@@ -11,4 +11,12 @@ manager = board_manager_new{
 	allowed_zones = {"square"}, 
 	allowed_pieces = {"checker"}}
 
+function manager:move(piece)
+	print(self, piece)
+end
+
+a = manager.test
+
+manager:new_piece("id1","checker",nil)
+
 print("Boot Complete")

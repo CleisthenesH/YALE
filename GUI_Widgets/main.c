@@ -389,7 +389,10 @@ int main()
     widget_engine_init(main_lua_state);
 
     // Run the boot script
-    main_state_dofile("boot.lua");
+    if(0)
+        main_state_dofile("boot.lua");
+    else
+        main_state_dofile("material_test.lua");
 
     // Main loop
     while (!do_exit)

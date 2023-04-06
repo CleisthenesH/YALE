@@ -36,7 +36,7 @@ struct piece
 
 	void* upcast;
 	struct zone* zone;
-	struct manager* manager;
+	struct board_manager* manager;
 };
 
 struct zone
@@ -44,7 +44,7 @@ struct zone
 	struct widget_interface* widget_interface;
 	const struct zone_jump_table* jump_table;
 	void* upcast;
-	struct manager* manager;
+	struct board_manager* manager;
 
 	bool valid_move;
 	bool highlighted;
@@ -87,3 +87,6 @@ struct piece_jump_table
 	void (*draw)(const struct piece* const);
 	void (*mask)(const struct piece* const);
 };
+
+struct piece* piece_new(lua_State* L, void* upcast, const struct piece_jump_table* const jump_table);
+struct zone* zone_new(lua_State* L, void* upcast, const struct zone_jump_table* const jump_table);

@@ -39,12 +39,9 @@ uniform vec3 effect_color;
 // Global Effect Variables
 uniform float saturate;
 
-vec3 hsl2rgb( in vec3 c )
-{
-    vec3 rgb = clamp( abs(mod(c.x*6.0+vec3(0.0,4.0,2.0),6.0)-3.0)-1.0, 0.0, 1.0 );
-
-    return c.z + c.y * (rgb-0.5)*(1.0-abs(2.0*c.z-1.0));
-}
+/********************
+ * Normal Behaviour *
+ ********************/
 
 bool alpha_test_func(float x, int op, float compare)
 {
@@ -57,16 +54,6 @@ bool alpha_test_func(float x, int op, float compare)
 	else if (op == 6) return x != compare;
 	else if (op == 7) return x >= compare;
 	return false;
-}
-
-float hash(vec2 p)
-{
-	return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);   
-}
-
-vec2 hash2(vec2 p)
-{
-	return vec2(hash(p),hash(vec2(p.y,p.x)));
 }
 
 void normal_behaviour()
@@ -84,7 +71,31 @@ void normal_behaviour()
 		discard;
 }
 
-// For showing the procedual grid
+/*************
+ *  Utility  *
+ *************/
+ 
+// Simple 2 to 1 hash.
+float hash(vec2 p)
+{
+	return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);   
+}
+
+// Simple 2 to 2 hash.
+vec2 hash2(vec2 p)
+{
+	return vec2(hash(p),hash(vec2(p.y,p.x)));
+}
+
+// Map hsl to rgb.
+vec3 hsl2rgb( in vec3 c )
+{
+    vec3 rgb = clamp( abs(mod(c.x*6.0+vec3(0.0,4.0,2.0),6.0)-3.0)-1.0, 0.0, 1.0 );
+
+    return c.z + c.y * (rgb-0.5)*(1.0-abs(2.0*c.z-1.0));
+}
+
+// Shows the grid used in procedual effects.
 vec4 debug_grid(vec2 position)
 {
     vec2 p = floor(position);
@@ -100,6 +111,7 @@ vec4 debug_grid(vec2 position)
 	return vec4(1);
 }
 
+// The Voronoi Cell the point is closest to, the last two components are that cells center
 vec4 voronoi(vec2 position)
 {
     vec2 p = floor(position);
@@ -128,143 +140,7 @@ vec4 voronoi(vec2 position)
 	return vec4(closest_cell+p,closest_point);
 }
 
-vec4 voronoi_mod_dist(vec2 position)
-{
-    vec2 p = floor(position);
-    vec2 f = fract(position);
-
-	float closest_distance = 1000.0;
-	vec2 closest_point;
-	vec2 closest_cell;
-
-	for(float i = -2; i <= 2; i++)
-	for(float j = -2; j <= 2; j++)
-	{
-		vec2 r = hash2(p+vec2(i,j));
-		r += vec2(i,j);
-
-		vec2 cords = vec2(abs(f.x-r.x),abs(f.y-r.y));
-
-		float d = min(cords.x,cords.y);
-
-		if(d < closest_distance)
-		{
-			closest_distance = d;
-			closest_cell = vec2(i,j);
-			closest_point = r;
-		}	
-	}
-
-	return vec4(closest_cell+p,closest_point);
-}
-
-vec4 medusa()
-{
-	vec2 global_position = local_position.xy * object_scale*4;
-
-	vec2 current_cell = floor(global_position);
-	vec2 local_position = global_position - current_cell;
-
-	// Draw grid
-	if(false)
-	{
-		vec2 r = hash2(current_cell);
-
-	if(length(r-local_position) < 0.1)
-		return vec4(1,0,0,1);
-
-	if(local_position.x < 0.1 || local_position.y < 0.1)
-		return vec4(0,0,1,1);
-	}
-
-	float closest_distance = 1000.0;
-	vec2 closest_point;
-	vec2 closest_cell;
-
-	for(float i = -1; i <= 1; i+=1)
-	for(float j = -1; j <= 1; j+=1)
-	{
-		vec2 candidate = hash2(current_cell + vec2(i,j));
-		candidate += vec2(i,j);
-
-		vec2 displacement = abs(candidate-local_position);
-		float distance = max(displacement.x,displacement.y);
-
-		if(distance < closest_distance)
-		{
-			closest_distance = distance;
-			closest_cell = vec2(i,j);
-			closest_point = candidate;
-		}	
-	}
-
-	closest_cell += current_cell;
-
-	//return vec4((closest_cell+4)/8,0,1);
-
-	if(mod(closest_cell.y,2) == 0)
-		return vec4(vec3(0.5),1);
-
-	if(mod(closest_cell.x,2) == 0)
-		return vec4(1);
-
-	return vec4(0,0,0,1);
-}
-
-// Input: position
-// Output: .xy distance to closest hexagon cell center, .zw hexagon cell id
-vec4 hex_cell(vec2 p)
-{    
-	const vec2 s = vec2(1.7320508, 1.0);
-    
-    vec4 c = floor(vec4(p, p - vec2(1, .5))/s.xyxy) + .5;
-    vec4 h = vec4(p - c.xy*s, p - (c.zw + .5)*s);
-
-	if (dot(h.xy, h.xy) < dot(h.zw, h.zw))
-		return  vec4(h.xy, c.xy);
-    
-    return vec4(h.zw, c.zw + .5);
-}
-
-// isolines for hexagon at (0,0)
-float isohex(vec2 position)
-{
-		const vec2 s = vec2(1.7320508, 1.0);
-		position = abs(position);
-
-		return max(dot(position, s*0.5), position.y);
-}
-
-vec4 hex()
-{
-	vec2 position = local_position.xy * object_scale*2.0;
-
-	return vec4(hash2(hex_cell(position).zw),0,1);
-}
-
-vec3 noised( vec2 p )
-{
-    vec2 i = floor( p );
-    vec2 f = fract( p );
-
-    vec2 u = f*f*f*(f*(f*6.0-15.0)+10.0);
-    vec2 du = 30.0*f*f*(f*(f-2.0)+1.0);
-    
-    vec2 ga = hash2( i+ vec2(0.0,0.0) );
-    vec2 gb = hash2( i+ vec2(1.0,0.0) );
-    vec2 gc = hash2( i+ vec2(0.0,1.0) );
-    vec2 gd = hash2( i+ vec2(1.0,1.0) );
-    
-    float va = dot( ga, f - vec2(0.0,0.0) );
-    float vb = dot( gb, f - vec2(1.0,0.0) );
-    float vc = dot( gc, f - vec2(0.0,1.0) );
-    float vd = dot( gd, f - vec2(1.0,1.0) );
-
-    return vec3( va + u.x*(vb-va) + u.y*(vc-va) + u.x*u.y*(va-vb-vc+vd),   // value
-                 ga + u.x*(gb-ga) + u.y*(gc-ga) + u.x*u.y*(ga-gb-gc+gd) +  // derivatives
-                 du * (u.yx*(va-vb-vc+vd) + vec2(vb,vc) - va));
-}
-
+// The Voronoi Cell the point is closest to and the distance to the cell wall.
 vec3 voronoi_sdf(vec2 position)
 {
     vec2 cell = floor(position);
@@ -306,7 +182,89 @@ vec3 voronoi_sdf(vec2 position)
 	return vec3(closest_cell,closest_distance);
 }
 
-vec4 snake()
+// Hexagon cell id of the positon, last two components are distance to that cells center.
+vec4 hex_cell(vec2 p)
+{    
+	const vec2 s = vec2(1.7320508, 1.0);
+    
+    vec4 c = floor(vec4(p, p - vec2(1, .5))/s.xyxy) + .5;
+    vec4 h = vec4(p - c.xy*s, p - (c.zw + .5)*s);
+
+	if (dot(h.xy, h.xy) < dot(h.zw, h.zw))
+		return  vec4(c.xy, h.xy);
+    
+    return vec4(c.zw + .5, h.zw);
+}
+
+// Isolines for hexagon centered at (0,0).
+float isohex(vec2 position)
+{
+	const vec2 s = vec2(1.7320508, 1.0);
+	position = abs(position);
+
+	return max(dot(position, s*0.5), position.y);
+}
+
+// Perlin noise and it's derivatives.
+vec3 perlin( vec2 p )
+{
+    vec2 i = floor( p );
+    vec2 f = fract( p );
+
+    vec2 u = f*f*f*(f*(f*6.0-15.0)+10.0);
+    vec2 du = 30.0*f*f*(f*(f-2.0)+1.0);
+    
+    vec2 ga = hash2( i+ vec2(0.0,0.0) );
+    vec2 gb = hash2( i+ vec2(1.0,0.0) );
+    vec2 gc = hash2( i+ vec2(0.0,1.0) );
+    vec2 gd = hash2( i+ vec2(1.0,1.0) );
+    
+    float va = dot( ga, f - vec2(0.0,0.0) );
+    float vb = dot( gb, f - vec2(1.0,0.0) );
+    float vc = dot( gc, f - vec2(0.0,1.0) );
+    float vd = dot( gd, f - vec2(1.0,1.0) );
+
+    return vec3( va + u.x*(vb-va) + u.y*(vc-va) + u.x*u.y*(va-vb-vc+vd),   // value
+                 ga + u.x*(gb-ga) + u.y*(gc-ga) + u.x*u.y*(ga-gb-gc+gd) +  // derivatives
+                 du * (u.yx*(va-vb-vc+vd) + vec2(vb,vc) - va));
+}
+
+/*************
+ * SELECTORS *
+ *************/
+
+// The selector function returns a number between 0-1 used for blending
+// If the blend is less than 1 then it must also load the normal behavour into gl_Fragcolor
+float selector_jump_table()
+{
+	switch(selection_id)
+	{
+	case 0: // FULL Selection
+		return 1.0;
+	case 1: // COLOR BAND
+		return 0;
+	/*
+		vec3 displacement = filtered().xyz - selection_color;
+		float ref = dot(displacement,displacement);
+
+		if(ref < 0.3)
+		{
+			ref /= 0.3;
+			ref = ref*ref*(3-2*ref);
+			gl_FragColor.xyz = mix(normal_color.xyz,gl_FragColor.xyz,ref);
+		}
+		*/
+	}
+
+	return 0;
+}
+
+/**********
+ * EFFECT *
+ **********/
+
+ // Green and strate edged snake scales
+ vec4 snake()
 {
 	vec2 position = local_position.xy * object_scale;
 
@@ -327,6 +285,7 @@ vec4 snake()
 	return vec4(mix(color,vec3(0),voronoi.z),1);
 }
 
+// Rocks floating on magma, WIP
 vec4 magma()
 {
 	vec2 position = local_position.xy * object_scale;
@@ -344,13 +303,145 @@ vec4 magma()
 		return vec4(0,0,0,0);
 }
 
-vec4 burn()
+// Wobbing circle
+ vec4 circle()
+{
+	vec2 p = local_position.xy * object_scale;
+
+	vec3 noise = perlin(0.01*gl_FragCoord.xy+current_timestamp);
+
+	float dist = length(p) + noise.x;
+
+	dist /= length(noise.yz);
+	dist *= current_timestamp*0.1;
+
+	if(dist > 0.2 && dist < 0.25)
+		return vec4(1);
+	
+	return vec4(vec3(0),1);
+}
+
+// Frothing from the top, bugged
+vec4 froth()
+{
+	vec2 p = local_position.xy * object_scale ;
+	vec2 noise_cord = p + current_timestamp*vec2(0,-1); 
+	noise_cord.x *= 10.0;
+	noise_cord.y *= 2.0;
+
+	vec3 noise = perlin(noise_cord);
+
+	float val = noise_cord.y+2.0*noise.x;
+	val = fract(val);
+
+
+	if(val > 0.2)
+		return vec4(0,0,0,1);
+	else
+		return vec4(-val*0.2+0.2,0,0,1);
+	return vec4(hsl2rgb(vec3(hash(vec2(floor(val))),0.5,fract(val))),1);
+}
+
+// Red to green hexagons
+vec4 hex()
+{
+	vec2 position = local_position.xy * object_scale*2.0;
+
+	return vec4(hash2(hex_cell(position).xy),0,1);
+}
+
+// A glitchy looking signal, WIP
+vec4 glitch()
+{
+	vec2 p = local_position.xy * object_scale;
+		
+	vec2 noise_cord = vec2(current_timestamp,p.x+0.1*p.y); 
+	noise_cord.x *= 1.0;
+	noise_cord.y *= 100.0;
+
+	vec3 noise = perlin(noise_cord);
+
+	p.y += noise.y*0.1;
+	p.y = sign(p.y)*p.y*p.y;
+
+	if(abs(p.y) < 0.1)
+		return vec4(1,0,0,1);
+
+	return vec4(0,0,0,1);
+}
+
+// Radial RGB rays centered on the mouse.
+vec4 radial_rgb()
+{
+	vec2 displacement = gl_FragCoord.xy - vec2(effect_point.x,display_dimensions.y-effect_point.y);
+
+	float angle = atan(displacement.y, displacement.x);
+	angle = angle/3.14159265*2+1;	
+	angle += (variation+current_timestamp)*0.1;
+
+	return vec4(hsl2rgb(vec3(angle,0.5,0.5)),1);
+}
+
+// Jump between the material functions based on material_id
+vec4 effect_jump_table()
+{
+	switch(effect_id)
+	{
+	case 0: // No effects
+	case 1: // Plain foil
+		return gl_FragColor;
+
+	case 2:
+		return radial_rgb();
+
+	case 3:
+		return magma();
+
+	case 4:
+		return hex(); //medusa();// burn
+	}
+}
+
+// Check if an effect normal behavior even if the blend is set to 1
+// (It might be more efficent to just assume it does. But the function is here to help that opimization)
+bool requare_normal()
+{
+	return true;
+}
+
+/*************************
+ * EFFECT - spectrial *
+ *************************/
+
+ // Jump table
+void spectrial_jump_table()
+{
+	switch(effect_id)
+	{
+	case 1: // Plain foil
+		float ref = 0.5*(gl_FragCoord.x/display_dimensions.x + gl_FragCoord.y/display_dimensions.y);
+		ref += (variation+current_timestamp)*0.1;
+		ref = fract(ref);
+
+		if(ref < 0.01)	
+			gl_FragColor.xyz = mix(gl_FragColor.xyz,vec3(1.0),ref*100);
+
+		break;
+	}
+}
+
+/*************
+ *  EFFECTS  *
+ *************/
+
+ // Burns leaving nothing behind.
+ vec4 burn()
 {
 	vec2 p = local_position.xy * object_scale;
 
 	float ref = p.x+p.y +3 - max(0,current_timestamp-3);
 
-	float noise1 = 0.2+0.4*noised(0.02*gl_FragCoord.xy).x;
+	float noise1 = 0.2+0.4*perlin(0.02*gl_FragCoord.xy).x;
 
 	ref += noise1;
 
@@ -367,8 +458,8 @@ vec4 burn()
 		return vec4(ref,0,0,1);
 
 	float a= min((1-max(abs(p.x),abs(p.y))),1);
-	float noise2 = 0.2+0.4*noised(0.02*gl_FragCoord.xy+vec2(1,-1)*current_timestamp).x;
-	float noise3 = 0.2+0.4*noised(0.2*gl_FragCoord.xy+vec2(1,-1)*current_timestamp).x;
+	float noise2 = 0.2+0.4*perlin(0.02*gl_FragCoord.xy+vec2(1,-1)*current_timestamp).x;
+	float noise3 = 0.2+0.4*perlin(0.2*gl_FragCoord.xy+vec2(1,-1)*current_timestamp).x;
 
 	noise3 *= noise3;
 	
@@ -385,143 +476,85 @@ vec4 burn()
 	return vec4(vec3(1.0-ref),1.0-ref);
 }
 
-vec4 circle()
+// Turns to stone.
+vec4 medusa()
 {
-	vec2 p = local_position.xy * object_scale;
+	vec2 global_position = local_position.xy * object_scale*4.0;
 
-	vec3 noise = noised(0.01*gl_FragCoord.xy+current_timestamp);
+	vec2 current_cell = floor(global_position);
+	vec2 local_position = global_position - current_cell;
 
-	float dist = length(p) + noise.x;
+	float closest_distance = 1000.0;
+	vec2 closest_point;
+	vec2 closest_cell;
 
-	dist /= length(noise.yz);
-	dist *= current_timestamp*0.1;
+	for(int i = -1; i <= 1; i+=1)
+	for(int j = -1; j <= 1; j+=1)
+	{
+		vec2 candidate = hash2(current_cell + vec2(i,j));
+		candidate += vec2(i,j);
 
-	if(dist > 0.2 && dist < 0.25)
+		vec2 displacement = abs(candidate-local_position);
+		float distance = max(displacement.x,displacement.y);
+
+		if(distance < closest_distance)
+		{
+			closest_distance = distance;
+			closest_cell = vec2(i,j);
+			closest_point = candidate;
+		}	
+	}
+
+	closest_cell += current_cell;
+
+	//return vec4((closest_cell+4)/8,0,1);
+
+	if(mod(closest_cell.y,2.0) == 0)
+		return vec4(vec3(0.5),1);
+
+	if(mod(closest_cell.x,2) == 0)
 		return vec4(1);
-	
-	return vec4(vec3(0),1);
-
-	return vec4(p,0,1);
-}
-
-vec4 froth()
-{
-	vec2 p = local_position.xy * object_scale ;
-	vec2 noise_cord = p + current_timestamp*vec2(0,-1); 
-	noise_cord.x *= 10;
-	noise_cord.y *= 2;
-
-	vec3 noise = noised(noise_cord);
-
-	float val = noise_cord.y+2*noise.x;
-	val = fract(val);
-
-
-	if(val > 0.2)
-		return vec4(0,0,0,1);
-	else
-		return vec4(-val*0.2+0.2,0,0,1);
-	return vec4(hsl2rgb(vec3(hash(vec2(floor(val))),0.5,fract(val))),1);
-}
-
-vec4 glitch()
-{
-	vec2 p = local_position.xy * object_scale;
-		
-	vec2 noise_cord = vec2(current_timestamp,p.x+0.1*p.y); 
-	noise_cord.x *= 1.0;
-	noise_cord.y *= 100.0;
-
-	vec3 noise = noised(noise_cord);
-
-	p.y += noise.y*0.1;
-	p.y = sign(p.y)*p.y*p.y;
-
-	if(abs(p.y) < 0.1)
-		return vec4(1,0,0,1);
 
 	return vec4(0,0,0,1);
 }
 
-
-
-vec4 filtered()
-{
-//return varying_color * texture2D(al_tex, varying_texcoord+vec2(0.01,0));
-	return varying_color *(0.5*texture2D(al_tex, varying_texcoord) +
-		0.125*texture2D(al_tex, varying_texcoord+vec2(0.01,0)) +
-		0.125*texture2D(al_tex, varying_texcoord+vec2(-0.01,0)) +
-		0.125*texture2D(al_tex, varying_texcoord+vec2(0,0.01)) +
-		0.125*texture2D(al_tex, varying_texcoord+vec2(0,-0.01)));
-}
+/*************
+ *   MAIN    *
+ *************/
 
 void main()
 {
-	// Run selection first and fill gl_FragColor with the "selection color" and a blend coeffiecent.
-	// then if the blend is bigger than zero
-	// 
-	normal_behaviour();
-	vec4 normal_color = gl_FragColor;
 
-	switch(effect_id)
+	if(effect_id == 0)
+		normal_behaviour();
+	else
 	{
-	case 0: // No effects
-	break;
+		const float selector_blend = selector_jump_table();
 
-	case 1: // Plain foil
-		float ref = 0.5*(gl_FragCoord.x/display_dimensions.x + gl_FragCoord.y/display_dimensions.y);
-		ref += (variation+current_timestamp)*0.1;
-		ref = fract(ref);
-
-		if(ref < 0.01)
-		{	
-			ref /= 0.01;
-			normal_color.xyz = (1-ref)*vec3(1)+ref*gl_FragColor.xyz;
-		}
-	break;
-
-	case 2: // Radial rgb
-		vec2 displacement = gl_FragCoord.xy - vec2(effect_point.x,display_dimensions.y-effect_point.y);
-		float angle = atan(displacement.y, displacement.x);
-		angle = angle/3.14159265*2+1;
-		angle += (variation+current_timestamp)*0.1;
-
-		normal_color = vec4(hsl2rgb(vec3(angle,0.5,0.5)),1);
-		break;
-
-	case 3: // Voronoi
-		normal_color = snake();// voronoi_edge();
-	break;
-
-	case 4:
-		normal_color =  hex(); //medusa();// burn
-	break;
-	}
-
-	switch(selection_id)
-	{
-	case 0: // FULL Selection
-		gl_FragColor = normal_color;
-	break;
-	case 1: // COLOR BAND
-		vec3 displacement = filtered().xyz - selection_color;
-		float ref = dot(displacement,displacement);
-
-		if(ref < 0.3)
+		if(selector_blend >= 1.0)
 		{
-			ref /= 0.3;
-			ref = ref*ref*(3-2*ref);
-			gl_FragColor.xyz = mix(normal_color.xyz,gl_FragColor.xyz,ref);
+			if(requare_normal())
+				normal_behaviour();
+
+			gl_FragColor = effect_jump_table();
 		}
-		
-	break;
+		else
+		{
+			normal_behaviour();
+
+			if(selector_blend >= 0)
+			{
+				const vec4 material_color = effect_jump_table();
+
+				gl_FragColor = mix(material_color, gl_FragColor, selector_blend);
+			}		
+		}
+
+		spectrial_jump_table();
 	}
 
 	// "Buff" effect
 
 	// Saturate effect
-	gl_FragColor.xyz = max(gl_FragColor.xyz,saturate);
-
+	gl_FragColor.xyz = max(gl_FragColor.xyz, saturate);
 }
-
-

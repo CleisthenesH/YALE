@@ -12,11 +12,17 @@ manager = board_manager_new{
 	allowed_pieces = {"checker"}}
 
 function manager:move(piece)
-	print(self, piece)
+	print(self)
+
+	for k, v in pairs(self.pieces) do	
+		print(k,v)
+	end
 end
 
-a = manager.test
+manager:new_piece("id1","checker",{x=100,y=100})
+manager:new_piece("id2","checker",{x=200,y=100})
+manager:new_zone("zone","square",{x=300,y=300})
 
-manager:new_piece("id1","checker",nil)
+a = manager.test
 
 print("Boot Complete")

@@ -133,76 +133,112 @@ static const struct widget_jump_table piece_to_widget_table =
 
 // Board Manager
 
-// NOT UPDATED TO NEW ARGS
-/*
+static inline struct piece* zone_factory(lua_State* const L, const char* type)
+{
+	if (strcmp(type, "square") == 0)
+		return square_new(L);
+
+	return NULL;
+}
+
 static inline int piece_manager_new_zone(lua_State* L)
 {
-	struct manager* const manager = (struct manager*)luaL_checkudata(L, -2, "piece_manager_mt");
+	// Check arguments
+	struct board_manager* const board_manager = (struct board_manager*)luaL_checkudata(L, -4, "board_manager_mt");
 
-	if (lua_type(L, -1) == LUA_TSTRING)
+	if (!board_manager ||
+		lua_type(L, -3) == LUA_TTABLE ||
+		lua_type(L, -2) != LUA_TSTRING)
 	{
-		const char* key = luaL_checkstring(L, -1);
+		lua_settop(L, 0);
 
-		if (strcmp(key, "square") == 0)
-		{
-			lua_getiuservalue(L, -2, MANAGER_UVALUE_ZONES);
-			struct zone* const zone = square_new(L);
-
-			zone->manager = manager;
-
-			return 1;
-		}
+		return 0;
 	}
 
-	return 0;
+	// Prepare for zone factory
+	const char* type = luaL_checkstring(L, -2);
+	lua_remove(L, -2);
+
+	if (lua_type(L, -1) == LUA_TNIL)
+		lua_pop(L, 1);
+
+	struct zone* const zone = zone_factory(L, type);
+
+	if (!zone)
+	{
+		lua_settop(L, 0);
+		return 0;
+	}
+
+	zone->manager = board_manager;
+
+	lua_pushvalue(L, -2);
+	const int check = lua_setiuservalue(L, -2, ZONE_UVALUE_ID);
+
+	lua_pushvalue(L, -1);
+	lua_insert(L, -4);
+
+	lua_getiuservalue(L, -3, MANAGER_UVALUE_ZONES);
+	lua_replace(L, -4);
+
+	lua_settable(L, -3);
+	lua_pop(L, 1);
+
+	return 1;
 }
-*/
+
+static inline struct piece* piece_factory(lua_State* const L, const char* type)
+{
+	if (strcmp(type, "checker") == 0)
+		return checker_new(L);
+
+	return NULL;
+}
 
 static inline int piece_manager_new_piece(lua_State* L)
 {
-	stack_dump(L);
-
+	// Check arguments
 	struct board_manager* const board_manager = (struct board_manager*)luaL_checkudata(L, -4, "board_manager_mt");
+	
+	if (!board_manager ||
+		lua_type(L, -3) == LUA_TTABLE ||
+		lua_type(L, -2) != LUA_TSTRING)
+	{
+		lua_settop(L, 0);
 
-	// id can't be a table
-	if (lua_type(L, -3) == LUA_TTABLE)
 		return 0;
+	}
 
-	// type must be a string
-	if (lua_type(L, -2) != LUA_TSTRING)
-		return 0;
-
+	// Prepare for piece factory
 	const char* type = luaL_checkstring(L, -2);
 	lua_remove(L, -2);
 
 	if (lua_type(L, -1) == LUA_TNIL)
 		lua_pop(L, 1);
 	
-	struct piece* const piece = checker_new(L);
+	struct piece* const piece = piece_factory(L, type);
 
-	piece->manager = board_manager;
-	const int check = lua_setiuservalue(L, -2, PIECE_UVALUE_ID);
-
-	stack_dump(L);
-
-	return 1;
-
-
-	if (lua_type(L, -1) == LUA_TSTRING)
+	if (!piece)
 	{
-		const char* key = luaL_checkstring(L, -1);
-
-		if (strcmp(key, "checker") == 0)
-		{
-			lua_getiuservalue(L, -2, MANAGER_UVALUE_PIECES);
-			struct piece* const piece = checker_new(L);
-			//piece->manager = manager;
-
-			return 1;
-		}
+		lua_settop(L, 0);
+		return 0;
 	}
 
-	return 0;
+	piece->manager = board_manager;
+	
+	lua_pushvalue(L, -2);
+	const int check = lua_setiuservalue(L, -2, PIECE_UVALUE_ID);
+
+	lua_pushvalue(L, -1);
+	lua_insert(L, -4);
+
+	lua_getiuservalue(L, -3, MANAGER_UVALUE_PIECES);
+	lua_replace(L, -4);
+
+	lua_settable(L, -3);
+	lua_pop(L, 1);
+
+	return 1;
 }
 
 static int board_manager_newindex(lua_State* L)
@@ -286,12 +322,14 @@ static int board_manager_index(lua_State* L)
 			return 1;
 		}
 
-		/*
+		
 		if (strcmp(key, "new_zone") == 0)
 		{
 			lua_pushcfunction(L, piece_manager_new_zone);
 			return 1;
 		}
+
+		/*
 
 		if (strcmp(key, "move") == 0)
 		{

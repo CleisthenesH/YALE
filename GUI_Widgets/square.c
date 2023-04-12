@@ -23,7 +23,7 @@ static void draw(const struct zone* const square)
 		if (square->highlighted)
 			al_draw_filled_rectangle(-50, -50, 50, 50, al_map_rgb(255, 105, 180));
 		else
-			al_draw_filled_rectangle(-50, -50, 50, 50, al_map_rgb_f(1, 1, 1));
+			al_draw_filled_rectangle(-50, -50, 50, 50, ((struct square*)square->upcast)->color);
 }
 
 static void mask(const struct zone* const square)
@@ -40,5 +40,34 @@ static struct zone_jump_table square_table =
 
 struct zone* square_new(lua_State* L)
 {
-	return zone_new(L, NULL, &square_table);
+	 struct square* const square = malloc(sizeof(struct square));
+
+	if (!square)
+		return 0;
+
+	if (lua_istable(L, -1))
+	{
+		lua_getfield(L, -1, "color");
+
+		if (!lua_isnil(L, -1))
+		{
+			lua_geti(L, -1, 1);
+			lua_geti(L, -2, 2);
+			lua_geti(L, -3, 3);
+
+			const int r = luaL_checkinteger(L, -3);
+			const int g = luaL_checkinteger(L, -2);
+			const int b = luaL_checkinteger(L, -1);
+
+			square->color = al_map_rgb(r, g, b);
+
+			lua_pop(L, 3);
+		}
+		else
+			square->color = al_map_rgb(255, 255, 255);
+
+		lua_pop(L, 1);
+	}
+
+	return zone_new(L, square, &square_table);
 }

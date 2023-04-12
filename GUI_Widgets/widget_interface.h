@@ -48,8 +48,6 @@ struct widget_interface
 	bool is_snappable;
 };
 
-// TODO: an reorder functions + widget containter class
-
 struct widget_interface* widget_interface_new(
 	lua_State* L,
 	const void* const upcast,

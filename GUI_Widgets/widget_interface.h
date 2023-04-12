@@ -61,3 +61,4 @@ void widget_screen_to_local(const struct widget_interface* const, double*, doubl
 
 void stack_dump(lua_State*);
 
+void widget_interface_move(struct widget_interface*, struct widget_interface*);

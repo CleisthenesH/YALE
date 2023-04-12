@@ -23,6 +23,11 @@ manager:new_piece("id1","checker",{x=100,y=100})
 manager:new_piece("id2","checker",{x=200,y=100})
 manager:new_zone("zone","square",{x=300,y=300})
 
-a = manager.test
+local a = manager.test
+
+--widgets.move(manager.pieces["id1"],manager.zones["zone"])
+widgets.move(manager.pieces["id1"],nil)
+
+collectgarbage("collect")
 
 print("Boot Complete")

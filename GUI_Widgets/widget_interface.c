@@ -156,7 +156,7 @@ static void widget_prevent_stale_pointers(struct widget* const ptr)
 }
 
 // Pop a widget out of the engine
-void widget_interface_pop(struct widget_interface* const ptr)
+static void widget_interface_pop(struct widget_interface* const ptr)
 {
     struct widget* const widget = (struct widget* const) ptr;
 
@@ -169,9 +169,76 @@ void widget_interface_pop(struct widget_interface* const ptr)
         widget->previous->next = widget->next;
     else
         queue_head = widget->next;
+}
 
-    // Make sure we don't get stale pointers
-    widget_prevent_stale_pointers(widget);
+// Insert the first widget behind the second
+static void widget_interface_insert(struct widget_interface* mover, struct widget_interface* target)
+{
+    // Assumes mover is outside the list.
+    // I.e. that mover's next and previous are null.
+
+    struct widget* internal_target = (struct widget*)target;
+    struct widget* internal_mover = (struct widget*)mover;
+
+    internal_mover->next = internal_target;
+
+    // If the second is null append the first to the head
+    if (internal_target)
+    {
+        if (internal_target->previous)
+            internal_target->previous->next = internal_mover;
+        else
+        {
+            queue_tail = internal_mover;
+            
+        }
+
+        internal_target->previous = internal_mover;
+    }
+    else
+    {
+        internal_mover->previous = queue_tail;
+
+        if (queue_tail)
+            queue_tail->next = internal_mover;
+        else
+            queue_head = internal_mover;
+
+        queue_tail = internal_mover;
+    }
+}
+
+// Move the mover widget behind the target widget.
+void widget_interface_move(struct widget_interface* mover, struct widget_interface* target)
+{
+    if (mover == target)
+        return;
+
+    // Only this function is visable to the widget writer.
+    // Since poping a widget without calling gc isn't allowed.
+    widget_interface_pop(mover);
+    widget_interface_insert(mover, target);
+}
+
+// Lua wrapper for the widget_interface_move
+static int widget_move_lua(lua_State* L)
+{
+    const struct widget* const mover = (struct widget*)luaL_checkudata(L, -2, "widget_mt");
+
+    if (mover)
+    {
+        if (lua_isnil(L, -1))
+            widget_interface_move(mover, NULL);
+        else
+        {
+            const struct widget* const target = (struct widget*)luaL_checkudata(L, -1, "widget_mt");
+            widget_interface_move(mover, target);
+        }
+    }
+
+    lua_pop(L, 2);
+
+    return 0;
 }
 
 // Draw the widgets in queue order.
@@ -697,6 +764,9 @@ static int gc(lua_State* L)
     call_engine(widget, gc);
     widget_interface_pop((struct widget_interface* const) widget);
 
+    // Make sure we don't get stale pointers
+    widget_prevent_stale_pointers(widget);
+
     return 0;
 }
 
@@ -892,10 +962,19 @@ void widget_engine_init(lua_State* L)
     FOR_WIDGETS(LUA_REG_FUNCT)
 
     // Make a weak global table to contain the widgets
+    // And some functions for manipulating them
     lua_newtable(L);
     lua_newtable(L);
+
+    lua_pushvalue(L, -1);
+    lua_setfield(L, -2, "__index");
+
     lua_pushstring(L, "vk");
     lua_setfield(L, -2, "__mode");
+
+    lua_pushcfunction(L, widget_move_lua);
+    lua_setfield(L, -2, "move");
+
     lua_setmetatable(L, -2);
     lua_setglobal(L, "widgets");
 
@@ -973,4 +1052,3 @@ struct widget_interface* widget_interface_new(
 
     return (struct widget_interface*)widget;
 }
-

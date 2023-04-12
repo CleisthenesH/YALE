@@ -110,7 +110,6 @@ static void piece_mask(const struct widget_interface* const widget)
 	piece->jump_table->mask(piece);
 }
 
-
 static const struct widget_jump_table piece_to_widget_table =
 {
 	.uservalues = 1,
@@ -133,7 +132,7 @@ static const struct widget_jump_table piece_to_widget_table =
 
 // Board Manager
 
-static inline struct piece* zone_factory(lua_State* const L, const char* type)
+static inline struct zone* zone_factory(lua_State* const L, const char* type)
 {
 	if (strcmp(type, "square") == 0)
 		return square_new(L);
@@ -321,7 +320,6 @@ static int board_manager_index(lua_State* L)
 			lua_pushcfunction(L, piece_manager_new_piece);
 			return 1;
 		}
-
 		
 		if (strcmp(key, "new_zone") == 0)
 		{

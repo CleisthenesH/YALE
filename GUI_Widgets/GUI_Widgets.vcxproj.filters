@@ -4,9 +4,6 @@
     <Filter Include="scripts">
       <UniqueIdentifier>{d1104b60-9157-4fa5-816f-82d8815d0850}</UniqueIdentifier>
     </Filter>
-    <Filter Include="piece_manager">
-      <UniqueIdentifier>{544d5bbc-863e-46b8-a67b-9d9cd6e6ae64}</UniqueIdentifier>
-    </Filter>
     <Filter Include="card_render_data">
       <UniqueIdentifier>{2d770f8d-1bd9-4935-8868-94a8c536b14e}</UniqueIdentifier>
     </Filter>
@@ -173,9 +170,6 @@
     <ClCompile Include="material.c">
       <Filter>core\renderer\components</Filter>
     </ClCompile>
-    <ClCompile Include="pieces_manager.c">
-      <Filter>piece_manager</Filter>
-    </ClCompile>
     <ClCompile Include="square.c">
       <Filter>board_manager\zones_and_pieces</Filter>
     </ClCompile>
@@ -309,9 +303,6 @@
     </ClInclude>
     <ClInclude Include="tweener.h">
       <Filter>core\renderer\components</Filter>
-    </ClInclude>
-    <ClInclude Include="pieces_manager.h">
-      <Filter>piece_manager</Filter>
     </ClInclude>
     <ClInclude Include="resource_manager.h">
       <Filter>core\resource_manager</Filter>

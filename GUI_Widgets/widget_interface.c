@@ -13,6 +13,10 @@
 #include <float.h>
 #include <math.h>
 
+#ifdef WIDGET_EVENT_LOG
+#include <stdio.h>
+#endif
+
 extern void render_interface_global_predraw();
 extern void render_interface_predraw(const struct render_interface* const);
 
@@ -82,11 +86,24 @@ struct widget
  } while(0); 
 
 #define call_engine(widget,method) if(widget->jump_table-> ## method) \
-    do{(widget)->jump_table-> ## method((struct widget_interface*) (widget));}while(0);
+    do{ \
+        (widget)->jump_table-> ## method((struct widget_interface*) (widget)); \
+    }while(0);
 
-#define call(widget,method) do{call_engine(widget,method) call_lua(widget,method)}while(0);
+#ifdef WIDGET_EVENT_LOG
+#define call(widget,method) \
+    do{printf("WIDGET EVENT method: " #method "\t widget: %p \n", widget);call_engine(widget,method) call_lua(widget,method)}while(0);
+#else
+#define call(widget,method) \
+    do{call_engine(widget,method) call_lua(widget,method)}while(0);
+#endif
 
+#ifdef WIDGET_EVENT_LOG
+#define call_va(widget,method,...) \
+    do{printf("WIDGET EVENT method: " #method "\t widget %p\t args:" #__VA_ARGS__ "\n",widget); (widget)->jump_table->method((struct widget_interface*) (widget),__VA_ARGS__);}while(0)
+#else
 #define call_va(widget,method,...) (widget)->jump_table->method((struct widget_interface*) (widget),__VA_ARGS__)
+#endif
 
 static enum {
     ENGINE_STATE_IDLE,                  // Idle state.
@@ -431,20 +448,25 @@ static inline void widget_engine_update_drag_pointers()
 			{
 				render_interface_interupt(current_hover->style_element);
 
-                struct keyframe snap_target;
-                render_interface_copy_destination(current_hover->style_element, &snap_target);
+				struct keyframe snap_target;
+				render_interface_copy_destination(current_hover->style_element, &snap_target);
 
 				snap_target.x = new_pointer->style_element->current.x + snap_offset_x;
 				snap_target.y = new_pointer->style_element->current.y + snap_offset_y;
 
-                update_transition_timestamp(current_hover, snap_target.x, snap_target.y);
+				update_transition_timestamp(current_hover, snap_target.x, snap_target.y);
 
-                snap_target.timestamp = transition_timestamp;
+				snap_target.timestamp = transition_timestamp;
 
-                render_interface_push_keyframe(current_hover->style_element, &snap_target);
+				render_interface_push_keyframe(current_hover->style_element, &snap_target);
 
 				widget_engine_state = ENGINE_STATE_TO_SNAP;
 			}
+            else
+            {
+                widget_set_drag();
+                widget_engine_state = ENGINE_STATE_TO_DRAG;
+            }
 		}
 		else
 		{
@@ -569,8 +591,8 @@ void widget_engine_event_handler()
 
             if (current_drop)
             {
-                if(current_drop->jump_table->drag_end_drop)
-                    call_va(current_drop, drag_end_drop, (struct widget_interface*) current_hover);
+                if (current_drop->jump_table->drag_end_drop)
+                    call_va(current_drop, drag_end_drop, (struct widget_interface*)current_hover);
                 else
                     call(current_hover, drag_end_no_drop);
 

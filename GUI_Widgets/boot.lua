@@ -30,7 +30,8 @@ function manager:vaild_moves(piece)
 	return {"0x0","1x1"}
 end
 
-function manager:invaild_move(piece,zone)
+function manager:nonvalid_move(piece,zone)
+	print("nonvalid_movemove",piece,zone)
 end
 
 manager:new_zone("0x0","square",{x=300,y=300,color={255,255,255}})

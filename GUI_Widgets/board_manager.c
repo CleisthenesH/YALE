@@ -497,8 +497,7 @@ static void piece_drag_end_drop(struct widget_interface* const droppedon_widget,
 		zone_drag_end_drop(dropped_on->zone->widget_interface, piece_widget);
 }
 
-//TODO: are the stacks ballanced correctly? does it matter in this type of call
-static int pieces_index(lua_State* L)
+static int piece_index(lua_State* L)
 {
 	struct widget_interface* const widget = check_widget(L, -2, &piece_to_widget_table);
 	struct piece* const piece = widget->upcast;
@@ -519,8 +518,14 @@ static int pieces_index(lua_State* L)
 				return 0;
 
 			// Convert the pointer to the widget 
-			lua_getglobal(main_lua_state, "widgets");
-			lua_rawgetp(main_lua_state, -1, piece->zone->widget_interface);
+			lua_getglobal(L, "widgets");
+			lua_rawgetp(L, -1, piece->zone->widget_interface);
+			lua_getiuservalue(L, -1, ZONE_UVALUE_ID);
+
+			lua_rotate(L, -5, 1);
+			lua_pop(L, 4);
+
+			stack_dump(L);
 			return 1;
 		}
 	}
@@ -528,7 +533,7 @@ static int pieces_index(lua_State* L)
 	return 0;
 }
 
-static int pieces_new_index(lua_State* L)
+static int piece_new_index(lua_State* L)
 {
 	struct widget_interface* const widget = check_widget(L, -3, &piece_to_widget_table);
 	struct piece* const piece = widget->upcast;
@@ -562,8 +567,8 @@ static const struct widget_jump_table piece_to_widget_table =
 	.drop_end = piece_drop_end,
 	.drag_end_drop = piece_drag_end_drop,
 
-	.index = pieces_index,
-	.newindex = pieces_new_index,
+	.index = piece_index,
+	.newindex = piece_new_index,
 };
 
 // Board Manager

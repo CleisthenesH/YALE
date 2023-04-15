@@ -67,6 +67,8 @@ struct widget
     // And if that's too much a sperate table for all active widgets.
     // (This could also have other uses + it should be a weak table to not interfer with gc).
     // Q: Why not use uservalues. A: The callback can be called from anycontext, i.e. not knowing the udata.
+    // 
+    // Maype some look up
     struct
     {
 #define DECLARE(method,...) int method;

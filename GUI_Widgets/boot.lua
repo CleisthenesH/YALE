@@ -25,19 +25,35 @@ function manager:move(piece,zone)
 end
 
 function manager:vaild_moves(piece)
-	print("vaild_moves",self,piece)
+	local zone = self.pieces[piece].zone
+
+	print("vaild_moves",self,piece,zone)
 	
-	return {"0x0","1x1"}
+	return {0,3,6}
 end
 
 function manager:nonvalid_move(piece,zone)
 	print("nonvalid_movemove",piece,zone)
 end
 
+for i = 0,2 do
+	for j = 0,2 do	
+		local color = 0
+
+		if (i+j) % 2 == 0 then
+			color = 255
+		end
+
+		manager:new_zone(j*3+i,"square",{x = 300+110*i,y = 300 +110*j,color={color,color,color}})
+	end
+end
+
+--[[
 manager:new_zone("0x0","square",{x=300,y=300,color={255,255,255}})
 manager:new_zone("1x0","square",{x=400,y=300,color={0,0,0}})
 manager:new_zone("0x1","square",{x=300,y=400,color={0,0,0}})
 manager:new_zone("1x1","square",{x=400,y=400,color={255,255,255}})
+--]]
 
 manager:new_piece("id1","checker",{x=100,y=100})
 manager:new_piece("id2","checker",{x=200,y=100})
@@ -50,9 +66,7 @@ test_button = button_new()
 test_button:set_keyframe{x=1100,y=500}
 
 function test_button.left_click()
-	print(manager.pieces["id1"],manager.zones["1x1"])
-
-	manager:move("id1","1x1")
+	manager:move("id1",4)
 end
 
 collectgarbage("collect")

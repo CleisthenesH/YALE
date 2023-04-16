@@ -15,16 +15,33 @@ extern double current_timestamp;
 
 static ALLEGRO_SHADER* shader;
 
-struct style_element_internal
+struct render_interface_internal
 {
 	struct render_interface;
 	struct tweener* keyframe_tweener;
 	double variation;
 };
 
-static struct style_element_internal* list;
+static struct render_interface_internal* list;
 static size_t allocated;
 static size_t used;
+
+#ifdef _CHECK_KEYFRAME_DEBUG
+static void assert_current_keyframe_nan(struct render_interface* render)
+{
+	if (render)
+		if (isnan(render->current.x) ||
+			isnan(render->current.y) ||
+			isnan(render->current.sx) ||
+			isnan(render->current.sy) ||
+			isnan(render->current.theta))
+			printf("ERROR: %p's Current frame has nan component\n", render);
+}
+
+#define CHECK_NON_NAN_CURRENT_FRAME(render) assert_current_keyframe_nan((render));
+#else
+#define CHECK_NON_NAN_CURRENT_FRAME(render);
+#endif
 
 static inline int make_shader()
 {
@@ -62,7 +79,7 @@ void render_interface_init()
 {
 	used = 0;
 	allocated = 100;
-	list = malloc(allocated * sizeof(struct style_element_internal));
+	list = malloc(allocated * sizeof(struct render_interface_internal));
 
 	make_shader();
 }
@@ -73,7 +90,7 @@ struct render_interface* render_interface_new(size_t hint)
 	{
 		const size_t new_cnt = 2 * allocated;
 
-		struct style_element_internal* memsafe_hande = realloc(list, new_cnt * sizeof(struct style_element_internal));
+		struct render_interface_internal* memsafe_hande = realloc(list, new_cnt * sizeof(struct render_interface_internal));
 
 		if (!memsafe_hande)
 			return NULL;
@@ -82,7 +99,7 @@ struct render_interface* render_interface_new(size_t hint)
 		allocated = new_cnt;
 	}
 
-	struct style_element_internal* style_element = list + used++;
+	struct render_interface_internal* style_element = list + used++;
 
 	if (hint < 1)
 		hint = 1;
@@ -97,11 +114,11 @@ struct render_interface* render_interface_new(size_t hint)
 
 void render_interface_enter_loop(struct render_interface* const style_element, double looping_offset)
 {
-	struct style_element_internal* const internal = (struct style_element_internal* const)style_element;
+	struct render_interface_internal* const internal = (struct render_interface_internal* const)style_element;
 	tweener_enter_loop(internal->keyframe_tweener, looping_offset);
 }
 
-static void render_interface_update_work(struct style_element_internal* style_element)
+static void render_interface_update_work(struct render_interface_internal* style_element)
 {
 	double* keypoint = style_element->keyframe_tweener->current;
 
@@ -110,6 +127,9 @@ static void render_interface_update_work(struct style_element_internal* style_el
 	style_element->current.sx = keypoint[2];
 	style_element->current.sy = keypoint[3];
 	style_element->current.theta = keypoint[4];
+
+	CHECK_NON_NAN_CURRENT_FRAME((struct render_interface*) style_element)
+
 }
 
 struct work_queue* render_interface_update()
@@ -124,17 +144,19 @@ struct work_queue* render_interface_update()
 
 void render_interface_set(struct render_interface* const style_element, struct keyframe* const set)
 {
-	struct style_element_internal* const internal = (struct style_element_internal* const)style_element;
+	struct render_interface_internal* const internal = (struct render_interface_internal* const)style_element;
 	struct tweener* const tweener = internal->keyframe_tweener;
 
 	tweener_set(tweener, (double[]) { set->x, set->y, set->sx, set->sy, set->theta });
 
 	memcpy(&style_element->current, set, sizeof(struct keyframe));  // maybe can be optimized out
+
+	CHECK_NON_NAN_CURRENT_FRAME(style_element)
 }
 
 void render_interface_callback(struct sytle_element* const style_element, void (*funct)(void*), void* data)
 {
-	struct style_element_internal* const internal = (struct style_element_internal* const)style_element;
+	struct render_interface_internal* const internal = (struct render_interface_internal* const)style_element;
 	struct tweener* const tweener = internal->keyframe_tweener;
 
 	tweener_set_callback(tweener, funct, data);
@@ -142,7 +164,7 @@ void render_interface_callback(struct sytle_element* const style_element, void (
 
 void render_interface_push_keyframe(struct render_interface* const style_element, struct keyframe* frame)
 {
-	struct style_element_internal* const internal = (struct style_element_internal* const)style_element;
+	struct render_interface_internal* const internal = (struct render_interface_internal* const)style_element;
 	double* new_point = tweener_new_point(internal->keyframe_tweener);
 
 	new_point[0] = frame->timestamp;
@@ -155,7 +177,7 @@ void render_interface_push_keyframe(struct render_interface* const style_element
 
 void render_interface_copy_destination(struct render_interface* const style_element, struct keyframe* keyframe)
 {
-	struct style_element_internal* const internal = (struct style_element_internal* const)style_element;
+	struct render_interface_internal* const internal = (struct render_interface_internal* const)style_element;
 
 	double* keypoints = tweener_destination(internal->keyframe_tweener);
 
@@ -175,7 +197,7 @@ void render_interface_align_tweener(struct render_interface* const style_element
 
 void render_interface_interupt(struct render_interface* const style_element)
 {
-	struct style_element_internal* const internal = (struct style_element_internal* const)style_element;
+	struct render_interface_internal* const internal = (struct render_interface_internal* const)style_element;
 
 	tweener_interupt(internal->keyframe_tweener);
 
@@ -184,6 +206,8 @@ void render_interface_interupt(struct render_interface* const style_element)
 	internal->current.sx = internal->keyframe_tweener->current[2];
 	internal->current.sy = internal->keyframe_tweener->current[3];
 	internal->current.theta = internal->keyframe_tweener->current[4];
+
+	CHECK_NON_NAN_CURRENT_FRAME(style_element)
 }
 
 void keyframe_build_transform(const struct keyframe* const keyframe, ALLEGRO_TRANSFORM* const trans)
@@ -212,7 +236,7 @@ void render_interface_global_predraw()
 
 void render_interface_predraw(const struct render_interface* const style_element)
 {
-	struct style_element_internal* const internal = (struct style_element_internal* const)style_element;
+	struct render_interface_internal* const internal = (struct render_interface_internal* const)style_element;
 
 	//al_set_shader_float("saturate", style_element->current.saturate);
 	al_set_shader_float("variation", internal->variation);

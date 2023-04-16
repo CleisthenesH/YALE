@@ -32,9 +32,11 @@ function manager:vaild_moves(piece)
 	return {0,3,6}
 end
 
+--[[
 function manager:nonvalid_move(piece,zone)
 	print("nonvalid_movemove",piece,zone)
 end
+--]]
 
 for i = 0,2 do
 	for j = 0,2 do	
@@ -55,7 +57,7 @@ manager:new_zone("0x1","square",{x=300,y=400,color={0,0,0}})
 manager:new_zone("1x1","square",{x=400,y=400,color={255,255,255}})
 --]]
 
-manager:new_piece("id1","checker",{x=100,y=100})
+manager:new_piece("id1","checker",{x=410,y=200})
 manager:new_piece("id2","checker",{x=200,y=100})
 
 local a = manager.pieces["id2"].zones

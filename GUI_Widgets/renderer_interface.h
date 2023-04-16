@@ -32,6 +32,7 @@ enum STYLE_EFFECT_ID
 // An obficated struct for managing all the style information in one place.
 //	It's maing job is to manage a queue of keyframes to output the current keyframe on each frame.
 //	Has other jobs like manage some effects and to be added drag control.
+// TODO: have data replication around current keyframe is a real pain.
 struct render_interface
 {
 	struct keyframe current;

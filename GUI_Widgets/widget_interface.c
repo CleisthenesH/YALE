@@ -323,6 +323,7 @@ static inline struct widget* widget_engine_pick(int x, int y)
 
     for (struct widget* widget = queue_head; widget; widget = widget->next, picker_index++)
     {
+        // TODO: use the new pop functions to remove current_hover this then reinsert it after the loop.
         if (widget == current_hover && (
             widget_engine_state == ENGINE_STATE_DRAG ||
             widget_engine_state == ENGINE_STATE_SNAP ||
@@ -381,7 +382,9 @@ static inline void update_transition_timestamp(struct widget* widget, double x, 
 // Updates current_hover keyframes to move towards the drag
 static inline void widget_set_drag()
 {
-    render_interface_interupt(current_hover->style_element);
+    if(widget_engine_state == ENGINE_STATE_TO_DRAG ||
+        widget_engine_state == ENGINE_STATE_TO_SNAP)
+        render_interface_interupt(current_hover->style_element);
 
     update_transition_timestamp(current_hover, drag_offset_x + mouse_x, drag_offset_y + mouse_y);
 
@@ -466,13 +469,11 @@ static inline void widget_engine_update_drag_pointers()
 			}
             else
             {
-                widget_set_drag();
                 widget_engine_state = ENGINE_STATE_TO_DRAG;
             }
 		}
 		else
 		{
-			widget_set_drag();
 			widget_engine_state = current_drop && current_drop->is_snappable? ENGINE_STATE_TO_DRAG : ENGINE_STATE_DRAG;
 		}
 
@@ -493,7 +494,7 @@ void widget_engine_update()
             {
                 call(current_hover, drag_start);
 
-                widget_engine_state = ENGINE_STATE_DRAG;
+                widget_engine_state = ENGINE_STATE_TO_DRAG;
             }
             else
             {

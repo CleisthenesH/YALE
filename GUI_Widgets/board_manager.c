@@ -524,8 +524,6 @@ static int piece_index(lua_State* L)
 
 			lua_rotate(L, -5, 1);
 			lua_pop(L, 4);
-
-			stack_dump(L);
 			return 1;
 		}
 	}

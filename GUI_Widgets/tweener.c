@@ -10,11 +10,55 @@
 #include "thread_pool.h"
 #include "tweener.h"
 
+#include <limits.h>
+
 extern double current_timestamp;
 
 static struct tweener* tweeners_list;
 static size_t tweeners_allocated;
 static size_t tweeners_used;
+
+#ifdef _TWEENER_DEBUG
+#include <stdio.h>
+static void _check_nan(double* ptr, size_t cnt)
+{
+	bool flag = false;
+
+	for (size_t i = 0; i < cnt; i++)
+	{
+		if (isnan(ptr[i]))
+			flag = true;
+
+		break;
+	}
+	
+	if (flag)
+		printf("ERROR: tweener nan\n");		
+}
+
+static void _print_keyframes(struct tweener* tweener)
+{
+	printf("tweener %p\t, channels: %ld, used %ld\n", tweener, tweener->channels, tweener->used);
+
+	for (size_t i = 0; i < tweener->used; i++)
+	{
+		printf("\t time: %lf\t channels: ", tweener->keypoints[i * (tweener->channels + 1)]);
+		for (size_t j = 1; j <= tweener->channels; j++)
+			printf("%lf,", tweener->keypoints[i * (tweener->channels + 1) + j]);
+
+		printf("\n");
+	}
+}
+
+#define CHECK_TWEENER_NAN(tweener) _check_nan((tweener)->current,(tweener)->channels);
+#define CHECK_KEYPOINT_NAN(ptr,cnt) _check_nan((ptr),(cnt));
+#define PRINT_KEYFRAMES(tweener) _print_keyframes((tweener));
+
+#else
+#define CHECK_TWEENER_NAN(tweener);
+#define CHECK_KEYPOINT_NAN(ptr,cnt);
+#define PRINT_KEYFRAMES(tweener);
+#endif
 
 void tweener_init()
 {
@@ -65,6 +109,11 @@ static inline void tweener_blend_nonlooping(struct tweener* tweener)
 		first_future_frame < tweener->used)
 		first_future_frame++;
 
+	// Clean frames with two similar timestamps (numeric stability)
+	while ((0.01 > tweener->keypoints[(first_future_frame +1)* (tweener->channels + 1)] - tweener->keypoints[first_future_frame * (tweener->channels + 1)]) &&
+		first_future_frame +1 < tweener->used)
+		first_future_frame++;
+
 	if (first_future_frame > 1)
 	{
 		const size_t step = first_future_frame - 1;
@@ -75,9 +124,13 @@ static inline void tweener_blend_nonlooping(struct tweener* tweener)
 
 		tweener->used -= step;
 
+		PRINT_KEYFRAMES(tweener)
+
 		if (tweener->used == 1)
 		{
 			memcpy(tweener->current, tweener->keypoints + 1, tweener->channels * sizeof(double));
+
+			CHECK_TWEENER_NAN(tweener);
 
 			if (tweener->funct)
 				tweener->funct(tweener->data);
@@ -86,10 +139,15 @@ static inline void tweener_blend_nonlooping(struct tweener* tweener)
 		}
 	}
 
-	const double blend = (current_timestamp - tweener->keypoints[0]) / (tweener->keypoints[tweener->channels + 1] - tweener->keypoints[0]);
+	PRINT_KEYFRAMES(tweener)
+	
+	const double denominator = (tweener->keypoints[tweener->channels + 1] - tweener->keypoints[0]);
+	const double blend = (current_timestamp - tweener->keypoints[0]) / denominator;
 
 	for (size_t i = 0; i < tweener->channels; i++)
 		tweener->current[i] = blend * tweener->keypoints[i + 2 + tweener->channels] + (1 - blend) * tweener->keypoints[i + 1];
+
+	CHECK_TWEENER_NAN(tweener);
 }
 
 static inline void tweener_blend_looping(struct tweener* tweener)
@@ -115,6 +173,8 @@ static inline void tweener_blend_looping(struct tweener* tweener)
 	for (size_t i = 0; i < tweener->channels; i++)
 		tweener->current[i] = blend * tweener->keypoints[i + end_idx + 1] + 
 			(1 - blend) * tweener->keypoints[i + start_idx + 1];
+
+	CHECK_TWEENER_NAN(tweener);
 }
 
 static inline void tweener_blend_keypoints(struct tweener* const tweener)
@@ -124,6 +184,8 @@ static inline void tweener_blend_keypoints(struct tweener* const tweener)
 			tweener_blend_looping(tweener);
 		else
 			tweener_blend_nonlooping(tweener);
+
+	CHECK_TWEENER_NAN(tweener);
 }
 
 struct work_queue* tweener_update()
@@ -146,6 +208,8 @@ void tweener_set(struct tweener* const tweener, double* keypoint)
 
 	memcpy(tweener->current, keypoint, tweener->channels * sizeof(double));
 	memcpy(tweener->keypoints + 1, keypoint, tweener->channels * sizeof(double));
+
+	CHECK_TWEENER_NAN(tweener);
 }
 
 double* tweener_new_point(struct tweener* tweener)

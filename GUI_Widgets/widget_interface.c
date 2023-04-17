@@ -321,19 +321,16 @@ static inline struct widget* widget_engine_pick(int x, int y)
     size_t pick_buffer;
     float color_buffer[3];
 
+    const bool hide_hover =  widget_engine_state == ENGINE_STATE_DRAG ||
+        widget_engine_state == ENGINE_STATE_SNAP ||
+        widget_engine_state == ENGINE_STATE_TO_SNAP ||
+        widget_engine_state == ENGINE_STATE_TO_DRAG;
+
+    if (hide_hover)
+        widget_interface_pop(current_hover);
+
     for (struct widget* widget = queue_head; widget; widget = widget->next, picker_index++)
     {
-        // TODO: use the new pop functions to remove current_hover this then reinsert it after the loop.
-        if (widget == current_hover && (
-            widget_engine_state == ENGINE_STATE_DRAG ||
-            widget_engine_state == ENGINE_STATE_SNAP ||
-            widget_engine_state == ENGINE_STATE_TO_SNAP ||
-            widget_engine_state == ENGINE_STATE_TO_DRAG
-            ))
-        {
-            continue;
-        }
-
         pick_buffer = picker_index;
 
         for (size_t i = 0; i < 3; i++)
@@ -347,6 +344,9 @@ static inline struct widget* widget_engine_pick(int x, int y)
         al_use_transform(&transform);
         call_engine(widget, mask);
     }
+
+    if (hide_hover)
+        widget_interface_insert(current_hover, current_hover->next);
 
     al_set_target_bitmap(original_bitmap);
 

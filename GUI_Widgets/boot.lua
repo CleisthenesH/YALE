@@ -27,16 +27,32 @@ end
 function manager:vaild_moves(piece)
 	local zone = self.pieces[piece].zone
 
+	if zone == nil then
+		return {0,1,2,3,4,5,6,7,8}
+	end
+
 	print("vaild_moves",self,piece,zone)
-	
-	return {0,3,6}
+
+	local table = {
+		[0] = {1,3},
+		[1] = {0,2,4},
+		[2] = {1,5},
+		[3] = {0,4,6},
+		[4] = {1,3,5,7},
+		[5] = {2,4,8},
+		[6] = {3,7},
+		[7] = {4,6,8},
+		[8] = {5,7}
+	}
+
+	local output = table[zone]
+
+	return table[zone]
 end
 
---[[
 function manager:nonvalid_move(piece,zone)
 	print("nonvalid_movemove",piece,zone)
 end
---]]
 
 for i = 0,2 do
 	for j = 0,2 do	
@@ -49,13 +65,6 @@ for i = 0,2 do
 		manager:new_zone(j*3+i,"square",{x = 300+110*i,y = 300 +110*j,color={color,color,color}})
 	end
 end
-
---[[
-manager:new_zone("0x0","square",{x=300,y=300,color={255,255,255}})
-manager:new_zone("1x0","square",{x=400,y=300,color={0,0,0}})
-manager:new_zone("0x1","square",{x=300,y=400,color={0,0,0}})
-manager:new_zone("1x1","square",{x=400,y=400,color={255,255,255}})
---]]
 
 manager:new_piece("id1","checker",{x=410,y=200})
 manager:new_piece("id2","checker",{x=200,y=100})

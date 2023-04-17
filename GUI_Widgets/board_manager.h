@@ -65,6 +65,7 @@ struct board_manager
 	bool auto_highlight;			// When making a potential move automatically highlight valid zone.
 	bool auto_transition;			// After making a move auto transition to the zones snap
 	bool auto_block_invalid_moves;	// A zone can only be nominated if it is a vaild move. (Not implemented)
+	bool auto_self_heightlight;		// Highlight the zone a piece comes fromz. (Not implemented)
 };
 
 struct zone_jump_table

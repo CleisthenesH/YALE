@@ -203,6 +203,7 @@
     <ClCompile Include="board_manager.c">
       <Filter>board_manager</Filter>
     </ClCompile>
+    <ClCompile Include="selector.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="renderer_interface.h">

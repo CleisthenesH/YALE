@@ -238,6 +238,7 @@
     <ClCompile Include="material_test.c" />
     <ClCompile Include="particle.c" />
     <ClCompile Include="resource_manager.c" />
+    <ClCompile Include="selector.c" />
     <ClCompile Include="square.c" />
     <ClCompile Include="hash.c" />
     <ClCompile Include="lua\lapi.c" />

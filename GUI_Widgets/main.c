@@ -52,6 +52,10 @@ void board_manager_init(lua_State*);
 // Resource Manager includes
 void resource_manager_init();
 
+// Scheduler includes
+void scheduler_process();
+void scheduler_init();
+
 // Static variable declaration
 static ALLEGRO_DISPLAY* display;
 static ALLEGRO_EVENT_QUEUE* main_event_queue;
@@ -267,10 +271,6 @@ static inline void process_event()
 // On an empty queue update and draw.
 static inline void empty_event_queue()
 {
-    // Update globals
-    delta_timestamp = al_get_time() - current_timestamp;
-    current_timestamp += delta_timestamp;
-
     // Update tweeners
     struct work_queue* queue = tweener_update();
     thread_pool_concatenate(queue);
@@ -375,9 +375,10 @@ int main()
     allegro_init();
     thread_pool_init(8);
 
-    // Init resources and resource managers
-    resource_manager_init();
+    // Init the independent systems
     global_init();
+    resource_manager_init();
+    scheduler_init();
 
     // Init renderers
     tweener_init();
@@ -396,8 +397,16 @@ int main()
 
     // Main loop
     while (!do_exit)
+    {
+        // Update globals
+        delta_timestamp = al_get_time() - current_timestamp;
+        current_timestamp += delta_timestamp;
+
+        scheduler_process();
+
         if (al_get_next_event(main_event_queue, &current_event))
             process_event();
         else
-            empty_event_queue();    
+            empty_event_queue();
+    }
 }

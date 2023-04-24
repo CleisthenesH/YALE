@@ -219,6 +219,7 @@
     <ClInclude Include="resource_manager.h" />
     <ClInclude Include="resource_manager_ids.h" />
     <ClInclude Include="renderer_interface.h" />
+    <ClInclude Include="scheduler.h" />
     <ClInclude Include="thread_pool.h" />
     <ClInclude Include="tweener.h" />
     <ClInclude Include="widget_interface.h" />
@@ -238,6 +239,7 @@
     <ClCompile Include="material_test.c" />
     <ClCompile Include="particle.c" />
     <ClCompile Include="resource_manager.c" />
+    <ClCompile Include="scheduler.c" />
     <ClCompile Include="selector.c" />
     <ClCompile Include="square.c" />
     <ClCompile Include="hash.c" />

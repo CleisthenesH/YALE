@@ -49,6 +49,9 @@
     <Filter Include="board_manager\zones_and_pieces">
       <UniqueIdentifier>{bbc4b4a2-26f4-4db5-bbf0-ac35fe82bbbf}</UniqueIdentifier>
     </Filter>
+    <Filter Include="core\scheduler">
+      <UniqueIdentifier>{613f8ad6-09e4-4ed9-af51-8891e92d3fcb}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="renderer_interface.c">
@@ -204,6 +207,9 @@
       <Filter>board_manager</Filter>
     </ClCompile>
     <ClCompile Include="selector.c" />
+    <ClCompile Include="scheduler.c">
+      <Filter>core\scheduler</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="renderer_interface.h">
@@ -325,6 +331,9 @@
     </ClInclude>
     <ClInclude Include="board_manager.h">
       <Filter>board_manager</Filter>
+    </ClInclude>
+    <ClInclude Include="scheduler.h">
+      <Filter>core\scheduler</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

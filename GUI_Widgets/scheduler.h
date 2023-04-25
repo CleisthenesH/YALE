@@ -5,3 +5,4 @@
 
 struct scheduler_interface* scheduler_push(double, void(*)(void*), void*);
 void scheduler_pop(struct scheduler_interface*);
+void scheduler_change_timestamp(struct scheduler_interface*, double, int);

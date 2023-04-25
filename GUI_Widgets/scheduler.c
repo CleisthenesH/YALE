@@ -2,6 +2,8 @@
 // Use of this source code is governed by an MIT-style
 // license that can be found in the LICENSE file.
 
+#define SCHEDULER_TESTING
+
 #include "scheduler.h"
 
 #include <stdlib.h>
@@ -26,17 +28,20 @@ extern double current_timestamp;
 
 // Heap Operations
 
+// Get a node's children
 static inline void heap_children(size_t parent, size_t* a, size_t* b)
 {
 	*a = 2 * parent + 1;
 	*b = 2 * parent + 2;
 }
 
+// Get a node's parent
 static inline size_t heap_parent(size_t child)
 {
 	return (child - 1) >> 1;
 }
 
+// Swap two nodes, doesn't maintain the heap property
 static inline void heap_swap(size_t i, size_t j)
 {
 	struct scheduler_interface* tmp;
@@ -46,11 +51,9 @@ static inline void heap_swap(size_t i, size_t j)
 	heap[j] = tmp;
 }
 
-static inline void heap_insert(struct scheduler_interface* item)
+// The node has potentially decreased, maintain the heap property by moving it up
+static inline void heap_heapify_up(size_t node)
 {
-	size_t node = used;
-	heap[used++] = item;
-
 	while (node > 0)
 	{
 		size_t parent = heap_parent(node);
@@ -63,16 +66,12 @@ static inline void heap_insert(struct scheduler_interface* item)
 	}
 }
 
-static inline void heap_pop()
+// The node has potentially increased, maintain the heap property by moving it down
+static inline void heap_heapify_down(size_t node)
 {
-	if (used <= 1)
-		return;
-
-	heap_swap(0, --used);
-
 	size_t parent, child_left, child_right;
 
-	parent = 0;
+	parent = node;
 	heap_children(0, &child_left, &child_right);
 
 	while (child_right <= used - 1)
@@ -87,10 +86,55 @@ static inline void heap_pop()
 		heap_children(parent, &child_left, &child_right);
 	}
 
-	if (child_left == used -1 && heap[child_left]->timestamp < heap[parent]->timestamp)
+	if (child_left == used - 1 && heap[child_left]->timestamp < heap[parent]->timestamp)
 		heap_swap(child_left, parent);
+
 }
 
+// The node has potentially changed, maintain the heap property by moving it
+static inline void heap_heapify(size_t node)
+{
+	if (node == 0)
+		return heap_heapify_down(node);
+
+	const size_t parent = heap_parent(node);
+
+	if (heap[parent]->timestamp > heap[node]->timestamp)
+		return heap_heapify_up(node);
+
+	heap_heapify_down(node);
+}
+
+// Insert an item into the heap
+static inline void heap_insert(struct scheduler_interface* item)
+{
+	heap[used++] = item;
+
+	heap_heapify_up(used - 1);
+}
+
+// Remove and item from the heap, it will be located at heap[used]
+static inline void heap_remove(size_t node)
+{
+	heap_swap(node, --used);
+
+	// TODO: We could check the timestamp change here call heap_heapify_{left,right} directly.
+	// Saving comparison in heap_heapify.
+	heap_heapify(node);
+}
+
+// Remove the minimum item from the heap, it will be located at heap[used]
+static inline void heap_pop()
+{
+	if (used <= 1)
+		return;
+
+	heap_swap(0, --used);
+
+	heap_heapify_down(0);
+}
+
+// Find and item in the heap
 static size_t heap_find(size_t node, struct scheduler_interface* item)
 {
 	if (item == heap[node])
@@ -117,8 +161,56 @@ static size_t heap_find(size_t node, struct scheduler_interface* item)
 	return heap_find(child_right, item);
 }
 
+// Private Scheduler Interface
+
+// Free a schedyler node, doesn't maintain heap property
+static inline void scheduler_free_node(size_t node)
+{
+	free(heap[node]);
+	heap[node] = NULL;
+}
+
+// Process a time change
+void scheduler_process()
+{
+	while (heap[0] && heap[0]->timestamp < current_timestamp)
+	{
+		if (heap[0]->funct)
+			heap[0]->funct(heap[0]->data);
+
+		scheduler_free_node(0);
+
+		heap_pop();
+	}
+}
+
+#ifdef SCHEDULER_TESTING
+static void test(void* _)
+{
+	printf("%lf\n", current_timestamp);
+}
+#endif
+
+// Initalize the scheduler
+void scheduler_init()
+{
+	heap = NULL;
+
+	allocated = 0;
+	used = 0;
+
+#ifdef SCHEDULER_TESTING
+	struct scheduler_interface* handle = scheduler_push(2, test, NULL);
+	scheduler_push(4, test, NULL);
+	scheduler_push(6, test, NULL);
+
+	scheduler_change_timestamp(handle, 10, 0);
+#endif
+}
+
 // Public Scheduler Interface
 
+// Push an item into the scheduler, maintains the heap property
 struct scheduler_interface* scheduler_push(double timestamp, void(*funct)(void*), void* data)
 {
 	if (allocated <= used)
@@ -151,39 +243,34 @@ struct scheduler_interface* scheduler_push(double timestamp, void(*funct)(void*)
 	return item;
 }
 
+// Remove an item from the scheudler, maintinas the heap property
 void scheduler_pop(struct scheduler_interface* item)
 {
-}
+	const size_t node = heap_find(0, item);
 
-// Private Scheduler Interface
-
-void scheduler_process()
-{
-	while (heap[0] && heap[0]->timestamp < current_timestamp)
+	if (node == 0)
 	{
-		if (heap[0]->funct)
-			heap[0]->funct(heap[0]->data);
+		if (used >= 1 && item == heap[0])
+		{
+			scheduler_free_node(0);
+			heap_pop();
+		}
 
-		free(heap[0]);
-		heap[0] = NULL;
-
-		heap_pop();
+		return;
 	}
+
+	heap_remove(node);
+	scheduler_free_node(used);
 }
 
-static void test(void* _)
+// Change the timestap of an item, maintains the heap property
+void scheduler_change_timestamp(struct scheduler_interface* item, double time, int flag)
 {
-	printf("%lf\n", current_timestamp);
-}
+	const size_t node = heap_find(0, item);
 
-void scheduler_init()
-{
-	heap = NULL;
+	if (node == 0 && (used == 0 || item != heap[0]))
+		return;
 
-	allocated = 0;
-	used = 0;
-
-	scheduler_push(2, test, NULL);
-	scheduler_push(4, test, NULL);
-	scheduler_push(6, test, NULL);
+	item->timestamp += time;
+	heap_heapify(node);
 }

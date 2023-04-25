@@ -374,9 +374,9 @@ int main()
     // Init the Allegro Environment
     allegro_init();
     thread_pool_init(8);
+    global_init();
 
     // Init the independent systems
-    global_init();
     resource_manager_init();
     scheduler_init();
 
@@ -403,6 +403,9 @@ int main()
         current_timestamp += delta_timestamp;
 
         scheduler_process();
+
+        // TODO: should slice off widget updates between schedule items.
+        //  Should add stability.
 
         if (al_get_next_event(main_event_queue, &current_event))
             process_event();

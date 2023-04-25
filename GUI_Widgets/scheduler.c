@@ -13,6 +13,10 @@
 #include "lua/lauxlib.h"
 #include "lua/lualib.h"
 
+#ifdef SCHEDULER_TESTING
+void stack_dump(lua_State*);
+#endif
+
 struct scheduler_interface
 {
 	double timestamp;
@@ -25,6 +29,7 @@ static size_t allocated;
 static size_t used;
 
 extern double current_timestamp;
+extern lua_State* main_lua_state;
 
 // Heap Operations
 
@@ -95,12 +100,18 @@ static inline void heap_heapify_down(size_t node)
 static inline void heap_heapify(size_t node)
 {
 	if (node == 0)
-		return heap_heapify_down(node);
+	{
+		heap_heapify_down(node);
+		return;
+	}
 
 	const size_t parent = heap_parent(node);
 
 	if (heap[parent]->timestamp > heap[node]->timestamp)
-		return heap_heapify_up(node);
+	{
+		heap_heapify_up(node);
+		return;
+	}
 
 	heap_heapify_down(node);
 }
@@ -140,7 +151,7 @@ static size_t heap_find(size_t node, struct scheduler_interface* item)
 	if (item == heap[node])
 		return node;
 
-	if (item->timestamp > heap[node]->timestamp)
+	if (item->timestamp < heap[node]->timestamp)
 		return 0;
 
 	size_t child_left, child_right;
@@ -160,6 +171,115 @@ static size_t heap_find(size_t node, struct scheduler_interface* item)
 
 	return heap_find(child_right, item);
 }
+
+#ifdef SCHEDULER_TESTING
+static void scheduler_dump()
+{
+	for (size_t i = 0; i < used; i++)
+	{
+		struct scheduler_interface* item = heap[i];
+		printf("%zu\t%lf\t%p\t%p\n", i, item->timestamp, item->funct, item->data);
+	}
+}
+#endif
+
+// Lua Interface
+
+struct scheduler_item_lua
+{
+	struct scheduler_interface* scheduler_interface;
+};
+
+static void scheduler_call_wapper(void* data)
+{
+	const struct scheduler_item_lua* item = (struct scheduler_item_lua*) data;
+
+	lua_getglobal(main_lua_state, "scheduler");
+	lua_rawgetp(main_lua_state, -1, item);
+	lua_getiuservalue(main_lua_state, -1, 1);
+
+	lua_call(main_lua_state, 0, 0);
+
+	lua_pushnil(main_lua_state);
+	lua_rawsetp(main_lua_state, -3, item);
+
+	lua_pop(main_lua_state, 2);
+}
+
+static int scheduler_push_lua(lua_State* L)
+{
+	const double timestamp = luaL_checknumber(L, -1);
+	lua_pop(L, 1);
+
+	if (!lua_isfunction(L, -1))
+	{
+		lua_pop(L, 1);
+		return 0;
+	}
+
+	struct scheduler_item_lua* item = lua_newuserdatauv(L, sizeof(struct scheduler_item_lua), 1);
+
+	if (!item)
+	{
+		lua_pop(L, 2);
+		return 0;
+	}
+
+	lua_rotate(L, -2, 1);
+	lua_setiuservalue(L, -2, 1);
+
+	item->scheduler_interface = scheduler_push(timestamp, scheduler_call_wapper, item);
+
+	// Set metatable
+	luaL_getmetatable(L, "scheule_item_mt");
+	lua_setmetatable(L, -2);
+
+	// Add to scheduuler table
+	lua_getglobal(L, "scheduler");
+	lua_pushvalue(L, -2);
+	lua_rawsetp(L, -2, item);
+
+	lua_pop(L, 1);
+
+	return 1;
+}
+
+static int scheduler_remove_lua(lua_State* L)
+{
+	const struct scheduler_item_lua* item = (struct scheduler_item_lua*) luaL_checkudata(L, -1, "scheule_item_mt");
+	scheduler_pop(item->scheduler_interface);
+
+	lua_getglobal(L, "scheduler");
+	lua_pushnil(L);
+	lua_rawsetp(L, -2, item);
+
+	lua_pop(L, 2);
+
+	return 0;
+}
+
+static int scheduler_change_lua(lua_State* L)
+{
+	struct scheduler_item_lua* item = (struct scheduler_item_lua*) luaL_checkudata(L, -2, "scheule_item_mt");
+	const double time = luaL_checknumber(L, -1);
+
+	scheduler_change_timestamp(item->scheduler_interface, time, 0);
+
+	lua_pop(L, 2);
+
+	return 0;
+}
+
+static const luaL_Reg scheduler_index[] = {
+	{"push",scheduler_push_lua},
+	{NULL,NULL}
+};
+
+static const luaL_Reg item_index[] = {
+	{"remove",scheduler_remove_lua},
+	{"change",scheduler_change_lua},
+	{NULL,NULL}
+};
 
 // Private Scheduler Interface
 
@@ -199,7 +319,35 @@ void scheduler_init()
 	allocated = 0;
 	used = 0;
 
+	lua_newtable(main_lua_state);
+
+	// Set metatable
+	lua_newtable(main_lua_state);
+
+	lua_pushvalue(main_lua_state, -1);
+	luaL_setfuncs(main_lua_state, scheduler_index, 0);
+	lua_setfield(main_lua_state, -2, "__index");
+
+	// Set mode
+	lua_pushstring(main_lua_state, "k");
+	lua_setfield(main_lua_state, -2, "__mode");
+
+	lua_setmetatable(main_lua_state, -2);
+
+	lua_setglobal(main_lua_state, "scheduler");
+
+	// Make schedule item metable
+	luaL_newmetatable(main_lua_state, "scheule_item_mt");
+	lua_pushvalue(main_lua_state, -1);
+	lua_setfield(main_lua_state, -2, "__index");
+	luaL_setfuncs(main_lua_state, item_index, 0);
+
+	lua_pop(main_lua_state, 1);
+
 #ifdef SCHEDULER_TESTING
+	printf("Stack after scheduler init: ");
+	stack_dump(main_lua_state);
+
 	struct scheduler_interface* handle = scheduler_push(2, test, NULL);
 	scheduler_push(4, test, NULL);
 	scheduler_push(6, test, NULL);

@@ -185,6 +185,7 @@
   <ItemGroup>
     <ClInclude Include="board_manager.h" />
     <ClInclude Include="card_render_data.h" />
+    <ClInclude Include="dynamic_text.h" />
     <ClInclude Include="hash.h" />
     <ClInclude Include="lua\lapi.h" />
     <ClInclude Include="lua\lauxlib.h" />
@@ -235,9 +236,11 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="dynamic_text.c" />
     <ClCompile Include="material.c" />
     <ClCompile Include="material_test.c" />
     <ClCompile Include="particle.c" />
+    <ClCompile Include="dynamic_text_test.c" />
     <ClCompile Include="resource_manager.c" />
     <ClCompile Include="scheduler.c" />
     <ClCompile Include="selector.c" />

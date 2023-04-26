@@ -52,6 +52,12 @@
     <Filter Include="core\scheduler">
       <UniqueIdentifier>{613f8ad6-09e4-4ed9-af51-8891e92d3fcb}</UniqueIdentifier>
     </Filter>
+    <Filter Include="core\particle">
+      <UniqueIdentifier>{13a4a6e7-f371-4e67-8c41-4b70e9dfa192}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="particles">
+      <UniqueIdentifier>{80cfc549-80e2-4d07-942b-1382a6bc7a94}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="renderer_interface.c">
@@ -200,15 +206,21 @@
     <ClCompile Include="slider.c">
       <Filter>widgets\GUI</Filter>
     </ClCompile>
-    <ClCompile Include="particle.c">
-      <Filter>core\renderer\components</Filter>
-    </ClCompile>
     <ClCompile Include="board_manager.c">
       <Filter>board_manager</Filter>
     </ClCompile>
     <ClCompile Include="selector.c" />
     <ClCompile Include="scheduler.c">
       <Filter>core\scheduler</Filter>
+    </ClCompile>
+    <ClCompile Include="particle.c">
+      <Filter>core\particle</Filter>
+    </ClCompile>
+    <ClCompile Include="dynamic_text.c">
+      <Filter>particles</Filter>
+    </ClCompile>
+    <ClCompile Include="dynamic_text_test.c">
+      <Filter>widgets\test_widgets</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -323,9 +335,6 @@
     <ClInclude Include="widget_style_sheet.h">
       <Filter>widgets</Filter>
     </ClInclude>
-    <ClInclude Include="particle.h">
-      <Filter>core\renderer\components</Filter>
-    </ClInclude>
     <ClInclude Include="material.h">
       <Filter>core\renderer\components</Filter>
     </ClInclude>
@@ -334,6 +343,12 @@
     </ClInclude>
     <ClInclude Include="scheduler.h">
       <Filter>core\scheduler</Filter>
+    </ClInclude>
+    <ClInclude Include="particle.h">
+      <Filter>core\particle</Filter>
+    </ClInclude>
+    <ClInclude Include="dynamic_text.h">
+      <Filter>particles</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -351,12 +366,6 @@
     <None Include="shaders\widget.vert">
       <Filter>core\widget_interface</Filter>
     </None>
-    <None Include="shaders\main_renderer.frag">
-      <Filter>core\renderer</Filter>
-    </None>
-    <None Include="shaders\main_renderer.vert">
-      <Filter>core\renderer</Filter>
-    </None>
     <None Include="to-do.md" />
     <None Include="piece_manager.lua">
       <Filter>scripts\examples</Filter>
@@ -369,6 +378,12 @@
     </None>
     <None Include="material_test.lua">
       <Filter>scripts\examples</Filter>
+    </None>
+    <None Include="shaders\main_renderer.vert">
+      <Filter>core\renderer\components</Filter>
+    </None>
+    <None Include="shaders\main_renderer.frag">
+      <Filter>core\renderer\components</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

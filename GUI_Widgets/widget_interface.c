@@ -919,7 +919,8 @@ static int newindex(lua_State* L)
     DO(button) \
     DO(slider) \
     DO(prototype) \
-    DO(material_test) 
+    DO(material_test) \
+    DO(dynamic_text_test)
 
 #define EXTERN(widget) extern int widget ## _new(lua_State*);
 

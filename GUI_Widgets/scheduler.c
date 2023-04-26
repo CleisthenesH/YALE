@@ -2,7 +2,7 @@
 // Use of this source code is governed by an MIT-style
 // license that can be found in the LICENSE file.
 
-#define SCHEDULER_TESTING
+// #define SCHEDULER_TESTING
 
 #include "scheduler.h"
 
@@ -314,9 +314,10 @@ static void test(void* _)
 // Initalize the scheduler
 void scheduler_init()
 {
-	heap = NULL;
+	heap = malloc(sizeof(struct scheduler_interface*));
+	heap[0] = NULL;
 
-	allocated = 0;
+	allocated = 1;
 	used = 0;
 
 	lua_newtable(main_lua_state);

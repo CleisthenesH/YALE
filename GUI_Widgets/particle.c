@@ -39,7 +39,7 @@ struct particle_bin* particle_bin_new(size_t inital_size)
 			return;
 
 		list = memsafe_hande;
-		used = new_cnt;
+		allocated = new_cnt;
 	}
 
 	struct particle_bin* bin = list + used++;
@@ -86,13 +86,6 @@ void particle_bin_draw(struct particle_bin* bin)
 	}
 }
 
-void particle_bin_update(struct particle_bin* bin)
-{
-	for (size_t i = 0; i < bin->particles_used; i++)
-		if (bin->particles[i].end_timestamp <= current_timestamp)
-			bin->particles[i--] = bin->particles[--bin->particles_used];
-}
-
 void particle_engine_init()
 {
 	list = NULL;
@@ -107,15 +100,39 @@ static void particle_update_work(struct particle* particle)
 
 static void particle_bin_update_work(struct particle_bin* bin)
 {
-	for (size_t i = 0; i < bin->particles_used; i++)
-		if (bin->particles[i].end_timestamp <= current_timestamp)
-		{
-			thread_pool_push(bin->particles[i].jumptable->gc, bin->particles[i].data);
+	if (0)
+	{
+		for (size_t i = 0; i < bin->particles_used; i++)
+			if (bin->particles[i].end_timestamp <= current_timestamp)
+			{
+				if (bin->particles[i].jumptable->gc)
+					thread_pool_push(bin->particles[i].jumptable->gc, bin->particles[i].data);
 
-			bin->particles[i--] = bin->particles[--bin->particles_used];
+				bin->particles[i--] = bin->particles[--bin->particles_used];
+			}
+			else
+				if (bin->particles[i].jumptable->update)
+					thread_pool_push(particle_update_work, &bin->particles[i]);
+	}
+	else
+	{
+		for (size_t i = 0; i < bin->particles_used; i++)
+		{
+			struct particle* const particle = &bin->particles[i];
+
+			if (particle->end_timestamp <= current_timestamp)
+			{
+				if (particle->jumptable->gc)
+					particle->jumptable->gc(particle->data);
+
+
+				bin->particles[i--] = bin->particles[--bin->particles_used];
+			}
+			else
+				if (particle->jumptable->update)
+					particle->jumptable->update(particle->data, current_timestamp - particle->start_timestamp);
 		}
-		else
-			thread_pool_push(particle_update_work, list + i);
+	}
 }
 
 struct work_queue* particle_engine_update()

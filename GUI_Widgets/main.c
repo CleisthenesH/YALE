@@ -365,6 +365,21 @@ static inline void main_state_dofile(const char* file_name)
 }
 
 // Main
+
+/* System Dependency :
+*       |-------------(Only config.lua )-------------> ALLEGRO
+*       |                                                 |
+*       |                       __________________________|____________________
+*       |                       V                     |           |           |
+*       |-> (Scheduler) <- (Thread Pool)              |           |           V
+*  LUA  |                    V       V                |           |   (Resource Manager)
+*       |             (Tweener)    (Particle)         |           |
+*       |                    V                        V           |
+*       |                   (     Render     ) <---- (Material)   |
+*       |                           V                             V
+*       |---------------------> (            Widget Interface         )
+*/
+
 int main()
 {
     // Init Lua first so we can read a config file to inform later inits

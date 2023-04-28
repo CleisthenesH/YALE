@@ -16,6 +16,13 @@
 #include "lua/lauxlib.h"
 #include "lua/lualib.h"
 
+//#define EMILY_OUTPUT
+#define POOL_PARTY_WORKAROUND
+
+#ifdef POOL_PARTY_WORKAROUND
+const int padding = 10;
+#endif
+
 static const char* const font_names[] =
 {
 	"BasicPupBlack",
@@ -36,11 +43,11 @@ static const char* const font_names[] =
 	"IndigoPeaberry",
 	"PaintBasic",
 	"PoolParty",
-	"RaccoonSerif - Base",
-	"RaccoonSerif - Bold",
-	"RaccoonSerif - Medium",
-	"RaccoonSerif - Mini",
-	"RaccoonSerif - Mono",
+	"RaccoonSerif-Base",
+	"RaccoonSerif-Bold",
+	"RaccoonSerif-Medium",
+	"RaccoonSerif-Mini",
+	"RaccoonSerif-Mono",
 	"RedPeaberry",
 	"ShinyPeaberry",
 	"WhitePeaberry",
@@ -53,7 +60,7 @@ static ALLEGRO_BITMAP* character_art_table[CHARACTER_ART_ID_COUNT] = {NULL};
 
 // Turns the bitmap and lua file uploaded by Emily Huo to itch.io into a ALLEGRO_FONT
 // Currently ignores kerling and xoffset
-static ALLEGRO_FONT* emily_huo_font(const char* font_name)
+static ALLEGRO_FONT* emily_huo_font(lua_State* lua, const char* font_name)
 {
 	char file_name_buffer[256] = "res/fonts/";
 
@@ -62,18 +69,14 @@ static ALLEGRO_FONT* emily_huo_font(const char* font_name)
 
 	ALLEGRO_BITMAP* bitmap = al_load_bitmap(file_name_buffer);
 
+	if (!bitmap)
+		return NULL;
+
 	strcpy_s(file_name_buffer, 256, "res/fonts/");
 	strcat_s(file_name_buffer, 256, font_name);
 	strcat_s(file_name_buffer, 256, ".lua");
 
-	lua_State* lua = luaL_newstate();
-	luaL_openlibs(lua);
 	luaL_dofile(lua, file_name_buffer);
-
-	if (!lua || !bitmap)
-		return NULL;
-
-	ALLEGRO_BITMAP* bitmap_font = NULL;
 
 	int max_height = 0;
 	int total_width = 1;
@@ -122,9 +125,21 @@ static ALLEGRO_FONT* emily_huo_font(const char* font_name)
 	lua_pop(lua, 1);
 	// stack: font_table, transposed_table
 
+	ALLEGRO_BITMAP* bitmap_font = NULL;
 	const int spacewidth = 20;
 
+#ifdef POOL_PARTY_WORKAROUND
+	bitmap_font = al_create_bitmap(total_width + spacewidth, max_height + 2 + 2*padding);
+#else
 	bitmap_font = al_create_bitmap(total_width + spacewidth, max_height + 2);
+#endif
+
+	if (!bitmap_font)
+	{
+		al_destroy_bitmap(bitmap);
+		return NULL;
+	}
+
 
 	// Directly write to bitmap_font
 	al_set_target_bitmap(bitmap_font);
@@ -137,8 +152,12 @@ static ALLEGRO_FONT* emily_huo_font(const char* font_name)
 	char buffer[2] = { 'A','\0' };
 
 	// write space seperatly
-	al_draw_filled_rectangle(1, 1, 1 + spacewidth, 1 + max_height, al_map_rgba(0, 0, 0, 0));
 
+#ifdef POOL_PARTY_WORKAROUND
+	al_draw_filled_rectangle(1, 1+padding, 1 + spacewidth, 1 + max_height, al_map_rgba(0, 0, 0, 0));
+#else
+	al_draw_filled_rectangle(1, 1, 1 + spacewidth, 1 + max_height, al_map_rgba(0, 0, 0, 0));
+#endif
 	xadvance = 2 + spacewidth;
 
 	for (size_t i = 33; i <= 126; i++)
@@ -167,23 +186,49 @@ static ALLEGRO_FONT* emily_huo_font(const char* font_name)
 		lua_gettable(lua, -6);
 		yoffset = luaL_checkinteger(lua, -1);
 
+#ifdef POOL_PARTY_WORKAROUND
+		al_draw_filled_rectangle(xadvance, 1+ padding, xadvance + w, 1 + max_height+yoffset, al_map_rgba(0, 0, 0, 0));
+		al_draw_bitmap_region(bitmap, x, y, w, h, xadvance, 1 + yoffset+padding, 0);
+#else
 		al_draw_filled_rectangle(xadvance, 1, xadvance + w, 1 + max_height, al_map_rgba(0, 0, 0, 0));
 		al_draw_bitmap_region(bitmap, x, y, w, h, xadvance, 1 + yoffset, 0);
+#endif
 
 		xadvance += w + 1;
 
 		lua_pop(lua, 6);
 	}
 
+#ifdef EMILY_OUTPUT
+	strcpy_s(file_name_buffer, 256, "res/fonts/error/");
+	strcat_s(file_name_buffer, 256, font_name);
+	strcat_s(file_name_buffer, 256, ".bmp");
+
+	al_save_bitmap(file_name_buffer, bitmap_font);
+#endif
+
 	int ranges[2] = { 32,126 };
 
-	return al_grab_font_from_bitmap(bitmap_font, 1, ranges);
+	const ALLEGRO_FONT* const output = al_grab_font_from_bitmap(bitmap_font, 1, ranges);
+
+	al_destroy_bitmap(bitmap);
+	al_destroy_bitmap(bitmap_font);
+
+	return output;
 }
 
 void resource_manager_init()
 {
+#ifdef EMILY_OUTPUT
+	al_make_directory("res/fonts/error/");
+#endif
+	lua_State* lua = luaL_newstate();
+	luaL_openlibs(lua);
+
 	for (size_t i = 0; i < FONT_ID_COUNT; i++)
-		font_table[i] = emily_huo_font(font_names[i]);
+		font_table[i] = emily_huo_font(lua, font_names[i]);
+
+	lua_close(lua);
 }
 
 ALLEGRO_FONT* resource_manager_font(enum font_id id)

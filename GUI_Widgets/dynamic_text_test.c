@@ -42,7 +42,7 @@ int dynamic_text_test_new(lua_State* L)
 	};
 	
 	dynamic_text_new(handle->particle_bin,
-		"TEST", 0, 0, 1, FONT_ID_WHITEPEABERRYOUTLINE, 1, 10);
+		"TEST", 0, 0, 1, FONT_ID_BOLDCHEESE+1, 1, 10);
 
 	return 1;
 }

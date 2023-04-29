@@ -76,15 +76,37 @@ int button_new(lua_State* L)
 	if (!button)
 		return 0;
 
+	char* text = NULL;
+
+	if (lua_istable(L, -1))
+	{
+		lua_getfield(L, -1, "text");
+
+		if (lua_isstring(L, -1))
+		{
+			size_t text_len;
+			char* buffer = lua_tolstring(L, -1, &text_len);
+
+			text = malloc(sizeof(char) * (text_len + 1));
+			strcpy_s(text, text_len + 1, buffer);
+		}
+		else
+		{
+			text = "Placeholder";
+		}
+
+		lua_pop(L, 1);
+	}
+
 	*button = (struct button)
 	{
 		.widget_interface = widget_interface_new(L,button,&button_jump_table_entry),
 		.font = resource_manager_font(FONT_ID_SHINYPEABERRY),
-		.text = "test",
+		.text = text,
 		.color = al_map_rgb(72, 91, 122),
 	};
 
-	button->widget_interface->style_element->width = 100;
+	button->widget_interface->style_element->width = 16+al_get_text_width(button->font,button->text);
 	button->widget_interface->style_element->height = 50;
 
 	return 1;

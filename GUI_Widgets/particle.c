@@ -23,7 +23,7 @@ struct particle_bin
 	size_t particles_used;
 };
 
-static struct particle_bin* list;
+static struct particle_bin** list;
 static size_t allocated;
 static size_t used;
 
@@ -33,7 +33,7 @@ struct particle_bin* particle_bin_new(size_t inital_size)
 	{
 		const size_t new_cnt = 2 * allocated + 1;
 
-		struct particle_bin* memsafe_hande = realloc(list, new_cnt * sizeof(struct particle_bin));
+		struct particle_bin** memsafe_hande = realloc(list, new_cnt * sizeof(struct particle_bin*));
 
 		if (!memsafe_hande)
 			return;
@@ -42,7 +42,7 @@ struct particle_bin* particle_bin_new(size_t inital_size)
 		allocated = new_cnt;
 	}
 
-	struct particle_bin* bin = list + used++;
+	struct particle_bin* bin = list[used++] = malloc(sizeof(struct particle_bin));
 
 	*bin = (struct particle_bin)
 	{
@@ -140,8 +140,8 @@ struct work_queue* particle_engine_update()
 	struct work_queue* work_queue = work_queue_create();
 
 	for(size_t i = 0; i< used; i++)
-		if(list[i].particles_used > 0)
-			work_queue_push(work_queue, particle_bin_update_work, list + i);
+		if(list[i]->particles_used > 0)
+			work_queue_push(work_queue, particle_bin_update_work, list[i]);
 
 	return work_queue;
 }

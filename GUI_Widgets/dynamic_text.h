@@ -8,7 +8,11 @@
 
 enum dynamic_text_animation
 {
-	DYNAMIC_TEXT_WORM
+	DYNAMIC_TEXT_STILL = 0,
+	DYNAMIC_TEXT_WORM,
+	DYNAMIC_TEXT_WAVE,
+
+	DYNAMIC_TEXT_MAX,
 };
 
 void dynamic_text_new(struct particle_bin* bin, 

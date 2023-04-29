@@ -12,4 +12,8 @@ material3 = material_test_new{x=1000, y=500, effect=1, selection=0}
 
 material4 = material_test_new{x=1250, y=500, effect=4, selection=0}
 
-dynamic_text = dynamic_text_test_new{x=100,y=100}
+text_table = {}
+
+for i = 0,19 do
+	text_table[i] = dynamic_text_test_new{x=100,y=100+50*i,font = i,animation = 1}
+end

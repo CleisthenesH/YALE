@@ -283,6 +283,7 @@
     <ClCompile Include="slider.c" />
     <ClCompile Include="renderer_interface.c" />
     <ClCompile Include="prototype_widget.c" />
+    <ClCompile Include="text_entry.c" />
     <ClCompile Include="thread_pool.c" />
     <ClCompile Include="miscellaneous.c" />
     <ClCompile Include="tweener.c" />

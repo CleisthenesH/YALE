@@ -4,6 +4,9 @@
 
 -- Runs once after all inializations have ran but before the main loop.
 
+text_entry = text_entry_new{x=500,y=500}
+
+--[[
 material1 = material_test_new{x=500, y=500, effect=3, selection=0}
 
 material2 = material_test_new{x=750, y=500, effect=2, selection=0}
@@ -17,3 +20,4 @@ text_table = {}
 for i = 0,19 do
 	text_table[i] = dynamic_text_test_new{x=100,y=100+50*i,font = i,animation = 1}
 end
+--]]

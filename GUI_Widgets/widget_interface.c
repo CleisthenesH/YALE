@@ -538,6 +538,14 @@ void widget_engine_event_handler()
     switch (current_event.type)
     {
     case ALLEGRO_EVENT_MOUSE_BUTTON_DOWN:
+        if (current_hover != last_click)
+        {
+            if (last_click)
+                call(last_click, click_off);
+
+            last_click = current_hover;
+        }
+
         if (!current_hover)
             break;
 
@@ -555,14 +563,6 @@ void widget_engine_event_handler()
             drag_offset_x = current_hover->style_element->current.x - mouse_x;
             drag_offset_y = current_hover->style_element->current.y - mouse_y;
             render_interface_copy_destination(current_hover->style_element, &drag_release);
-
-            if (current_hover != last_click)
-            {
-                if (last_click)
-                    call(last_click, click_off);
-
-                last_click = current_hover;
-            }
         }
         break;
 
@@ -920,7 +920,8 @@ static int newindex(lua_State* L)
     DO(slider) \
     DO(prototype) \
     DO(material_test) \
-    DO(dynamic_text_test)
+    DO(dynamic_text_test) \
+    DO(text_entry)
 
 #define EXTERN(widget) extern int widget ## _new(lua_State*);
 

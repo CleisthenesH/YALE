@@ -222,6 +222,9 @@
     <ClCompile Include="dynamic_text_test.c">
       <Filter>widgets\test_widgets</Filter>
     </ClCompile>
+    <ClCompile Include="text_entry.c">
+      <Filter>widgets\GUI</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="renderer_interface.h">

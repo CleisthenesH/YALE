@@ -29,10 +29,10 @@ function button:left_click()
 end
 ```
 ## Rendered Button Pre-click
-![Image of the above code pre-click.](\GUI_Widgets\docs\README\Pre-click.png)
+![Image of the above code pre-click.](/GUI_Widgets/docs/README/Pre-click.png)
 
 ## Rendered Button Post-click
-![Image of the above code post-click.](\GUI_Widgets\docs\README\Post-click.png)
+![Image of the above code post-click.](/GUI_Widgets/docs/README/Post-click.png)
 
 ## Excerpt of Engine Code for Rendering the Button
 ```c

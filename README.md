@@ -21,7 +21,7 @@ And the core of this project is the widget interface stack with a system of inbu
 The easiest way to show this would be showing the workflow for creating a button, setting it's location and text, and making it print to the console when clicked. 
 
 ## Lua Code
-```
+```lua
 button = button_new{x=500, y=500, text="Click Me!"}
 
 function button:left_click()
@@ -35,7 +35,7 @@ end
 ![Image of the above code post-click.](\GUI_Widgets\docs\README\Post-click.png)
 
 ## Excerpt of Engine Code for Rendering the Button
-```
+```c
 struct button
 {
 	struct widget_interface* widget_interface;

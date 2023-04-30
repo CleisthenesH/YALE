@@ -1,13 +1,65 @@
-**Under Construction**
+**:warning:Under Construction:warning:**
+# :goat: YALE :goat:
+
+The Yale is a mythical goat like creature with an additional pair of tusks and horns that can swivel around.
+
+<p align="center">
+  <img src="https://upload.wikimedia.org/wikipedia/commons/6/6d/Yale_salient.gif" alt="A drawing of a yale">
+  <a href="https://en.wikipedia.org/wiki/Yale_(mythical_creature)">
+    <br>
+    A depiction of a yale from wikimedia commons. Note the backwards horn.
+  </a>
+</p>
+
+But YALE also stands for "Yet Another Lua Engine", a succinct description of this project
+
 
 # Introduction
-The scope of this project is the creation of a GUI widget engine in pure C allegro that can be scripted in LUA.
-This is the accumulation of several smaller projects and is planned to be the starting point for later projects.
+The goal of this project is to create GUI widget engine in pure-C [Allegro](https://liballeg.org/) that is scriptable by [Lua](https://www.lua.org/).
+And the core of this project is the widget interface stack with a system of inbuilt callbacks based on user genearted events.
 
-The core of this engine is a stack of widgets with the dual callbacks to update themselves and global state.
+The easiest way to show this would be showing the workflow for creating a button, setting it's location and text, and making it print to the console when clicked. 
 
-This will be my first public project in a long time and will also serve as a my reeducation in git, licencing, and making regular commits.
-So please be pacience with the mess and any "works on my machine" responces.
+## Lua Code
+```
+button = button_new{x=500, y=500, text="Click Me!"}
+
+function button:left_click()
+	print(self, " was clicked!")
+end
+```
+## Rendered Button Pre-click
+![Image of the above code pre-click.](\GUI_Widgets\docs\README\Pre-click.png)
+
+## Rendered Button Post-click
+![Image of the above code post-click.](\GUI_Widgets\docs\README\Post-click.png)
+
+## Excerpt of Engine Code for Rendering the Button
+```
+struct button
+{
+	struct widget_interface* widget_interface;
+	char* text;
+	ALLEGRO_FONT* font;
+	ALLEGRO_COLOR color;
+};
+
+static void draw(const struct widget_interface* const widget)
+{
+	const struct button* const button = (struct button*) widget->upcast;
+	const double half_width = 0.5 * button->widget_interface->style_element->width;
+	const double half_height = 0.5 * button->widget_interface->style_element->height;
+
+	al_draw_filled_rounded_rectangle(-half_width, -half_height, half_width, half_height, 10, 10, button->color);
+
+	if (button->text)
+		al_draw_text(button->font, al_map_rgb_f(1, 1, 1),
+			0, -0.5 * al_get_font_line_height(button->font),
+			ALLEGRO_ALIGN_CENTRE, button->text);
+
+	al_draw_rounded_rectangle(-half_width, -half_height, half_width, half_height, 10, 10, al_map_rgb(0, 0, 0), 2);
+}
+```
 
 # Scope 
 The scope of this project is best meet by building the engine then test it by implementing a basic card game.

@@ -4,9 +4,13 @@
 
 -- Runs once after all inializations have ran but before the main loop.
 
-text_entry = text_entry_new{x=500,y=500}
+--text_entry = text_entry_new{x=500,y=500}
 
-button = button_new{x=500, y=200, text="Apple"}
+button = button_new{x=500, y=500, text="Click Me!"}
+
+function button:left_click()
+	print(self, " was clicked!")
+end
 
 --[[
 material1 = material_test_new{x=500, y=500, effect=3, selection=0}

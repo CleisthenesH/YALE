@@ -80,7 +80,10 @@ struct widget
 // but hashing is still runtime maybe enumerations would be better
 #define call_lua(widget,method) if(widget->lua. ## method != LUA_REFNIL) do{ \
     lua_rawgeti(main_lua_state, LUA_REGISTRYINDEX, widget->lua. ## method); \
-    if(lua_pcall(main_lua_state, 0, 0, 0) != LUA_OK) \
+	lua_getglobal(main_lua_state, "widgets"); \
+	lua_rawgetp(main_lua_state, -1, widget); \
+	lua_remove(main_lua_state, -2); \
+    if(lua_pcall(main_lua_state, 1, 0, 0) != LUA_OK) \
     {\
         printf("Error calling method \"" #method "\" on widget \"" #widget"\".\n\tFrom " __FILE__ " at line %d.\n\n\t%s\n\n", \
         __LINE__, luaL_checkstring(main_lua_state, -1)); \

@@ -578,10 +578,20 @@ void widget_engine_event_handler()
         case ENGINE_STATE_PRE_DRAG_THRESHOLD:
             call(current_hover, left_click);
             call(current_hover, left_click_end);
+
+            // This means hover_start can be called twice without a hover_end
+            // Not commited to it (should filter for existance of drag_start?)
+            if (current_hover)
+                call(current_hover, hover_start);
             break;
 
         case ENGINE_STATE_POST_DRAG_THRESHOLD:
             call(current_hover, left_click_end);
+
+            // This means hover_start can be called twice without a hover_end
+            // Not commited to it
+            if (current_hover)
+                call(current_hover, hover_start);
             break;
 
         case ENGINE_STATE_DRAG:

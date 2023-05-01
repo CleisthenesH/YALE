@@ -7,21 +7,27 @@
 #include <allegro5/allegro_color.h>
 #include "resource_manager.h"
 
-ALLEGRO_COLOR primary_background;
-ALLEGRO_COLOR primary_highlight;
-
-ALLEGRO_COLOR secondary_background;
-ALLEGRO_COLOR secondary_highlight;
+struct GUI_pallet primary_pallet, secondary_pallet;
 
 ALLEGRO_FONT* primary_font;
 
 void widget_style_sheet_init()
 {
-	primary_background = al_color_name("LightSteelBlue");
-	primary_highlight = al_color_name("LightGray");
+	primary_pallet = (struct GUI_pallet)
+	{
+		.main = al_map_rgb(72, 91, 122), 
+		.highlight = al_map_rgb(114,136,173), 
+		.recess = al_map_rgb(0x6B,0x81,0x8C),
 
-	secondary_background = al_color_name("LightSlateGrey");
-	secondary_highlight = al_color_name("DimGrey");
+		.edge = al_map_rgb(0,0,0),
+		.edge_radius = 10,
+		.edge_width = 2,
+
+		.activated = al_color_name("white"),
+		.deactivated = al_color_name("grey")
+	};
+
+	secondary_pallet = primary_pallet;
 
 	primary_font = resource_manager_font(FONT_ID_SHINYPEABERRY);
 }

@@ -4,6 +4,7 @@
 
 #include "widget_interface.h"
 #include "resource_manager.h"
+#include "widget_style_sheet.h"
 
 #include <allegro5/allegro_primitives.h>
 #include <allegro5/allegro_opengl.h>
@@ -22,11 +23,6 @@ struct text_entry {
 	} state;
 
 	ALLEGRO_FONT* font;
-
-	ALLEGRO_COLOR field_background;
-	ALLEGRO_COLOR field_boarder;
-	ALLEGRO_COLOR active_text_color;
-	ALLEGRO_COLOR unactive_text_color;
 
 	int field_width;
 
@@ -52,7 +48,10 @@ static void draw(const struct widget_interface* const widget)
 	glStencilFunc(GL_ALWAYS, 1, 0x03);
 	glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
-	al_draw_filled_rectangle(-text_entry->field_width, -field_height, text_entry->field_width, field_height, text_entry->field_background);
+	al_draw_filled_rounded_rectangle(-text_entry->field_width, -field_height,
+		text_entry->field_width, field_height,
+		primary_pallet.edge_radius, primary_pallet.edge_radius,
+		primary_pallet.recess);
 
 	glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
 
@@ -61,20 +60,29 @@ static void draw(const struct widget_interface* const widget)
 
 	if (text_entry->input_size == 0)
 	{
-		al_draw_text(text_entry->font, text_entry->unactive_text_color, -text_entry->field_width+ text_left_padding, -16, 0, text_entry->place_holder);
+		al_draw_text(text_entry->font, primary_pallet.deactivated,
+			-text_entry->field_width+ text_left_padding,-16, 0, 
+			text_entry->place_holder);
 	}
 	else {
 		const auto text_width = al_get_text_width(text_entry->font, text_entry->input);
 
 		if (text_width > 2 * text_entry->field_width- text_left_padding)
-			al_draw_text(text_entry->font, text_entry->active_text_color, text_entry->field_width - text_width, -16, 0, text_entry->input);
+			al_draw_text(text_entry->font, primary_pallet.activated,
+				text_entry->field_width - text_width, -16,
+				0, text_entry->input);
 		else
-			al_draw_text(text_entry->font, text_entry->active_text_color, -text_entry->field_width + text_left_padding, -16, 0, text_entry->input);
+			al_draw_text(text_entry->font, primary_pallet.activated,
+				-text_entry->field_width + text_left_padding, -16,
+				0, text_entry->input);
 	}
 
 	glDisable(GL_STENCIL_TEST);
 
-	al_draw_rectangle(-text_entry->field_width, -field_height, text_entry->field_width, field_height, text_entry->field_boarder, 2);
+	al_draw_rounded_rectangle(-text_entry->field_width, -field_height,
+		text_entry->field_width, field_height,
+		primary_pallet.edge_radius, primary_pallet.edge_radius,
+		primary_pallet.edge, primary_pallet.edge_width);
 }
 
 static void mask(const struct widget_interface* const widget)
@@ -231,11 +239,6 @@ int text_entry_new(lua_State* L)
 		.field_width = 300,
 
 		.font = resource_manager_font(FONT_ID_SHINYPEABERRY),
-
-		.field_background = al_color_name("pink"),
-		.field_boarder = al_color_name("black"),
-		.active_text_color = al_color_name("white"),
-		.unactive_text_color = al_color_name("grey")
 	};
 
 	return 1;

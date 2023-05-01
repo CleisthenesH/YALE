@@ -6,10 +6,19 @@
 #include <allegro5/allegro.h>
 #include <allegro5/allegro_font.h>
 
-ALLEGRO_COLOR primary_background;
-ALLEGRO_COLOR primary_highlight;
+struct GUI_pallet
+{
+	ALLEGRO_COLOR main;
+	ALLEGRO_COLOR recess;
+	ALLEGRO_COLOR highlight;
 
-ALLEGRO_COLOR secondary_background;
-ALLEGRO_COLOR secondary_highlight;
+	ALLEGRO_COLOR edge;
+	double edge_width, edge_radius;
+
+	ALLEGRO_COLOR activated;
+	ALLEGRO_COLOR deactivated;
+};
+
+struct GUI_pallet primary_pallet, secondary_pallet;
 
 ALLEGRO_FONT* primary_font;

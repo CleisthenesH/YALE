@@ -4,6 +4,7 @@
 
 #include "widget_interface.h"
 #include "resource_manager.h"
+#include "widget_style_sheet.h"
 
 #include <allegro5/allegro5.h>
 #include <allegro5/allegro_font.h>
@@ -25,14 +26,18 @@ static void draw(const struct widget_interface* const widget)
 	const double half_width = 0.5 * button->widget_interface->style_element->width;
 	const double half_height = 0.5 * button->widget_interface->style_element->height;
 
-	al_draw_filled_rounded_rectangle(-half_width, -half_height, half_width, half_height, 10, 10, button->color);
+	al_draw_filled_rounded_rectangle(-half_width, -half_height, half_width, half_height,
+		primary_pallet.edge_radius, primary_pallet.edge_radius,
+		button->color);
 
 	if (button->text)
 		al_draw_text(button->font, al_map_rgb_f(1, 1, 1),
 			0, -0.5 * al_get_font_line_height(button->font),
 			ALLEGRO_ALIGN_CENTRE, button->text);
 
-	al_draw_rounded_rectangle(-half_width, -half_height, half_width, half_height, 10, 10, al_map_rgb(0, 0, 0), 2);
+	al_draw_rounded_rectangle(-half_width, -half_height, half_width, half_height,
+		primary_pallet.edge_radius, primary_pallet.edge_radius,
+		primary_pallet.edge, primary_pallet.edge_width);
 }
 
 static void mask(const struct widget_interface* const widget)
@@ -41,21 +46,23 @@ static void mask(const struct widget_interface* const widget)
 	const double half_width = 0.5 * button->widget_interface->style_element->width;
 	const double half_height = 0.5 * button->widget_interface->style_element->height;
 
-	al_draw_filled_rounded_rectangle(-half_width, -half_height, half_width, half_height, 10, 10, al_map_rgb(72, 91, 122));
+	al_draw_filled_rounded_rectangle(-half_width, -half_height, half_width, half_height,
+		primary_pallet.edge_radius, primary_pallet.edge_radius,
+		al_map_rgb(255, 255, 255));
 }
 
 static void hover_start(struct widget_interface* const widget)
 {
 	struct button* const button = (struct button*)widget->upcast;
 
-	button->color = al_map_rgb(0, 91, 122);
+	button->color = primary_pallet.highlight;
 }
 
 static void hover_end(struct widget_interface* const widget)
 {
 	struct button* const button = (struct button*)widget->upcast;
 
-	button->color = al_map_rgb(72, 91, 122);
+	button->color = primary_pallet.main;
 }
 
 static const struct widget_jump_table button_jump_table_entry =
@@ -103,7 +110,7 @@ int button_new(lua_State* L)
 		.widget_interface = widget_interface_new(L,button,&button_jump_table_entry),
 		.font = resource_manager_font(FONT_ID_SHINYPEABERRY),
 		.text = text,
-		.color = al_map_rgb(72, 91, 122),
+		.color = primary_pallet.main,
 	};
 
 	button->widget_interface->style_element->width = 16+al_get_text_width(button->font,button->text);

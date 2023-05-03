@@ -22,7 +22,7 @@ static void draw(const struct widget_interface* const widget)
 {
 	struct prototype* const prototype = (struct prototype* const) widget->upcast;
 	//al_draw_filled_circle(0, 0, 100, al_color_name("pink"));
-	card_render_draw(prototype->card, widget->style_element);
+	card_render_draw(prototype->card, widget->render_interface);
 }
 
 static void mask(const struct widget_interface* const widget)

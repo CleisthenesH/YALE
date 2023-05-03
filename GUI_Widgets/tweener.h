@@ -7,7 +7,7 @@
 //  Other use cases include a color or threshold for an effect.
 // 
 //	The structs memory is quite raw so it is only avavlible to widget writers.
-//	The user should be using the style_element.
+//	The user should be using the render_interface.
 // 
 //	TODO: Include more complex tweening options like keypoint weight and tangent.
 #pragma once

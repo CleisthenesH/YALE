@@ -226,11 +226,11 @@ static inline void move_piece(struct zone* zone, struct piece* piece)
 		// If the auto_transition flag is set transition the piece to be over the zone.
 		if (zone->manager->auto_transition)
 		{
-			struct render_interface* const style = piece->widget_interface->style_element;
+			struct render_interface* const style = piece->widget_interface->render_interface;
 			struct keyframe keyframe;
 			render_interface_interupt(style);
 
-			render_interface_copy_destination(zone->widget_interface->style_element, &keyframe);
+			render_interface_copy_destination(zone->widget_interface->render_interface, &keyframe);
 			keyframe.timestamp = current_timestamp + 0.2;
 			render_interface_push_keyframe(style, &keyframe);
 		}

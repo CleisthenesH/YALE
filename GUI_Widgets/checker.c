@@ -40,7 +40,7 @@ static void draw(const struct piece* const checker)
 
 	material_apply(NULL);
 
-	//style_element_draw_particles(checker->widget_interface->style_element);
+	//render_interface_draw_particles(checker->widget_interface->render_interface);
 }
 
 static void mask(const struct piece* const checker)
@@ -64,7 +64,7 @@ struct piece* checker_new(lua_State* L)
 
 	struct piece* piece = piece_new(L, NULL, &checker_table);
 
-	//style_element_particle_new(piece->widget_interface->style_element, particle, 3,0);
+	//render_interface_particle_new(piece->widget_interface->render_interface, particle, 3,0);
 
 	return piece;
 }

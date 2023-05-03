@@ -47,8 +47,8 @@ struct button
 static void draw(const struct widget_interface* const widget)
 {
 	const struct button* const button = (struct button*) widget->upcast;
-	const double half_width = 0.5 * button->widget_interface->style_element->width;
-	const double half_height = 0.5 * button->widget_interface->style_element->height;
+	const double half_width = button->widget_interface->render_interface->half_width;
+	const double half_height = button->widget_interface->render_interface->half_height;
 
 	al_draw_filled_rounded_rectangle(-half_width, -half_height, half_width, half_height, 10, 10, button->color);
 

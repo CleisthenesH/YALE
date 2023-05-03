@@ -2,6 +2,8 @@
 // Use of this source code is governed by an MIT-style
 // license that can be found in the LICENSE file.
 
+#define WIDGET_DEBUG_DRAW
+
 #include "widget_interface.h"
 #include "thread_pool.h"
 #include "hash.h"
@@ -12,6 +14,11 @@
 #include <stdio.h>
 #include <float.h>
 #include <math.h>
+
+#ifdef WIDGET_DEBUG_DRAW
+#include <allegro5/allegro_primitives.h>
+void material_apply(const struct material* const);
+#endif
 
 #ifdef WIDGET_EVENT_LOG
 #include <stdio.h>
@@ -271,13 +278,19 @@ void widget_engine_draw()
     // Maybe add a second pass for stencil effect?
     for(struct widget* widget = queue_head; widget; widget = widget->next)
 	{
-        const struct render_interface* const style_element  = widget->style_element;
-        render_interface_predraw(style_element);
+        const struct render_interface* const render_interface  = widget->render_interface;
+        render_interface_predraw(render_interface);
         widget->jump_table->draw((struct widget_interface*) widget);
+#ifdef WIDGET_DEBUG_DRAW
+        const double half_width = render_interface->half_width;
+        const double half_height = render_interface->half_height;
+
+        material_apply(NULL);
+        al_draw_rectangle(-half_width, -half_height, half_width, half_height, al_map_rgb_f(0, 1, 0), 1);
+#endif
  	}
 
-    if (0)
-    {
+#ifdef WIDGET_DEBUG_DRAW
         al_use_shader(NULL);
         glDisable(GL_STENCIL_TEST);
         al_use_transform(&identity_transform);
@@ -290,7 +303,7 @@ void widget_engine_draw()
             "Drop: %p", current_drop);
         al_draw_textf(debug_font, al_map_rgb_f(0, 1, 0), 10, 100, ALLEGRO_ALIGN_LEFT, 
             "Drag Release: (%f, %f) %f", drag_release.x, drag_release.y, transition_timestamp);
-    }
+#endif
 }
 
 // Make a work queue with only the widgets that have an update method.
@@ -343,7 +356,7 @@ static inline struct widget* widget_engine_pick(int x, int y)
         }
 
         al_set_shader_float_vector("picker_color", 3, color_buffer, 1);
-        keyframe_build_transform(&widget->style_element->current, &transform);
+        keyframe_build_transform(&widget->render_interface->current, &transform);
         al_use_transform(&transform);
         call_engine(widget, mask);
     }
@@ -374,8 +387,8 @@ static inline struct widget* widget_engine_pick(int x, int y)
 // Update the transition_timestamp based on how far the widget is to the point.
 static inline void update_transition_timestamp(struct widget* widget, double x, double y)
 {
-    const double dx = widget->style_element->current.x - x;
-    const double dy = widget->style_element->current.y - y;
+    const double dx = widget->render_interface->current.x - x;
+    const double dy = widget->render_interface->current.y - y;
 
     const double offset =  sqrtf(dx * dx + dy * dy)/ snap_speed;
 
@@ -387,18 +400,18 @@ static inline void widget_set_drag()
 {
     if(widget_engine_state == ENGINE_STATE_TO_DRAG ||
         widget_engine_state == ENGINE_STATE_TO_SNAP)
-        render_interface_interupt(current_hover->style_element);
+        render_interface_interupt(current_hover->render_interface);
 
     update_transition_timestamp(current_hover, drag_offset_x + mouse_x, drag_offset_y + mouse_y);
 
     struct keyframe keyframe;
-    render_interface_copy_destination(current_hover->style_element, &keyframe);
+    render_interface_copy_destination(current_hover->render_interface, &keyframe);
 
     keyframe.x = drag_offset_x + mouse_x;
     keyframe.y = drag_offset_y + mouse_y;
     keyframe.timestamp = transition_timestamp;
 
-    render_interface_push_keyframe(current_hover->style_element, &keyframe);
+    render_interface_push_keyframe(current_hover->render_interface, &keyframe);
 }
 
 // Updates and calls any callbacks for the last_click, current_hover, current_drop pointers
@@ -454,19 +467,19 @@ static inline void widget_engine_update_drag_pointers()
 
 			if (new_pointer->is_snappable)
 			{
-				render_interface_interupt(current_hover->style_element);
+				render_interface_interupt(current_hover->render_interface);
 
 				struct keyframe snap_target;
-				render_interface_copy_destination(current_hover->style_element, &snap_target);
+				render_interface_copy_destination(current_hover->render_interface, &snap_target);
 
-				snap_target.x = new_pointer->style_element->current.x + snap_offset_x;
-				snap_target.y = new_pointer->style_element->current.y + snap_offset_y;
+				snap_target.x = new_pointer->render_interface->current.x + snap_offset_x;
+				snap_target.y = new_pointer->render_interface->current.y + snap_offset_y;
 
 				update_transition_timestamp(current_hover, snap_target.x, snap_target.y);
 
 				snap_target.timestamp = transition_timestamp;
 
-				render_interface_push_keyframe(current_hover->style_element, &snap_target);
+				render_interface_push_keyframe(current_hover->render_interface, &snap_target);
 
 				widget_engine_state = ENGINE_STATE_TO_SNAP;
 			}
@@ -518,10 +531,10 @@ void widget_engine_update()
     {
     case ENGINE_STATE_DRAG:
     {
-        current_hover->style_element->current.x = drag_offset_x + mouse_x;
-        current_hover->style_element->current.y = drag_offset_y + mouse_y;
+        current_hover->render_interface->current.x = drag_offset_x + mouse_x;
+        current_hover->render_interface->current.y = drag_offset_y + mouse_y;
 
-        render_interface_align_tweener(current_hover->style_element);
+        render_interface_align_tweener(current_hover->render_interface);
         break;
     }
 
@@ -563,9 +576,9 @@ void widget_engine_event_handler()
 
             widget_engine_state = ENGINE_STATE_PRE_DRAG_THRESHOLD;
 
-            drag_offset_x = current_hover->style_element->current.x - mouse_x;
-            drag_offset_y = current_hover->style_element->current.y - mouse_y;
-            render_interface_copy_destination(current_hover->style_element, &drag_release);
+            drag_offset_x = current_hover->render_interface->current.x - mouse_x;
+            drag_offset_y = current_hover->render_interface->current.y - mouse_y;
+            render_interface_copy_destination(current_hover->render_interface, &drag_release);
         }
         break;
 
@@ -598,12 +611,12 @@ void widget_engine_event_handler()
         case ENGINE_STATE_SNAP:
         case ENGINE_STATE_TO_SNAP:
         case ENGINE_STATE_TO_DRAG:
-            render_interface_interupt(current_hover->style_element);
+            render_interface_interupt(current_hover->render_interface);
 
             update_transition_timestamp(current_hover, drag_release.x, drag_release.y);
             drag_release.timestamp = transition_timestamp;
 
-            render_interface_push_keyframe(current_hover->style_element, &drag_release);
+            render_interface_push_keyframe(current_hover->render_interface, &drag_release);
 
             if (current_drop)
             {
@@ -636,7 +649,7 @@ void widget_screen_to_local(const struct widget_interface* const widget, double*
     float _x = *x;
     float _y = *y;
 
-    keyframe_build_transform(&widget->style_element->current, &transform);
+    keyframe_build_transform(&widget->render_interface->current, &transform);
 
     // WARNING: the inbuilt invert only works for 2D transforms
     if (1)
@@ -697,7 +710,7 @@ static int set_keyframe(lua_State* L)
     keyframe_default(&keyframe);
     read_transform(L, &keyframe);
 
-    render_interface_set(widget->style_element, &keyframe);
+    render_interface_set(widget->render_interface, &keyframe);
 
     return 0;
 }
@@ -713,7 +726,7 @@ static int set_keyframes(lua_State* L)
     keyframe_default(&keyframe);
     read_transform(L, &keyframe);
 
-    render_interface_set(widget->style_element, &keyframe);
+    render_interface_set(widget->render_interface, &keyframe);
     
     lua_settop(L,-2);
 
@@ -726,7 +739,7 @@ static int set_keyframes(lua_State* L)
 
         lua_settop(L, -2);
 
-        render_interface_push_keyframe(widget->style_element, &keyframe);
+        render_interface_push_keyframe(widget->render_interface, &keyframe);
         
         lua_geti(L, -1, i);
     }
@@ -738,7 +751,7 @@ static int set_keyframes(lua_State* L)
 static int current_keyframe(lua_State* L)
 {
     struct widget_interface* const widget = (struct widget_interface*)luaL_checkudata(L, -2, "widget_mt");
-    const struct keyframe* const keyframe = &widget->style_element->current;
+    const struct keyframe* const keyframe = &widget->render_interface->current;
 
     write_transform(L, keyframe);
 
@@ -751,7 +764,7 @@ static int destination_keyframe(lua_State* L)
     struct widget_interface* const widget = (struct widget_interface*)luaL_checkudata(L, -2, "widget_mt");
 
     struct keyframe keyframe;
-    render_interface_copy_destination(widget->style_element, &keyframe);
+    render_interface_copy_destination(widget->render_interface, &keyframe);
 
     write_transform(L, &keyframe);
 
@@ -769,7 +782,7 @@ static int new_keyframe(lua_State* L)
 
 	read_transform(L,&keyframe);
 
-    render_interface_push_keyframe(widget->style_element, &keyframe);
+    render_interface_push_keyframe(widget->render_interface, &keyframe);
 	return 0;
 }
 
@@ -778,7 +791,7 @@ static int interupt(lua_State* L)
 {
     struct widget_interface* const widget = (struct widget_interface*)luaL_checkudata(L, -1, "widget_mt");
 
-    render_interface_interupt(widget->style_element);
+    render_interface_interupt(widget->render_interface);
 
     return 0;
 }
@@ -789,7 +802,7 @@ static int enter_loop(lua_State* L)
     struct widget_interface* const widget = (struct widget_interface*)luaL_checkudata(L, -2, "widget_mt");
     const double looping_offset = luaL_checknumber(L, -1);
 
-    render_interface_enter_loop(widget->style_element, looping_offset);
+    render_interface_enter_loop(widget->render_interface, looping_offset);
 
     return 0;
 }
@@ -1050,7 +1063,7 @@ struct widget_interface* widget_interface_new(
     *widget = (struct widget)
     {
         .upcast = upcast,
-        .style_element = render_interface_new(1),
+        .render_interface = render_interface_new(1),
 
         .jump_table = jump_table,
 
@@ -1077,9 +1090,25 @@ struct widget_interface* widget_interface_new(
     // If a table is avalible, treat it like a init table
     if (LUA_TTABLE == lua_type(L, -2))
     {
+        // Put the table on top and the udata widget bellow it
         lua_rotate(L, -2, 1);
+
+        // Process keyframes
         set_keyframe(L);
-        lua_pop(L, 1);
+
+        // Read Width
+        lua_getfield(L, -1, "width");
+
+        if (lua_isnumber(L, -1))
+            widget->render_interface->half_width = 0.5 * luaL_checknumber(L, -1);
+  
+        // Read Height
+        lua_getfield(L, -2, "height");
+
+        if (lua_isnumber(L, -1))
+            widget->render_interface->half_height = 0.5 * luaL_checknumber(L, -1);
+
+        lua_pop(L, 3);
     }
 
     // Wire the widget into the queue

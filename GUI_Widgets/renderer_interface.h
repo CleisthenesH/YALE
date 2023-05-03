@@ -36,7 +36,7 @@ enum STYLE_EFFECT_ID
 struct render_interface
 {
 	struct keyframe current;
-	double width, height;
+	double half_width, half_height;
 };
 
 struct render_interface* render_interface_new(size_t);

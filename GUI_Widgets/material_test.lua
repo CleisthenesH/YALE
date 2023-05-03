@@ -4,15 +4,13 @@
 
 -- Runs once after all inializations have ran but before the main loop.
 
-
-
 button = button_new{x=500, y=500, text="Click Me!"}
 
 function button:left_click()
 	print(self, " was clicked!")
 end
 
-text_entry = text_entry_new{x=500, y=700}
+text_entry = text_entry_new{x=500, y=700, width=200}
 
 slider = slider_new{x=500, y=900}
 

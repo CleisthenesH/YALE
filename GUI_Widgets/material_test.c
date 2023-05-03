@@ -86,8 +86,8 @@ int material_test_new(lua_State* L)
 
 	handle->widget_interface->is_draggable = true;
 
-	handle->widget_interface->style_element->width  = 180;
-	handle->widget_interface->style_element->height = 254;
+	handle->widget_interface->render_interface->half_width  = 90;
+	handle->widget_interface->render_interface->half_height = 254.0*0.5;
 
 	return 1;
 }

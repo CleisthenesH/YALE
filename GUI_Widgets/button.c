@@ -23,8 +23,8 @@ struct button
 static void draw(const struct widget_interface* const widget)
 {
 	const struct button* const button = (struct button*) widget->upcast;
-	const double half_width = 0.5 * button->widget_interface->style_element->width;
-	const double half_height = 0.5 * button->widget_interface->style_element->height;
+	const double half_width = button->widget_interface->render_interface->half_width;
+	const double half_height = button->widget_interface->render_interface->half_height;
 
 	al_draw_filled_rounded_rectangle(-half_width, -half_height, half_width, half_height,
 		primary_pallet.edge_radius, primary_pallet.edge_radius,
@@ -43,8 +43,8 @@ static void draw(const struct widget_interface* const widget)
 static void mask(const struct widget_interface* const widget)
 {
 	const struct button* const button = (struct button*)widget->upcast;
-	const double half_width = 0.5 * button->widget_interface->style_element->width;
-	const double half_height = 0.5 * button->widget_interface->style_element->height;
+	const double half_width = button->widget_interface->render_interface->half_width;
+	const double half_height = button->widget_interface->render_interface->half_height;
 
 	al_draw_filled_rounded_rectangle(-half_width, -half_height, half_width, half_height,
 		primary_pallet.edge_radius, primary_pallet.edge_radius,
@@ -113,8 +113,11 @@ int button_new(lua_State* L)
 		.color = primary_pallet.main,
 	};
 
-	button->widget_interface->style_element->width = 16+al_get_text_width(button->font,button->text);
-	button->widget_interface->style_element->height = 50;
+	if(button->widget_interface->render_interface->half_width == 0.0)
+		button->widget_interface->render_interface->half_width = 8+0.5*al_get_text_width(button->font,button->text);
+
+	if(button->widget_interface->render_interface->half_height == 0.0)
+		button->widget_interface->render_interface->half_height = 25;
 
 	return 1;
 }

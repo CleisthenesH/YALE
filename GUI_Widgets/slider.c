@@ -46,8 +46,8 @@ static ALLEGRO_COLOR holder_color(const struct slider* const slider)
 static void draw(const struct widget_interface* const widget)
 {
 	const struct slider* const slider = (struct slider*)widget->upcast;
-	const double half_width = 0.5 * slider->widget_interface->style_element->width;
-	const double half_height = 0.5 * slider->widget_interface->style_element->height;
+	const double half_width = slider->widget_interface->render_interface->half_width;
+	const double half_height = slider->widget_interface->render_interface->half_height;
 
 	al_draw_filled_rounded_rectangle(-half_width, -half_height, half_width, half_height,
 		primary_pallet.edge_radius, primary_pallet.edge_radius,
@@ -68,8 +68,8 @@ static void draw(const struct widget_interface* const widget)
 static void mask(const struct widget_interface* const widget)
 {
 	const struct slider* const slider = (struct slider*)widget->upcast;
-	const double half_width = 0.5 * slider->widget_interface->style_element->width;
-	const double half_height = 0.5 * slider->widget_interface->style_element->height;
+	const double half_width = slider->widget_interface->render_interface->half_width;
+	const double half_height = slider->widget_interface->render_interface->half_height;
 
 	al_draw_filled_rounded_rectangle(-half_width, -half_height, half_width, half_height,
 		primary_pallet.edge_radius, primary_pallet.edge_radius,
@@ -87,7 +87,7 @@ static void update(const struct widget_interface* const widget)
 	double y = mouse_y;
 	widget_screen_to_local(slider->widget_interface, &x, &y);
 
-	slider->progress = x / (slider->widget_interface->style_element->width -2*slider_padding)+  0.5;
+	slider->progress = x / (2*(slider->widget_interface->render_interface->half_width -slider_padding))+  0.5;
 
 	if (slider->progress < 0)
 		slider->progress = 0;
@@ -151,8 +151,11 @@ int slider_new(lua_State* L)
 		.progress = 0.2
 	};
 
-	slider->widget_interface->style_element->width = 700;
-	slider->widget_interface->style_element->height = 50;
+	if(slider->widget_interface->render_interface->half_width)
+		slider->widget_interface->render_interface->half_width = 350;
+
+	if(slider->widget_interface->render_interface->half_height)
+		slider->widget_interface->render_interface->half_height = 25;
 
 	return 1;
 }

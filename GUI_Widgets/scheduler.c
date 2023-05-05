@@ -315,6 +315,13 @@ static void test(void* _)
 void scheduler_init()
 {
 	heap = malloc(sizeof(struct scheduler_interface*));
+
+	if (!heap)
+	{
+		printf("Unable to initalize scheduler heap\n");
+		return;
+	}
+
 	heap[0] = NULL;
 
 	allocated = 1;
@@ -364,7 +371,7 @@ struct scheduler_interface* scheduler_push(double timestamp, void(*funct)(void*)
 {
 	if (allocated <= used)
 	{
-		const size_t new_cnt = 1.2 * allocated+1;
+		const size_t new_cnt = 2*allocated +1;
 
 		struct scheduler_interface** memsafe_hande = realloc(heap, new_cnt * sizeof(struct scheduler_interface*));
 

@@ -12,7 +12,7 @@
 struct hash_data;
 
 struct hash_data* calc_hash_data(const char* [], uint8_t*);
-uint8_t hash(struct hash_data*, const char*);
+uint8_t hash(const struct hash_data*, const char*);
 
 // add a safe call or lua integration
 

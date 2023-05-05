@@ -10,7 +10,7 @@ extern double current_timestamp;
 
 struct particle
 {
-	struct particle_jumptable* jumptable;
+	const struct particle_jumptable* jumptable;
 	void* data;
 	double start_timestamp;
 	double end_timestamp;
@@ -36,13 +36,19 @@ struct particle_bin* particle_bin_new(size_t inital_size)
 		struct particle_bin** memsafe_hande = realloc(list, new_cnt * sizeof(struct particle_bin*));
 
 		if (!memsafe_hande)
-			return;
+			return NULL;
 
 		list = memsafe_hande;
 		allocated = new_cnt;
 	}
 
 	struct particle_bin* bin = list[used++] = malloc(sizeof(struct particle_bin));
+
+	if (!bin)
+	{
+		used--;
+		return NULL;
+	}
 
 	*bin = (struct particle_bin)
 	{
@@ -54,7 +60,7 @@ struct particle_bin* particle_bin_new(size_t inital_size)
 	return bin;
 }
 
-void particle_bin_append(struct particle_bin* bin, const struct particle_jumptable* const jumptable, void* data, double end_timestamp)
+void particle_bin_append(struct particle_bin* bin, const struct particle_jumptable* jumptable, void* data, double end_timestamp)
 {
 	if (bin->particles_allocated <= bin->particles_used)
 	{

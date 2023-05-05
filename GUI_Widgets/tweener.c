@@ -290,7 +290,7 @@ void tweener_plot(struct tweener* const tweener,
 	for (size_t i = 0; i < steps; i++)
 	{
 		const double timestamp = start + step_size * ((double)i);
-		const double* new_point = tweener_new_point(tweener);
+		double* new_point = tweener_new_point(tweener);
 
 		funct(timestamp, new_point, udata);
 	}

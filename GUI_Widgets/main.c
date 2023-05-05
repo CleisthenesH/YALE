@@ -75,10 +75,12 @@ ALLEGRO_EVENT current_event;
 double current_timestamp;
 double delta_timestamp;
 
-const ALLEGRO_TRANSFORM identity_transform;
-const ALLEGRO_FONT* debug_font; 
-
-const lua_State* main_lua_state;
+// TODO: find a way to make debug_font's type "const ALLEGRO_FONT* const"
+//          main_lua_state's type "lua_State* const"
+//          identity_transform type "const ALLEGRO_TRANSFORM
+ALLEGRO_TRANSFORM identity_transform;
+ALLEGRO_FONT* debug_font; 
+lua_State* main_lua_state;
 
 // Initalze the lua enviroment.
 static inline int lua_init()
@@ -405,7 +407,7 @@ int main()
     widget_engine_init(main_lua_state);
 
     // Run the boot script
-    if(1)
+    if(0)
         main_state_dofile("boot.lua");
     else
         main_state_dofile("material_test.lua");

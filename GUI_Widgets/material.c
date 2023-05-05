@@ -99,7 +99,7 @@ void material_apply(const struct material* const material)
 
 	al_set_blender(ALLEGRO_ADD, ALLEGRO_ONE, ALLEGRO_INVERSE_ALPHA);
 
-	char* ptr = material;
+	const char* ptr = (const char*) material;
 	ptr += sizeof(struct material);
 	float* cast;
 

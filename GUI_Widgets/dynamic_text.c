@@ -18,7 +18,10 @@ struct dynamic_text
 {
 	ALLEGRO_FONT* font;
 	enum dynamic_text_animation animation_id;
-	const char* text; // TODO: Flexable memeber array?
+	// TODO: Flexable memeber array?
+	// TODO: find a way to make text's type "const char*"
+	//		(String manipulation is the worst part of c by far)
+	char* text; 
 	double scale;
 	double x, y;
 };
@@ -67,7 +70,7 @@ static void dynamic_text_animation_worm_(const struct dynamic_text* const dynami
 static void dynamic_text_animation_worm(const struct dynamic_text* const dynamic_text, double timestamp)
 {
 	
-	char* buffer = dynamic_text->text;
+	const char* buffer = dynamic_text->text;
 	float xadvance = 0;
 
 	while (*buffer)
@@ -84,7 +87,7 @@ static void dynamic_text_animation_worm(const struct dynamic_text* const dynamic
 static void dynamic_text_animation_wave(const struct dynamic_text* const dynamic_text, double timestamp)
 {
 
-	char* buffer = dynamic_text->text;
+	const char* buffer = dynamic_text->text;
 	float xadvance = 0;
 
 	while (*buffer)
@@ -128,7 +131,7 @@ static dynamic_text_update(void* data, double timestamp)
 
 static dynamic_text_gc(void* data)
 {
-	const struct dynamic_text* const dynamic_text = (const struct dynamic_text* const)data;
+	struct dynamic_text* const dynamic_text = (struct dynamic_text* const)data;
 
 	free(dynamic_text->text);
 	free(dynamic_text);

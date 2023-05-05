@@ -6,6 +6,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifdef HASH_DEBUG
+#include <stdio.h>
+#endif
+
 /* There is a problem with this implimentation.
  * Because of how function names are written we don't actually have as much varity as it might look, making a singular matrix likely:
  * 
@@ -211,7 +215,9 @@ static void inline augmented_matrix_gaussian_elimination(struct augmented_matrix
 		// The ith column is a linear combination of the previous rows so the matrix is singular
 		if (leading_val == 0)
 		{
-			printf("CRITICAL ERROR: matrix is singular\n");
+#ifdef HASH_DEBUG
+			printf("CRITICAL ERROR: matrix is singular\n"); 
+#endif
 			return;	
 		}
 

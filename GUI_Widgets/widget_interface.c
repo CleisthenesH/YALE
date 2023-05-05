@@ -62,7 +62,7 @@ enum WIDGET_UPVALUE
 struct widget
 {
 	struct widget_interface;
-    struct widget_jump_table* jump_table;
+    const struct widget_jump_table* jump_table;
 
     struct widget* next;
     struct widget* previous;
@@ -252,7 +252,7 @@ void widget_interface_move(struct widget_interface* mover, struct widget_interfa
 // Lua wrapper for the widget_interface_move
 static int widget_move_lua(lua_State* L)
 {
-    const struct widget* const mover = (struct widget*)luaL_checkudata(L, -2, "widget_mt");
+    struct widget_interface* const mover = (struct widget_interface*)luaL_checkudata(L, -2, "widget_mt");
 
     if (mover)
     {
@@ -260,7 +260,7 @@ static int widget_move_lua(lua_State* L)
             widget_interface_move(mover, NULL);
         else
         {
-            const struct widget* const target = (struct widget*)luaL_checkudata(L, -1, "widget_mt");
+            struct widget_interface* const target = (struct widget_interface*)luaL_checkudata(L, -1, "widget_mt");
             widget_interface_move(mover, target);
         }
     }
@@ -343,7 +343,7 @@ static inline struct widget* widget_engine_pick(int x, int y)
         widget_engine_state == ENGINE_STATE_TO_DRAG;
 
     if (hide_hover)
-        widget_interface_pop(current_hover);
+        widget_interface_pop((struct widget_interface*) current_hover);
 
     for (struct widget* widget = queue_head; widget; widget = widget->next, picker_index++)
     {
@@ -362,7 +362,7 @@ static inline struct widget* widget_engine_pick(int x, int y)
     }
 
     if (hide_hover)
-        widget_interface_insert(current_hover, current_hover->next);
+        widget_interface_insert((struct widget_interface*) current_hover, (struct widget_interface*) current_hover->next);
 
     al_set_target_bitmap(original_bitmap);
 
@@ -689,7 +689,7 @@ static void inline read_transform(lua_State* L, struct keyframe* keyframe)
 }
 
 // Write a transform from a pointer to the top of the stack
-static void inline write_transform(lua_State* L, struct keyframe* keyframe)
+static void inline write_transform(lua_State* L, const struct keyframe* const keyframe)
 {
     // optimize for tail call? or is inline enough
     lua_createtable(L, 0, 8);
@@ -1050,8 +1050,8 @@ void widget_engine_init(lua_State* L)
 // Consumes a table, if given
 struct widget_interface* widget_interface_new(
     lua_State* L,
-    const void* const upcast,
-    const struct widget_jump_table* const jump_table)
+    void* upcast,
+    const struct widget_jump_table* jump_table)
 {
     const size_t widget_size = sizeof(struct widget);
 
@@ -1062,13 +1062,16 @@ struct widget_interface* widget_interface_new(
 
     *widget = (struct widget)
     {
+        
         .upcast = upcast,
+        
         .render_interface = render_interface_new(1),
 
         .jump_table = jump_table,
 
 #define CLEAR_LUA_REFNIL(method,...) .lua. ## method = LUA_REFNIL,
         FOR_CALLBACKS(CLEAR_LUA_REFNIL)
+        
 
         .next = NULL,
         .previous = queue_tail,

@@ -62,8 +62,9 @@ static ALLEGRO_BITMAP* character_art_table[CHARACTER_ART_ID_COUNT] = {NULL};
 // Currently ignores kerling and xoffset
 static ALLEGRO_FONT* emily_huo_font(lua_State* lua, const char* font_name)
 {
-	char file_name_buffer[256] = "res/fonts/";
+	char file_name_buffer[256];
 
+	strcpy_s(file_name_buffer, 256, "res/fonts/");
 	strcat_s(file_name_buffer, 256, font_name);
 	strcat_s(file_name_buffer, 256, ".png");
 
@@ -209,7 +210,7 @@ static ALLEGRO_FONT* emily_huo_font(lua_State* lua, const char* font_name)
 
 	int ranges[2] = { 32,126 };
 
-	const ALLEGRO_FONT* const output = al_grab_font_from_bitmap(bitmap_font, 1, ranges);
+	ALLEGRO_FONT* output = al_grab_font_from_bitmap(bitmap_font, 1, ranges);
 
 	al_destroy_bitmap(bitmap);
 	al_destroy_bitmap(bitmap_font);

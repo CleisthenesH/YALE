@@ -43,6 +43,7 @@ struct widget_jump_table
 struct widget_interface
 {
 	struct render_interface* render_interface;
+	// TODO: Refactor to make upcast's type void* const
 	void* upcast;
 
 	bool is_draggable;

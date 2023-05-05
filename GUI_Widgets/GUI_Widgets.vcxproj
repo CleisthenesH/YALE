@@ -224,6 +224,7 @@
     <ClInclude Include="thread_pool.h" />
     <ClInclude Include="tweener.h" />
     <ClInclude Include="widget_interface.h" />
+    <ClInclude Include="widget_interface_stddefs.h" />
     <ClInclude Include="widget_style_sheet.h" />
   </ItemGroup>
   <ItemGroup>

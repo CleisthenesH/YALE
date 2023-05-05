@@ -10,7 +10,7 @@
 #include <allegro5/allegro_font.h>
 #include "allegro5/allegro_primitives.h"
 
-extern ALLEGRO_FONT* test_font;
+#define WIDGET_TYPE button
 
 struct button
 {
@@ -20,11 +20,9 @@ struct button
 	ALLEGRO_COLOR color;
 };
 
-static void draw(const struct widget_interface* const widget)
+WG_DECL_DRAW
 {
-	const struct button* const button = (struct button*) widget->upcast;
-	const double half_width = button->widget_interface->render_interface->half_width;
-	const double half_height = button->widget_interface->render_interface->half_height;
+	WG_CAST_DRAW
 
 	al_draw_filled_rounded_rectangle(-half_width, -half_height, half_width, half_height,
 		primary_pallet.edge_radius, primary_pallet.edge_radius,
@@ -40,32 +38,30 @@ static void draw(const struct widget_interface* const widget)
 		primary_pallet.edge, primary_pallet.edge_width);
 }
 
-static void mask(const struct widget_interface* const widget)
+WG_DECL_MASK
 {
-	const struct button* const button = (struct button*)widget->upcast;
-	const double half_width = button->widget_interface->render_interface->half_width;
-	const double half_height = button->widget_interface->render_interface->half_height;
+	WG_CAST_DRAW
 
 	al_draw_filled_rounded_rectangle(-half_width, -half_height, half_width, half_height,
 		primary_pallet.edge_radius, primary_pallet.edge_radius,
 		al_map_rgb(255, 255, 255));
 }
 
-static void hover_start(struct widget_interface* const widget)
+WG_DECL(hover_start)
 {
-	struct button* const button = (struct button*)widget->upcast;
+	WG_CAST
 
 	button->color = primary_pallet.highlight;
 }
 
-static void hover_end(struct widget_interface* const widget)
+WG_DECL(hover_end)
 {
-	struct button* const button = (struct button*)widget->upcast;
+	WG_CAST
 
 	button->color = primary_pallet.main;
 }
 
-static const struct widget_jump_table button_jump_table_entry =
+WG_JMP_TBL
 {
 	.draw = draw,
 
@@ -76,13 +72,8 @@ static const struct widget_jump_table button_jump_table_entry =
 	.hover_end = hover_end,
 };
 
-int button_new(lua_State* L)
+WG_DECL_NEW
 {
-	struct button* const button = malloc(sizeof(struct button));
-
-	if (!button)
-		return 0;
-
 	char* text = NULL;
 
 	if (lua_istable(L, -1))
@@ -92,10 +83,14 @@ int button_new(lua_State* L)
 		if (lua_isstring(L, -1))
 		{
 			size_t text_len;
-			char* buffer = lua_tolstring(L, -1, &text_len);
+			const char* buffer = lua_tolstring(L, -1, &text_len);
 
 			text = malloc(sizeof(char) * (text_len + 1));
-			strcpy_s(text, text_len + 1, buffer);
+
+			if (text)
+				strcpy_s(text, text_len + 1, buffer);
+			else
+				text = "Error Placeholder";
 		}
 		else
 		{
@@ -105,19 +100,15 @@ int button_new(lua_State* L)
 		lua_pop(L, 1);
 	}
 
-	*button = (struct button)
+	WG_NEW
 	{
-		.widget_interface = widget_interface_new(L,button,&button_jump_table_entry),
+		WG_NEW_HEADER,
 		.font = resource_manager_font(FONT_ID_SHINYPEABERRY),
 		.text = text,
 		.color = primary_pallet.main,
 	};
 
-	if(button->widget_interface->render_interface->half_width == 0.0)
-		button->widget_interface->render_interface->half_width = 8+0.5*al_get_text_width(button->font,button->text);
-
-	if(button->widget_interface->render_interface->half_height == 0.0)
-		button->widget_interface->render_interface->half_height = 25;
+	WIDGET_MIN_DIMENSIONS(8 + 0.5 * al_get_text_width(button->font, button->text), 25)
 
 	return 1;
 }

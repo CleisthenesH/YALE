@@ -10,7 +10,7 @@ function button:left_click()
 	print(self, " was clicked!")
 end
 
-text_entry = text_entry_new{x=500, y=700, width=200}
+text_entry = text_entry_new{x=500, y=700}
 
 slider = slider_new{x=500, y=900}
 

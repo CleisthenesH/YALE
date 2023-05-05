@@ -13,6 +13,8 @@
 
 extern ALLEGRO_EVENT current_event;
 
+#define WIDGET_TYPE text_entry
+
 struct text_entry {
 	struct widget_interface* widget_interface;
 
@@ -31,12 +33,9 @@ struct text_entry {
 	void (*on_enter)(void*);
 };
 
-static void draw(const struct widget_interface* const widget)
+WG_DECL_DRAW
 {
-	const struct text_entry* const text_entry = (const struct text_entry* const)widget->upcast;
-	const double half_width = text_entry->widget_interface->render_interface->half_width;
-	const double half_height = text_entry->widget_interface->render_interface->half_height;
-
+	WG_CAST_DRAW
 	const double text_left_padding = 10;
 
 	// Clear the stencil buffer channels
@@ -84,20 +83,18 @@ static void draw(const struct widget_interface* const widget)
 		primary_pallet.edge, primary_pallet.edge_width);
 }
 
-static void mask(const struct widget_interface* const widget)
+WG_DECL_MASK
 {
-	const struct text_entry* const text_entry = (const struct text_entry* const)widget->upcast;
-	const double half_width = text_entry->widget_interface->render_interface->half_width;
-	const double half_height = text_entry->widget_interface->render_interface->half_height;
+	WG_CAST_DRAW
 
 	al_draw_filled_rectangle(-half_width, -half_height,
 		half_width, half_height, 
 		al_color_name("white"));
 }
 
-static void hover_start(struct widget_interface* widget)
+WG_DECL(hover_start)
 {
-	struct text_entry* const text_entry = (const struct text_entry* const)widget->upcast;
+	WG_CAST
 
 	if (text_entry->state == TEXT_ENTRY_IDLE)
 	{
@@ -105,37 +102,36 @@ static void hover_start(struct widget_interface* widget)
 	}
 }
 
-static void hover_end(struct widget_interface* widget)
+WG_DECL(hover_end)
 {
-	struct text_entry* const text_entry = (const struct text_entry* const)widget->upcast;
+	WG_CAST
 	if (text_entry->state == TEXT_ENTRY_HOVER)
 	{
 		text_entry->state = TEXT_ENTRY_IDLE;
 	}
 }
 
-static void drag_start(struct widget_interface* widget)
+WG_DECL(drag_start)
 {
-	struct text_entry* const text_entry = (const struct text_entry* const)widget->upcast;
+	WG_CAST
 	text_entry->state = TEXT_ENTRY_ACTIVE;
 }
 
-// Can combine with the previous
-static void left_click(struct widget_interface* widget)
+WG_DECL(left_click)
 {
-	struct text_entry* const text_entry = (const struct text_entry* const)widget->upcast;
+	WG_CAST
 	text_entry->state = TEXT_ENTRY_ACTIVE;
 }
 
-static void click_off(struct widget_interface* widget)
+WG_DECL(click_off)
 {
-	struct text_entry* const text_entry = (const struct text_entry* const)widget->upcast;
+	WG_CAST
 	text_entry->state = TEXT_ENTRY_IDLE;
 }
 
-static void event_handler(struct widget_interface* widget)
+WG_DECL(event_handler)
 {
-	struct text_entry* const text_entry = (const struct text_entry* const)widget->upcast;
+	WG_CAST
 	ALLEGRO_EVENT* ev = &current_event;
 
 	if (text_entry->state != TEXT_ENTRY_ACTIVE)
@@ -214,7 +210,7 @@ static void event_handler(struct widget_interface* widget)
 	}
 }
 
-static const struct widget_jump_table text_entry_jump_table_entry =
+WG_JMP_TBL
 {
 	.draw = draw,
 	.mask = mask,
@@ -227,15 +223,11 @@ static const struct widget_jump_table text_entry_jump_table_entry =
 	.click_off = click_off
 };
 
-int text_entry_new(lua_State* L)
+WG_DECL_NEW
 {
-	struct text_entry* ptr = malloc(sizeof(struct text_entry));
-
-	if (!ptr)
-		return 0;
-
-	*ptr = (struct text_entry){
-		.widget_interface = widget_interface_new(L,ptr,&text_entry_jump_table_entry),
+	WG_NEW
+	{ 
+		WG_NEW_HEADER,
 		.state = TEXT_ENTRY_IDLE,
 		.input_size = 0,
 		.input = "",
@@ -243,13 +235,8 @@ int text_entry_new(lua_State* L)
 
 		.font = resource_manager_font(FONT_ID_SHINYPEABERRY),
 	};
-
-	if(ptr->widget_interface->render_interface->half_width == 0)
-		ptr->widget_interface->render_interface->half_width = 300;
-
-	if(ptr->widget_interface->render_interface->half_height == 0)
-		ptr->widget_interface->render_interface->half_height = 20;
-
+	
+	WIDGET_MIN_DIMENSIONS(300,20)
+	
 	return 1;
 }
-

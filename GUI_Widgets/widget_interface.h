@@ -4,6 +4,7 @@
 #pragma once
 
 #include "renderer_interface.h"
+#include "widget_interface_stddefs.h"
 
 #include "lua/lua.h"
 #include "lua/lualib.h"

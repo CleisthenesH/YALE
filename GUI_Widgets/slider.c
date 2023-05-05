@@ -9,6 +9,8 @@
 #include <allegro5/allegro_font.h>
 #include "allegro5/allegro_primitives.h"
 
+#define WIDGET_TYPE slider
+
 extern ALLEGRO_FONT* test_font;
 extern double mouse_x;
 extern double mouse_y;
@@ -43,11 +45,9 @@ static ALLEGRO_COLOR holder_color(const struct slider* const slider)
 	}
 }
 
-static void draw(const struct widget_interface* const widget)
+WG_DECL_DRAW
 {
-	const struct slider* const slider = (struct slider*)widget->upcast;
-	const double half_width = slider->widget_interface->render_interface->half_width;
-	const double half_height = slider->widget_interface->render_interface->half_height;
+	WG_CAST_DRAW
 
 	al_draw_filled_rounded_rectangle(-half_width, -half_height, half_width, half_height,
 		primary_pallet.edge_radius, primary_pallet.edge_radius,
@@ -65,29 +65,28 @@ static void draw(const struct widget_interface* const widget)
 		primary_pallet.edge, primary_pallet.edge_width);
 }
 
-static void mask(const struct widget_interface* const widget)
+WG_DECL_MASK
 {
-	const struct slider* const slider = (struct slider*)widget->upcast;
-	const double half_width = slider->widget_interface->render_interface->half_width;
-	const double half_height = slider->widget_interface->render_interface->half_height;
+	WG_CAST_DRAW
 
 	al_draw_filled_rounded_rectangle(-half_width, -half_height, half_width, half_height,
 		primary_pallet.edge_radius, primary_pallet.edge_radius,
 		al_map_rgb(255,255,255));
 }	
 
-static void update(const struct widget_interface* const widget)
+WG_DECL(update)
 {
-	 struct slider* const slider = (struct slider*)widget->upcast;
-
-	 if (slider->state != UPDATE)
+	WG_CAST
+	
+	if (slider->state != UPDATE)
 		 return;
 
+	WG_DIMENSIONS
 	double x = mouse_x;
 	double y = mouse_y;
 	widget_screen_to_local(slider->widget_interface, &x, &y);
 
-	slider->progress = x / (2*(slider->widget_interface->render_interface->half_width -slider_padding))+  0.5;
+	slider->progress = x / (2*(half_width - slider_padding))+  0.5;
 
 	if (slider->progress < 0)
 		slider->progress = 0;
@@ -95,35 +94,35 @@ static void update(const struct widget_interface* const widget)
 		slider->progress = 1;
 }
 
-static void left_click(const struct widget_interface* const widget)
+WG_DECL(left_click)
 {
-	struct slider* const slider = (struct slider*)widget->upcast;
+	WG_CAST
 	slider->state = UPDATE;
 }
 
-static void left_click_end(const struct widget_interface* const widget)
+WG_DECL(left_click_end)
 {
-	struct slider* const slider = (struct slider*)widget->upcast;
+	WG_CAST
 	slider->state = IDLE;
 }
 
-static void hover_start(struct widget_interface* widget)
+WG_DECL(hover_start)
 {
-	struct slider* const slider = (struct slider*)widget->upcast;
+	WG_CAST
 
 	if (slider->state == IDLE)
 		slider->state = HOVER;
 }
 
-static void hover_end(struct widget_interface* widget)
+WG_DECL(hover_end)
 {
-	struct slider* const slider = (struct slider*)widget->upcast;
+	WG_CAST
 
 	if (slider->state == HOVER)
 		slider->state = IDLE;
 }
 
-static const struct widget_jump_table slider_jump_table_entry =
+WG_JMP_TBL
 {
 	.draw = draw,
 	.mask = mask,
@@ -136,26 +135,17 @@ static const struct widget_jump_table slider_jump_table_entry =
 	.hover_end = hover_end,
 };
 
-int slider_new(lua_State* L)
+WG_DECL_NEW
 {
-	struct slider* const slider = malloc(sizeof(struct slider));
-
-	if (!slider)
-		return 0;
-
-	*slider = (struct slider)
+	WG_NEW
 	{
-		.widget_interface = widget_interface_new(L,slider,&slider_jump_table_entry),
+		WG_NEW_HEADER,
 		.start = 0,
 		.end = 100,
 		.progress = 0.2
 	};
 
-	if(slider->widget_interface->render_interface->half_width)
-		slider->widget_interface->render_interface->half_width = 350;
-
-	if(slider->widget_interface->render_interface->half_height)
-		slider->widget_interface->render_interface->half_height = 25;
+	WIDGET_MIN_DIMENSIONS(350, 25)
 
 	return 1;
 }

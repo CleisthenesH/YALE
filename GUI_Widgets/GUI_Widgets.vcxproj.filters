@@ -353,6 +353,9 @@
     <ClInclude Include="dynamic_text.h">
       <Filter>particles</Filter>
     </ClInclude>
+    <ClInclude Include="widget_interface_stddefs.h">
+      <Filter>core\widget_interface</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

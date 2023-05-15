@@ -23,6 +23,7 @@
 #include "lua/lauxlib.h"
 #include "lua/lualib.h"
 
+
 // Thread Pool includes
 #include "thread_pool.h"
 void thread_pool_init(size_t);
@@ -327,13 +328,13 @@ static inline void empty_event_queue()
     al_flip_display();
 }
 
-// Error call   
-static inline void main_state_dofile(const char* file_name)
+// Wraps the lua_dofile with some error reporting
+static inline int lua_dofile_wrapper(const char* file_name)
 {
     int error = luaL_dofile(main_lua_state, file_name);
 
     if (error == LUA_OK)
-        return;
+        return LUA_OK;
 
     printf("While running file % s an error of type: \"", file_name);
 
@@ -364,9 +365,31 @@ static inline void main_state_dofile(const char* file_name)
     const char* error_message = luaL_checkstring(main_lua_state, -1);
 
     printf("\" occurred\n\t%s\n\n", error_message);
+
+    return error;
 }
 
-// Main
+// Resolve and Run a bootfile based on main_lua_state
+static inline void lua_boot_file()
+{
+    lua_getglobal(main_lua_state, "boot_file");
+
+    if (lua_isstring(main_lua_state, -1))
+    {
+        const char* boot_file = luaL_checkstring(main_lua_state, -1);
+
+        lua_dofile_wrapper(boot_file);
+
+        lua_pushnil(main_lua_state);
+        lua_setglobal(main_lua_state, "boot_file");
+    }
+    else
+    {
+        lua_dofile_wrapper("boot.lua");
+    }
+
+    lua_pop(main_lua_state, 1);
+}
 
 /* System Dependency :
 *       |-------------(Only config.lua )-------------> ALLEGRO
@@ -382,22 +405,21 @@ static inline void main_state_dofile(const char* file_name)
 *       |---------------------> (            Widget Interface         )
 */
 
+// Main
 int main()
 {
     // Init Lua first so we can read a config file to inform later inits
     lua_init();
-    main_state_dofile("config.lua");
+    lua_dofile_wrapper("config.lua");
 
     // Init the Allegro Environment
     allegro_init();
     thread_pool_init(8);
     global_init();
 
-    // Init the independent systems
+    // Init Systems, check dependency graph for order.
     resource_manager_init();
     scheduler_init();
-
-    // Init renderers
     tweener_init();
     particle_engine_init();
     render_interface_init();
@@ -406,11 +428,8 @@ int main()
     widget_style_sheet_init();
     widget_engine_init(main_lua_state);
 
-    // Run the boot script
-    if(0)
-        main_state_dofile("boot.lua");
-    else
-        main_state_dofile("material_test.lua");
+    // Resolve and Read Boot File
+    lua_boot_file();
 
     // Main loop
     while (!do_exit)

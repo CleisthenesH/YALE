@@ -39,8 +39,6 @@ static void draw(const struct piece* const checker)
 	al_draw_filled_circle(0, 0, 40, al_map_rgb_f(0.7, 0, 0));
 
 	material_apply(NULL);
-
-	//render_interface_draw_particles(checker->widget_interface->render_interface);
 }
 
 static void mask(const struct piece* const checker)
@@ -64,7 +62,8 @@ struct piece* checker_new(lua_State* L)
 
 	struct piece* piece = piece_new(L, NULL, &checker_table);
 
-	//render_interface_particle_new(piece->widget_interface->render_interface, particle, 3,0);
+	piece->widget_interface->render_interface->half_width = 50;
+	piece->widget_interface->render_interface->half_height = 50;
 
 	return piece;
 }

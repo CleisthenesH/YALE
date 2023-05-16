@@ -73,8 +73,7 @@ local a = manager.pieces["id2"].zones
 
 widgets.move(manager.pieces["id1"],nil)
 
-test_button = button_new()
-test_button:set_keyframe{x=1100,y=500}
+test_button = button_new{x=1100,y=500,text="Manual Move"}
 
 function test_button.left_click()
 	manager:move("id1",4)

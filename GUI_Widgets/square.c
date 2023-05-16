@@ -69,5 +69,10 @@ struct zone* square_new(lua_State* L)
 		lua_pop(L, 1);
 	}
 
-	return zone_new(L, square, &square_table);
+	struct zone* zone = zone_new(L, square, &square_table);
+
+	zone->widget_interface->render_interface->half_width = 50;
+	zone->widget_interface->render_interface->half_height = 50;
+
+	return zone;
 }

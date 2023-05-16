@@ -13,7 +13,7 @@ struct particle
 	const struct particle_jumptable* jumptable;
 	void* data;
 	double start_timestamp;
-	double end_timestamp;
+	double end_timestamp; // TODO: Incorporate the scheduler?
 };
 
 struct particle_bin
@@ -106,6 +106,7 @@ static void particle_update_work(struct particle* particle)
 
 static void particle_bin_update_work(struct particle_bin* bin)
 {
+	// TODO: optimize and clean-up pointer arithmetic (i is actually used in the loop, so maybe not)
 	if (0)
 	{
 		for (size_t i = 0; i < bin->particles_used; i++)
@@ -145,9 +146,11 @@ struct work_queue* particle_engine_update()
 {
 	struct work_queue* work_queue = work_queue_create();
 
-	for(size_t i = 0; i< used; i++)
-		if(list[i]->particles_used > 0)
-			work_queue_push(work_queue, particle_bin_update_work, list[i]);
+	for (struct particle_bin** p = list;
+		p != (used ? list + used : list);
+		p++)
+		if((*p)->particles_used)
+			work_queue_push(work_queue, particle_bin_update_work, *p);
 
 	return work_queue;
 }

@@ -136,8 +136,10 @@ struct work_queue* render_interface_update()
 {
 	struct work_queue* work_queue = work_queue_create();
 
-	for (size_t i = 0; i < used; i++)
-		work_queue_push(work_queue, render_interface_update_work, list + i);
+	for(struct render_interface_internal* p = list;
+		p != (used ? list + used : list);
+		p++)
+		work_queue_push(work_queue, render_interface_update_work, p);
 
 	return work_queue;
 }

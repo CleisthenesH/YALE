@@ -192,12 +192,14 @@ struct work_queue* tweener_update()
 {
 	struct work_queue* work_queue = work_queue_create();
 
-	for (size_t i = 0; i < tweeners_used; i++)
-		if (tweeners_list[i].used > 1)
-			if(tweeners_list[i].looping_time > 0)
-				work_queue_push(work_queue, tweener_blend_looping, tweeners_list + i);
+	for (struct tweener* p = tweeners_list;
+		p != (tweeners_used ? tweeners_list + tweeners_used : tweeners_list);
+		p++)
+		if (p->used > 1)
+			if(p->looping_time > 0)
+				work_queue_push(work_queue, tweener_blend_looping, p);
 			else
-				work_queue_push(work_queue, tweener_blend_nonlooping, tweeners_list + i);
+				work_queue_push(work_queue, tweener_blend_nonlooping, p);
 
 	return work_queue;
 }

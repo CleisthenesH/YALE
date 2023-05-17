@@ -69,6 +69,11 @@ static ALLEGRO_BITMAP* easy_background;
 #include "material.h"
 #endif
 
+// A simple FPS Monitor
+#ifdef EASY_FPS
+static double last_render_timestamp;
+#endif
+
 // These varitables are keep seperate from their normal use so they don't change during processing  
 // Also allows custom mapping on things like mouse or add a slow down factor for timestamps
 double mouse_x, mouse_y;
@@ -241,6 +246,10 @@ static inline void global_init()
 
     do_exit = false;
     current_timestamp = al_get_time();
+
+#ifdef EASY_FPS
+    last_render_timestamp = current_timestamp;
+#endif
 }
 
 // Process the current event.
@@ -321,7 +330,8 @@ static inline void empty_event_queue()
 #ifdef EASY_FPS
     al_use_transform(&identity_transform);
     material_apply(NULL);
-    al_draw_textf(debug_font, al_map_rgb_f(0, 1, 0), 0, 0, 0, "FPS:%lf",1/delta_timestamp);
+    al_draw_textf(debug_font, al_map_rgb_f(0, 1, 0), 0, 0, 0, "FPS:%lf",1.0/(current_timestamp-last_render_timestamp));
+    last_render_timestamp = current_timestamp;
 #endif
 
     // Flip
@@ -435,6 +445,7 @@ int main()
     while (!do_exit)
     {
         // Update globals
+        // Mixes in delta time between empty queue and event processing
         delta_timestamp = al_get_time() - current_timestamp;
         current_timestamp += delta_timestamp;
 

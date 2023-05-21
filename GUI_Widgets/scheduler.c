@@ -8,6 +8,8 @@
 
 #include <stdlib.h>
 
+#include "allegro5/allegro.h"
+
 #include "lua/lua.h"
 #include "lua/lualib.h"
 #include "lua/lauxlib.h"
@@ -27,6 +29,8 @@ struct scheduler_interface
 static struct scheduler_interface** heap;
 static size_t allocated;
 static size_t used;
+
+static ALLEGRO_EVENT_SOURCE scheduler_event_source;
 
 extern double current_timestamp;
 extern lua_State* main_lua_state;
@@ -312,14 +316,14 @@ static void test(void* _)
 #endif
 
 // Initalize the scheduler
-void scheduler_init()
+ALLEGRO_EVENT_SOURCE* scheduler_init()
 {
 	heap = malloc(sizeof(struct scheduler_interface*));
 
 	if (!heap)
 	{
 		printf("Unable to initalize scheduler heap\n");
-		return;
+		return NULL;
 	}
 
 	heap[0] = NULL;
@@ -362,6 +366,10 @@ void scheduler_init()
 
 	scheduler_change_timestamp(handle, 10, 0);
 #endif
+
+	al_init_user_event_source(&scheduler_event_source);
+
+	return &scheduler_event_source;
 }
 
 // Public Scheduler Interface
@@ -429,4 +437,25 @@ void scheduler_change_timestamp(struct scheduler_interface* item, double time, i
 
 	item->timestamp += time;
 	heap_heapify(node);
+}
+
+// Check the current timers and generate any relevent events
+void scheduler_generate_events()
+{
+	const double _current_time = al_current_time();
+
+	while (heap[0] && heap[0]->timestamp < _current_time)
+	{
+		ALLEGRO_EVENT ev;
+		ev.type = ALLEGRO_GET_EVENT_TYPE('T', 'I', 'M', 'E');
+		ev.user.data1 = (intptr_t) heap[0]->funct;
+		ev.user.data2 = (intptr_t) heap[0]->data;
+
+		al_emit_user_event(&scheduler_event_source, &ev, NULL);
+
+		scheduler_free_node(0);
+
+		heap_pop();
+	}
+
 }

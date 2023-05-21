@@ -54,8 +54,8 @@ void board_manager_init(lua_State*);
 void resource_manager_init();
 
 // Scheduler includes
-void scheduler_process();
-void scheduler_init();
+ALLEGRO_EVENT_SOURCE* scheduler_init();
+void scheduler_generate_events();
 
 // Static variable declaration
 static ALLEGRO_DISPLAY* display;
@@ -275,6 +275,13 @@ static inline void process_event()
         mouse_y = current_event.mouse.y;
 
         break;
+
+    case ALLEGRO_GET_EVENT_TYPE('T', 'I', 'M', 'E'):
+        ((void (*)(void*)) current_event.user.data1)((void*) current_event.user.data2);
+        printf("%lf\n", current_event.any.timestamp);
+
+        return;
+
     }
 
     widget_engine_event_handler();
@@ -404,8 +411,8 @@ static inline void lua_boot_file()
 /* System Dependency :
 *       |-------------(Only config.lua )-------------> ALLEGRO
 *       |                                                 |
-*       |                       __________________________|____________________
-*       |                       V                     |           |           |
+*       |         _______________________________________|____________________
+*       |         V             V                     |           |           |
 *       |-> (Scheduler) <- (Thread Pool)              |           |           V
 *  LUA  |                    V       V                |           |   (Resource Manager)
 *       |             (Tweener)    (Particle)         |           |
@@ -429,7 +436,7 @@ int main()
 
     // Init Systems, check dependency graph for order.
     resource_manager_init();
-    scheduler_init();
+    al_register_event_source(main_event_queue,scheduler_init());
     tweener_init();
     particle_engine_init();
     render_interface_init();
@@ -449,8 +456,8 @@ int main()
         delta_timestamp = al_get_time() - current_timestamp;
         current_timestamp += delta_timestamp;
 
-        scheduler_process();
-
+        scheduler_generate_events();
+  
         // TODO: should slice off widget updates between schedule items.
         //  Should add stability.
 

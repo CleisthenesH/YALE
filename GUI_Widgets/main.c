@@ -78,7 +78,9 @@ static double last_render_timestamp;
 // Also allows custom mapping on things like mouse or add a slow down factor for timestamps
 double mouse_x, mouse_y;
 ALLEGRO_EVENT current_event;
+double future_timestamp;
 double current_timestamp;
+double residual_timestamp;
 double delta_timestamp;
 
 // TODO: find a way to make debug_font's type "const ALLEGRO_FONT* const"
@@ -246,6 +248,9 @@ static inline void global_init()
 
     do_exit = false;
     current_timestamp = al_get_time();
+    future_timestamp = current_timestamp;
+    residual_timestamp = 0;
+    delta_timestamp = 0;
 
 #ifdef EASY_FPS
     last_render_timestamp = current_timestamp;
@@ -287,9 +292,15 @@ static inline void process_event()
     widget_engine_event_handler();
 }
 
-// On an empty queue update and draw.
-static inline void empty_event_queue()
+// On an update and also draw, depending on flag
+static inline void update_and_draw(const bool do_draw)
 {
+    // Updating and drawing are combined into one function to help weaving in the thread pool.
+    // With a const bool and inline function the compiler should figure it out
+     
+    // future_timestamp and current_time_stamp must be accurate upon calling this function.
+    delta_timestamp = future_timestamp - current_timestamp;
+
     // Update tweeners
     struct work_queue* queue = tweener_update();
     thread_pool_concatenate(queue);
@@ -310,6 +321,18 @@ static inline void empty_event_queue()
     // Do a global widget_engine update then concatinate the widget work to the threadpool.
     widget_engine_update();
     thread_pool_concatenate(queue);
+
+    current_timestamp = future_timestamp;
+
+    // If we arn't drawing 
+    if (!do_draw)
+    {
+        thread_pool_wait();
+        return;
+    }
+
+    // The residual time can be used for projection in drawing
+    residual_timestamp = al_get_time() - future_timestamp;
 
     // Process predraw then wait
     al_set_target_bitmap(al_get_backbuffer(display));
@@ -451,19 +474,26 @@ int main()
     // Main loop
     while (!do_exit)
     {
-        // Update globals
-        // Mixes in delta time between empty queue and event processing
-        delta_timestamp = al_get_time() - current_timestamp;
-        current_timestamp += delta_timestamp;
+        future_timestamp = al_get_time();
+
+        if (future_timestamp - current_timestamp > 0.25)
+            future_timestamp = current_timestamp + 0.25;
 
         scheduler_generate_events();
-  
-        // TODO: should slice off widget updates between schedule items.
-        //  Should add stability.
 
-        if (al_get_next_event(main_event_queue, &current_event))
+        if (al_peek_next_event(main_event_queue, &current_event)
+            && current_event.any.timestamp <= future_timestamp)
+        {
+            future_timestamp = current_event.any.timestamp;
+
+            update_and_draw(false);
             process_event();
-        else
-            empty_event_queue();
+            al_drop_next_event(main_event_queue);
+
+            continue;
+        }
+
+
+        update_and_draw(true);
     }
 }

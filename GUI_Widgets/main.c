@@ -66,6 +66,7 @@ static bool do_exit;
 // A simple background for testing
 #ifdef EASY_BACKGROUND
 static ALLEGRO_BITMAP* easy_background;
+const double easy_background_speed = 0;
 #include "material.h"
 #endif
 
@@ -149,20 +150,20 @@ static inline void create_display()
     }
 
 #ifdef EASY_BACKGROUND
-    easy_background = al_create_bitmap(al_get_display_width(display), al_get_display_height(display));
+    easy_background = al_create_bitmap(al_get_display_width(display) + 100, al_get_display_height(display) + 100);
 
     al_set_target_bitmap(easy_background);
 
     // Keeping these here incase I change init call order
     // 
-	//al_use_transform(&identity_transform);
-	//al_use_shader(NULL);
+    //al_use_transform(&identity_transform);
+    //al_use_shader(NULL);
 
-	al_clear_to_color(al_color_name("aliceblue"));
-	unsigned int i, j;
+    al_clear_to_color(al_color_name("aliceblue"));
+    unsigned int i, j;
 
-    const unsigned int height = al_get_display_height(display) / 10;
-    const unsigned int width = al_get_display_width(display) / 10;
+    const unsigned int height = al_get_display_height(display) / 10 + 10;
+    const unsigned int width = al_get_display_width(display) / 10 + 10;
 
 	for (i = 0; i <= width; i++)
 		for (j = 0; j <= height; j++)
@@ -349,7 +350,8 @@ static inline void update_and_draw(const bool do_draw)
 #ifdef EASY_BACKGROUND
     al_use_transform(&identity_transform);
     material_apply( NULL);
-    al_draw_bitmap(easy_background, 0, 0, 0);
+    const double easy_background_offset = -fmod(easy_background_speed * current_timestamp, 100);
+    al_draw_bitmap(easy_background, easy_background_offset, easy_background_offset, 0);
 #endif
 
     thread_pool_wait();

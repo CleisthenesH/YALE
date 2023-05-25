@@ -270,25 +270,49 @@ static int widget_move_lua(lua_State* L)
     return 0;
 }
 
+// Whether the current_hover should be rendered ontop of other widgets.
+static bool widget_engine_hover_on_top()
+{
+    return widget_engine_state == ENGINE_STATE_DRAG ||
+        widget_engine_state == ENGINE_STATE_SNAP ||
+        widget_engine_state == ENGINE_STATE_TO_SNAP ||
+        widget_engine_state == ENGINE_STATE_TO_DRAG;
+}
+
+// Draws the given widget.
+static void widget_engine_draw_widget(const struct widget* const widget)
+{
+    const struct render_interface* const render_interface = widget->render_interface;
+    render_interface_predraw(render_interface);
+    widget->jump_table->draw((struct widget_interface*)widget);
+#ifdef WIDGET_DEBUG_DRAW
+    const double half_width = render_interface->half_width;
+    const double half_height = render_interface->half_height;
+
+    material_apply(NULL);
+    al_draw_rectangle(-half_width, -half_height, half_width, half_height, al_map_rgb_f(0, 1, 0), 1);
+#endif
+}
+
 // Draw the widgets in queue order.
 void widget_engine_draw()
 {
     render_interface_global_predraw();
 
-    // Maybe add a second pass for stencil effect?
-    for(struct widget* widget = queue_head; widget; widget = widget->next)
-	{
-        const struct render_interface* const render_interface  = widget->render_interface;
-        render_interface_predraw(render_interface);
-        widget->jump_table->draw((struct widget_interface*) widget);
-#ifdef WIDGET_DEBUG_DRAW
-        const double half_width = render_interface->half_width;
-        const double half_height = render_interface->half_height;
+    const bool hide_hover = widget_engine_hover_on_top();
 
-        material_apply(NULL);
-        al_draw_rectangle(-half_width, -half_height, half_width, half_height, al_map_rgb_f(0, 1, 0), 1);
-#endif
- 	}
+    if (hide_hover)
+        widget_interface_pop((struct widget_interface*)current_hover);
+
+    // Maybe add a second pass for stencil effect?
+    for (struct widget* widget = queue_head; widget; widget = widget->next)
+        widget_engine_draw_widget(widget);
+
+    if (hide_hover)
+    {
+        widget_interface_insert((struct widget_interface*)current_hover, (struct widget_interface*)current_hover->next);
+        widget_engine_draw_widget(current_hover);
+    }
 
 #ifdef WIDGET_DEBUG_DRAW
         al_use_shader(NULL);
@@ -337,10 +361,7 @@ static inline struct widget* widget_engine_pick(int x, int y)
     size_t pick_buffer;
     float color_buffer[3];
 
-    const bool hide_hover =  widget_engine_state == ENGINE_STATE_DRAG ||
-        widget_engine_state == ENGINE_STATE_SNAP ||
-        widget_engine_state == ENGINE_STATE_TO_SNAP ||
-        widget_engine_state == ENGINE_STATE_TO_DRAG;
+    const bool hide_hover = widget_engine_hover_on_top();
 
     if (hide_hover)
         widget_interface_pop((struct widget_interface*) current_hover);

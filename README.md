@@ -16,7 +16,7 @@ But YALE also stands for "Yet Another Lua Engine", a succinct description of thi
 
 # Introduction
 The goal of this project is to create GUI widget engine in pure-C [Allegro](https://liballeg.org/) that is scriptable by [Lua](https://www.lua.org/).
-And the core of this project is the widget interface stack with a system of inbuilt callbacks based on user genearted events.
+And the core of this project is the widget interface stack with a system of inbuilt callbacks based on user generated events.
 
 The easiest way to show this would be showing the workflow for creating a button, setting it's location and text, and making it print to the console when clicked. 
 
@@ -60,25 +60,42 @@ static void draw(const struct widget_interface* const widget)
 	al_draw_rounded_rectangle(-half_width, -half_height, half_width, half_height, 10, 10, al_map_rgb(0, 0, 0), 2);
 }
 ```
+# Why use YALE instead of other Lua game engine
+As suggested by the repository title, I'm well aware that a lot of game engines with a Lua interface exist.
+So a big question is why use YALE instead of other engines.
+
+For those familiar with Lua the obvious comparison is the [LÖVE](https://github.com/love2d/love),
+being feature rich and well documented project with an active community and a history of releases going back decades.
+And the YALE engine is all the better for existing in an ecosystem with such high quality projects as LÖVE.
+
+The three benefits YALE has over LÖVE are:
+1. In YALE provides a clean interface for programing widgets in ALLEGRO-C with only game logic in Lua. Making YALE more approachable for those coming from a pure C / ALLEGRO background.
+2. YALE's only dependencies are ALLEGRO, and by extension OPEN-GL, and Lua making the dependency surface a smaller.
+3. YALE has a bunch of widget and board management logic pre-defined.
+
+The benefits LÖVE over YALE are:
+1. Literally everything else.
+
+So while LÖVE is the clear choice for most application I think YALE has some niche use case with more focused vision of writing widget and board management in ALLEGRO-C.
 
 # Scope 
 The scope of this project is best meet by building the engine then test it by implementing a basic card game.
-The game is meant to be super generic with no thought to ballancing and is only meant to test the workability of the engine.
+The game is meant to be super generic with no thought to balancing and is only meant to test the workability of the engine.
 
 # Roles
 This project is designed with three roles in mind.
-Each role has responsiblities to the other roles when writing features and a set of expected skills.
+Each role has responsibilities to the other roles when writing features and a set of expected skills.
 
-## Engine maintiner
-The engine maintiner is the broadest role and has access to raw memeroy, work scheduling, and orchanstrating callbacks.
-The engine maintiner makes interfaces for the other roles to easily define widgets without worring about engine implementation
+## Engine maintainer
+The engine maintainer is the broadest role and has access to raw memory, work scheduling, and orchestrating callbacks.
+The engine maintainer makes interfaces for the other roles to easily define widgets without worrying about engine implementation
 
 ## Widget maker
-The Widget maker takes the engine takes the engine maintner's interfaces and makes widgets for the widget user.	
+The Widget maker takes the engine takes the engine maintainer's interfaces and makes widgets for the widget user.	
 It is the responsibility of the widget maker that the widget user should be able to manipulate the widget as they please while staying within Lua.
 
 ## Widget user
-The Widget user only works in Lua and doesn't understand how widgets are implemented but uses them to interface with domain knowlage.
+The Widget user only works in Lua and doesn't understand how widgets are implemented but uses them to interface with domain knowledge.
 For example the widget user can make a game by making a board from widgets and using callbacks to process game logic.
 
 # Objects Overview
@@ -88,7 +105,7 @@ The best overview of the engine is an overview of the objects in the engine.
 Widgets are the core of the engine.
 
 They are a collection of data meant to provide basic functionally to listen to userevents, update, and draw to the screen.
-Along with basic interaction like being dragable and callbacks when ciertain 
+Along with basic interaction like being draggable and callbacks when certain 
 an object on screen and provide callbacks when the widget is interacted with.
 Example callbacks include
 
@@ -107,15 +124,15 @@ A move is a three step process of simply moving a piece from one zone to another
 	3. A manager callback to inform what moves happened.
 
 ## Renderer
-The renderer system provides a simple interfaces to acheive complex effects and features in a intuative workflow that is integrated with the widget engine.
+The renderer system provides a simple interfaces to achieve complex effects and features in a intuitive workflow that is integrated with the widget engine.
 
 ### Tweener
-The Tweener is the internal sub object that interperated n channels between given timestamps.
-It's role is to provide smooth and continous values for making more complex features.
+The Tweener is the internal sub object that interoperates n channels between given timestamps.
+It's role is to provide smooth and continuous values for making more complex features.
 The memory is quite raw and should only be accessed by the engine maintainer role.
 
 ### Particles
-Particles are simple objects that have three self-explanitory methods:
+Particles are simple objects that have three self-explanatory methods:
 Update, Draw, and Garbage Collection.
 
 They are lightweight and have an erratic lifetime.
@@ -123,26 +140,26 @@ Because of this they are placed in particles buckets when created and instead of
 
 ### Materials
 Before normal rendering functions are called a material can be applied.	
-These materials interface with the shader and can add spectral or procedual effects to comparativly flat renders.
+These materials interface with the shader and can add spectral or procedural effects to comparatively flat renders.
 
 #### Selector
 Which parts of the drawing operation should deviate from standard rendering procedure.
 
 #### Effect
-How the redering should deviate from standard rendering procedure.
+How the rendering should deviate from standard rendering procedure.
 
 ### Renderer Interface
 Meant to provide a simple interface to more complex rendering options.
 It consists of three public components and one internal sub class.
 
 #### Keyframes
-Keyframes are based on the praramerters required to call al_build_transform: Position, Roation, and Scale.
+Keyframes are based on the parameters required to call al_build_transform: Position, Rotation, and Scale.
 They are used to build a transform before the render interfaces calls it's draw function.
 Enabling the manipulation of the widget around the screen while requiring the widget writer to only work in local coordinates.
 
 #### Effect
 There are some planned global effects to be applied when the interface's draw function is called.
-Planned include saturating the color to white or buring the object to nothing.
+Planned include saturating the color to white or burning the object to nothing.
 
 # Acknowledgments
 ## Code

@@ -132,6 +132,7 @@ static inline void remove_piece(struct zone* const zone, struct piece* const pie
 {
 	size_t i;
 
+	//TODO: this can be optimized
 	for (i = 0; i < zone->used; i++)
 		if (zone->pieces[i] == piece)
 			break;
@@ -140,6 +141,8 @@ static inline void remove_piece(struct zone* const zone, struct piece* const pie
 		zone->pieces[j - 1] = zone->pieces[j];
 
 	zone->pieces[zone->used--] = NULL;
+
+	piece->zone = NULL;
 }
 
 // Append a piece to a zone
@@ -290,6 +293,7 @@ static inline void push_piece_table(lua_State* const L, const struct zone* const
 }
 
 // Zone
+//TODO: somechecking that the widget being dropped/hovered is a zone/piece
 
 struct zone* zone_new(lua_State* L, void* upcast, const struct zone_jump_table* const jump_table)
 {

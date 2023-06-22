@@ -382,8 +382,6 @@ static inline struct widget* widget_engine_pick(int x, int y)
         call_engine(widget, mask);
     }
 
-    if (hide_hover)
-        widget_interface_insert((struct widget_interface*) current_hover, (struct widget_interface*) current_hover->next);
 
     al_set_target_bitmap(original_bitmap);
 
@@ -401,6 +399,9 @@ static inline struct widget* widget_engine_pick(int x, int y)
 
     while (index-- > 1 && widget)
         widget = widget->next;
+
+    if (hide_hover)
+        widget_interface_insert((struct widget_interface*)current_hover, (struct widget_interface*)current_hover->next);
 
     return widget;
 }
@@ -506,12 +507,19 @@ static inline void widget_engine_update_drag_pointers()
 			}
             else
             {
+                update_transition_timestamp(current_hover, mouse_x, mouse_y);
                 widget_engine_state = ENGINE_STATE_TO_DRAG;
             }
 		}
 		else
 		{
-			widget_engine_state = current_drop && current_drop->is_snappable? ENGINE_STATE_TO_DRAG : ENGINE_STATE_DRAG;
+            if (current_drop && current_drop->is_snappable)
+            {
+                update_transition_timestamp(current_hover, mouse_x, mouse_y);
+                widget_engine_state = ENGINE_STATE_TO_DRAG;
+            }
+            else
+				widget_engine_state = ENGINE_STATE_DRAG;
 		}
 
         current_drop = new_pointer;

@@ -362,7 +362,7 @@ static inline void update_and_draw(const bool do_draw)
 #ifdef EASY_FPS
     al_use_transform(&identity_transform);
     material_apply(NULL);
-    al_draw_textf(debug_font, al_map_rgb_f(0, 1, 0), 0, 0, 0, "FPS:%lf",1.0/(current_timestamp-last_render_timestamp));
+    al_draw_textf(debug_font, al_map_rgb_f(0, 1, 0), 0, 0, 0, "FPS:%lf  Timestamp:%lf",1.0/(current_timestamp-last_render_timestamp), current_timestamp);
     last_render_timestamp = current_timestamp;
 #endif
 

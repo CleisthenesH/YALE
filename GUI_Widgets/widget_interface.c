@@ -393,7 +393,12 @@ static inline struct widget* widget_engine_pick(int x, int y)
         40000 * round(200 * color_buffer[2]);
 
     if (index == 0)
+    {
+        if (hide_hover)
+            widget_interface_insert((struct widget_interface*)current_hover, (struct widget_interface*)current_hover->next);
+
         return NULL;
+    }
 
     struct widget* widget = queue_head;
 
@@ -462,6 +467,8 @@ static inline void widget_engine_update_drag_pointers()
             widget_engine_state = ENGINE_STATE_IDLE;
 
         current_hover = new_pointer;
+
+        return;
     }
 
     if (current_drop != new_pointer && (
@@ -523,6 +530,8 @@ static inline void widget_engine_update_drag_pointers()
 		}
 
         current_drop = new_pointer;
+
+        return;
     }
 }
 

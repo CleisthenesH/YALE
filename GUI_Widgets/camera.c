@@ -75,3 +75,15 @@ void camera_compose_transform(ALLEGRO_TRANSFORM* const trans, const double blend
 
 	al_compose_transform(trans, &buffer);
 }
+
+void camera_copy_destination(struct keyframe* const keyframe)
+{
+	double* coords =  tweener_destination(camera_tweener);
+
+	keyframe->timestamp = coords[0];
+	keyframe->x = coords[1];
+	keyframe->y = coords[2];
+	keyframe->sx = coords[3];
+	keyframe->sy = coords[4];
+	keyframe->theta = coords[5];
+}

@@ -4,6 +4,7 @@
 
 #include "widget_interface.h"
 #include "thread_pool.h"
+#include "camera.h"
 
 #include <allegro5/allegro_font.h>
 #include <allegro5/allegro_opengl.h>
@@ -135,7 +136,8 @@ static enum {
     ENGINE_STATE_DRAG,                  // A widget is getting dragged and is located on the mouse.
     ENGINE_STATE_TO_DRAG,               // A widget is getting dragged and is moving towards the mouse.
     ENGINE_STATE_TO_SNAP,               // A widget is getting dragged and is mocing towards the snap.
-    ENGINE_STATE_SNAP                   // A widget is getting dragged and is located on the snap.
+    ENGINE_STATE_SNAP,                  // A widget is getting dragged and is located on the snap.
+    ENGINE_STATE_EMPTY_DRAG             // Drag but without a widget underneath. Used to control camera.
 } widget_engine_state;
 
 static double transition_timestamp;
@@ -148,7 +150,8 @@ static const char* engine_state_str[] = {
        "Drag",
        "To Drag",
        "To Snap",
-       "Snap"
+       "Snap",
+       "Empty Drag"
 };
 
 /*********************************************/
@@ -633,7 +636,18 @@ void widget_engine_event_handler()
         }
 
         if (!current_hover)
+        {
+            if (widget_engine_state == ENGINE_STATE_IDLE)
+                if(current_event.mouse.button == 1)
+				{
+					widget_engine_state = ENGINE_STATE_EMPTY_DRAG;
+
+					camera_interupt();
+					camera_copy_destination(&drag_release);
+				}
+
             break;
+        }
 
         if (current_event.mouse.button == 2)
         {
@@ -654,7 +668,17 @@ void widget_engine_event_handler()
         break;
 
     case ALLEGRO_EVENT_MOUSE_BUTTON_UP:
-        if (current_event.mouse.button != 1 || !current_hover)
+        if (current_event.mouse.button != 1 )
+            break;
+
+        if (widget_engine_state == ENGINE_STATE_EMPTY_DRAG)
+        {
+            widget_engine_state = ENGINE_STATE_IDLE;
+            break;
+        }
+
+        // Split up just in case empty_drag and current_hover desync
+        if (!current_hover)
             break;
 
 		switch(widget_engine_state)
@@ -707,6 +731,21 @@ void widget_engine_event_handler()
         // TODO: Pretty sure not checking here is causing flickering
         widget_engine_state = current_hover ? ENGINE_STATE_HOVER : ENGINE_STATE_IDLE;
         break;
+
+    case ALLEGRO_EVENT_MOUSE_AXES:
+        if (widget_engine_state == ENGINE_STATE_EMPTY_DRAG)
+        {
+            drag_release.x += current_event.mouse.dx;
+            drag_release.y += current_event.mouse.dy;
+
+            drag_release.sx += 0.01*current_event.mouse.dz;
+            drag_release.sy += 0.01*current_event.mouse.dz;
+
+            drag_release.sx = drag_release.sx < 0.2 ? 0.2:drag_release.sx;
+            drag_release.sy = drag_release.sy < 0.2 ? 0.2 : drag_release.sy;
+
+            camera_set_keyframe(&drag_release);
+        }
     }
 }
 

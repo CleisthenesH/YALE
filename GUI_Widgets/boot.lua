@@ -4,6 +4,7 @@
 
 -- Runs once after all inializations have ran but before the main loop.
 
+
 manager = board_manager_new{
 	snap = true, 
 	highlight = true, 
@@ -13,15 +14,7 @@ manager = board_manager_new{
 
 -- return and expect ids
 function manager:move(piece,zone)
-	print(piece,zone)
---[[
-	print("manager",self,"piece",piece.id)
-	print("zone",zone.id)
-
-	for k, v in pairs(zone.pieces) do	
-		print(" ",k,v)
-	end
---]]
+	print("move",piece,zone)
 end
 
 function manager:vaild_moves(piece)
@@ -54,6 +47,8 @@ function manager:nonvalid_move(piece,zone)
 	print("nonvalid_movemove",piece,zone)
 end
 
+test_button = button_new{x=1100,y=500,text="Manual Move"}
+
 for i = 0,2 do
 	for j = 0,2 do	
 		local color = 0
@@ -62,29 +57,22 @@ for i = 0,2 do
 			color = 255
 		end
 
-		manager:new_zone(j*3+i,"square",{x = 300+110*i,y = 300 +110*j,color={color,color,color}})
+		manager:new_zone(j*3+i,"square",{x = 300+110*i,y = 300 +110*j,color={color,color,color},camera=1})
 	end
 end
+
 
 manager:new_piece("id1","checker",{x=410,y=200})
 manager:new_piece("id2","checker",{x=200,y=100})
 
-local a = manager.pieces["id2"].zones
-
-widgets.move(manager.pieces["id1"],nil)
+--widgets.move(manager.pieces["id1"],nil)
 
 test_button = button_new{x=1100,y=500,text="Manual Move"}
 
 function test_button.left_click()
-	manager:move("id1",4)
+	manager:move("id2",4)
 end
 
 collectgarbage("collect")
-
-local item = scheduler.push(function() print("test 5") end, 5.0)
-local item2 = scheduler.push(function() print("test 7") end, 5.0)
-
-item2:change(2)
-
 
 print("Boot Complete")

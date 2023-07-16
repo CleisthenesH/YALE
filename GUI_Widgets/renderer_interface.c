@@ -6,10 +6,14 @@
 #include "thread_pool.h"
 #include "tweener.h"
 #include "material.h"
+#include "camera.h"
 
 #include <stdio.h>
 #include <math.h>
 #include <allegro5/allegro_opengl.h>
+
+extern void camera_init();
+extern void camera_global_predraw();
 
 extern double current_timestamp;
 
@@ -82,6 +86,7 @@ void render_interface_init()
 	list = malloc(allocated * sizeof(struct render_interface_internal));
 
 	make_shader();
+	camera_init();
 }
 
 struct render_interface* render_interface_new(size_t hint)
@@ -104,7 +109,7 @@ struct render_interface* render_interface_new(size_t hint)
 	if (hint < 1)
 		hint = 1;
 
-	render_interface->keyframe_tweener = tweener_new(5, hint);
+	render_interface->keyframe_tweener = tweener_new(KEYFRAME_MEMBER_CNT, hint);
 	render_interface->variation = fmod(current_timestamp, 100);
 	render_interface->half_width = 0;
 	render_interface->half_height = 0;
@@ -122,14 +127,10 @@ static void render_interface_update_work(struct render_interface_internal* rende
 {
 	double* keypoint = render_interface->keyframe_tweener->current;
 
-	render_interface->current.x = keypoint[0];
-	render_interface->current.y = keypoint[1];
-	render_interface->current.sx = keypoint[2];
-	render_interface->current.sy = keypoint[3];
-	render_interface->current.theta = keypoint[4];
+#define _KEYFRAME_COPY_KP_CU(X,IDX,...) render_interface->current.## X = keypoint[IDX-1];
+	FOR_KEYFRAME_MEMBERS_TIMELESS(_KEYFRAME_COPY_KP_CU)
 
 	CHECK_NON_NAN_CURRENT_FRAME((struct render_interface*) render_interface)
-
 }
 
 struct work_queue* render_interface_update()
@@ -149,7 +150,7 @@ void render_interface_set(struct render_interface* const render_interface, struc
 	struct render_interface_internal* const internal = (struct render_interface_internal* const)render_interface;
 	struct tweener* const tweener = internal->keyframe_tweener;
 
-	tweener_set(tweener, (double[]) { set->x, set->y, set->sx, set->sy, set->theta });
+	tweener_set(tweener, (double[]) { set->x, set->y, set->sx, set->sy, set->theta , set->camera, set->dx, set->dy});
 
 	memcpy(&render_interface->current, set, sizeof(struct keyframe));  // maybe can be optimized out
 
@@ -169,12 +170,8 @@ void render_interface_push_keyframe(struct render_interface* const render_interf
 	struct render_interface_internal* const internal = (struct render_interface_internal* const)render_interface;
 	double* new_point = tweener_new_point(internal->keyframe_tweener);
 
-	new_point[0] = frame->timestamp;
-	new_point[1] = frame->x;
-	new_point[2] = frame->y;
-	new_point[3] = frame->sx;
-	new_point[4] = frame->sy;
-	new_point[5] = frame->theta;
+#define _KEYFRAME_COPY_FR_NP(X,IDX,...) new_point[IDX] = frame->## X ;
+	FOR_KEYFRAME_MEMBERS(_KEYFRAME_COPY_FR_NP)
 }
 
 void render_interface_copy_destination(struct render_interface* const render_interface, struct keyframe* keyframe)
@@ -183,18 +180,8 @@ void render_interface_copy_destination(struct render_interface* const render_int
 
 	double* keypoints = tweener_destination(internal->keyframe_tweener);
 
-	keyframe->timestamp = keypoints[0];
-	keyframe->x = keypoints[1];
-	keyframe->y = keypoints[2];
-	keyframe->sx = keypoints[3];
-	keyframe->sy = keypoints[4];
-	keyframe->theta = keypoints[5];
-}
-
-// Align the tweener's current with the render_interface's current
-void render_interface_align_tweener(struct render_interface* const render_interface)
-{
-	render_interface_set(render_interface, &render_interface->current);
+#define _KEYFRAME_COPY_NP_FR(X,IDX,...) keyframe->## X = keypoints[IDX];
+	FOR_KEYFRAME_MEMBERS(_KEYFRAME_COPY_NP_FR)
 }
 
 void render_interface_interupt(struct render_interface* const render_interface)
@@ -203,11 +190,8 @@ void render_interface_interupt(struct render_interface* const render_interface)
 
 	tweener_interupt(internal->keyframe_tweener);
 
-	internal->current.x = internal->keyframe_tweener->current[0];
-	internal->current.y = internal->keyframe_tweener->current[1];
-	internal->current.sx = internal->keyframe_tweener->current[2];
-	internal->current.sy = internal->keyframe_tweener->current[3];
-	internal->current.theta = internal->keyframe_tweener->current[4];
+#define _KEYFRAME_COPY_CR_TW(X,IDX,...) render_interface->current.## X = internal->keyframe_tweener->current[IDX-1];
+	FOR_KEYFRAME_MEMBERS_TIMELESS(_KEYFRAME_COPY_CR_TW)
 
 	CHECK_NON_NAN_CURRENT_FRAME(render_interface)
 }
@@ -218,6 +202,11 @@ void keyframe_build_transform(const struct keyframe* const keyframe, ALLEGRO_TRA
 		keyframe->x, keyframe->y,
 		keyframe->sx, keyframe->sy,
 		keyframe->theta);
+
+	if (keyframe->camera >= 0.0)
+		camera_compose_transform(trans, keyframe->camera);
+
+	al_translate_transform(trans, keyframe->dx, keyframe->dy);
 }
 
 void keyframe_default(struct keyframe* const keyframe)
@@ -234,6 +223,17 @@ void render_interface_global_predraw()
 	al_use_shader(shader);
 	glDisable(GL_STENCIL_TEST);
 	al_set_shader_float("current_timestamp", current_timestamp);
+	camera_global_predraw();
+}
+
+void render_interface_use_transform(const struct render_interface* const render_interface)
+{
+	//TODO probably make a global for some perfonacne.
+	//		Thread safty?
+
+	ALLEGRO_TRANSFORM buffer;
+	keyframe_build_transform(&render_interface->current, &buffer);
+	al_use_transform(&buffer);
 }
 
 void render_interface_predraw(const struct render_interface* const render_interface)
@@ -246,16 +246,12 @@ void render_interface_predraw(const struct render_interface* const render_interf
 	// You don't actually have to send this everytime, should track a count of materials that need it.
 	if (render_interface->half_width != 0 && render_interface->half_height != 0)
 	{
-		const float dimensions[2] = { 1.0/ render_interface->half_width, 1.0 / render_interface->half_height };
+		const float dimensions[2] = { 1.0 / render_interface->half_width, 1.0 / render_interface->half_height };
 		al_set_shader_float_vector("object_scale", 2, dimensions, 1);
 	}
 
-	ALLEGRO_TRANSFORM buffer;
-	keyframe_build_transform(&render_interface->current, &buffer);
-
+	render_interface_use_transform(render_interface);
 	material_apply(NULL);
-
-	al_use_transform(&buffer);
 
 	glDisable(GL_STENCIL_TEST);
 }

@@ -100,6 +100,14 @@ struct tweener* tweener_new(size_t channels, size_t hint)
 	return (struct tweener*)tweener;
 }
 
+void tweener_del(struct tweener* tweener)
+{
+	free(tweener->keypoints);
+	free(tweener->current);
+
+	//TODO: pop the tweener from tweener_list and free the struct
+}
+
 static inline void tweener_blend_nonlooping(struct tweener* tweener)
 {
 	// Clean old frames;

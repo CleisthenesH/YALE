@@ -30,6 +30,7 @@ struct tweener
 };
 
 struct tweener* tweener_new(size_t channels, size_t hint);
+void tweener_del(struct tweener* tweener);
 
 void tweener_set(struct tweener* const tweener, double* keypoint);
 double* tweener_new_point(struct tweener* tweener);

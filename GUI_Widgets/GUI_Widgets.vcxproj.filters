@@ -209,7 +209,6 @@
     <ClCompile Include="board_manager.c">
       <Filter>board_manager</Filter>
     </ClCompile>
-    <ClCompile Include="selector.c" />
     <ClCompile Include="scheduler.c">
       <Filter>core\scheduler</Filter>
     </ClCompile>
@@ -224,6 +223,12 @@
     </ClCompile>
     <ClCompile Include="text_entry.c">
       <Filter>widgets\GUI</Filter>
+    </ClCompile>
+    <ClCompile Include="camera.c">
+      <Filter>core\renderer\components</Filter>
+    </ClCompile>
+    <ClCompile Include="miscellaneous_lua_interfaces.c">
+      <Filter>core</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -356,6 +361,9 @@
     <ClInclude Include="widget_interface_stddefs.h">
       <Filter>core\widget_interface</Filter>
     </ClInclude>
+    <ClInclude Include="camera.h">
+      <Filter>core\renderer\components</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
@@ -390,6 +398,9 @@
     </None>
     <None Include="shaders\main_renderer.frag">
       <Filter>core\renderer\components</Filter>
+    </None>
+    <None Include="scheduler.lua">
+      <Filter>scripts\examples</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

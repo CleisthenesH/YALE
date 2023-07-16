@@ -57,6 +57,9 @@ void resource_manager_init();
 ALLEGRO_EVENT_SOURCE* scheduler_init();
 void scheduler_generate_events();
 
+// Miscellaneous Lua Interfaces
+void lua_openL_misc(lua_State*);
+
 // Static variable declaration
 static ALLEGRO_DISPLAY* display;
 static ALLEGRO_EVENT_QUEUE* main_event_queue;
@@ -465,6 +468,9 @@ int main()
     tweener_init();
     particle_engine_init();
     render_interface_init();
+
+    // Miscellaneous Lua Interfaces
+    lua_openL_misc(main_lua_state);
 
     // Init Widgets
     widget_style_sheet_init();

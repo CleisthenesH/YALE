@@ -2,8 +2,6 @@
 // Use of this source code is governed by an MIT-style
 // license that can be found in the LICENSE file.
 
-#define WIDGET_DEBUG_DRAW
-
 #include "widget_interface.h"
 #include "thread_pool.h"
 
@@ -14,6 +12,10 @@
 #include <float.h>
 #include <math.h>
 
+// Debug Macro Flags
+#define WIDGET_DEBUG_DRAW
+//#define WIDGET_EVENT_LOG
+
 #ifdef WIDGET_DEBUG_DRAW
 #include <allegro5/allegro_primitives.h>
 void material_apply(const struct material* const);
@@ -23,11 +25,12 @@ void material_apply(const struct material* const);
 #include <stdio.h>
 #endif
 
+// widget_interface.c exclusive render_interface.c methods
 extern void render_interface_global_predraw();
 extern void render_interface_use_transform(const struct render_interface* const);
 extern void render_interface_predraw(const struct render_interface* const);
-extern ALLEGRO_TRANSFORM camera_transform;
 
+// Global Variables
 extern double mouse_x;
 extern double mouse_y;
 extern double current_timestamp;
@@ -36,8 +39,11 @@ extern const ALLEGRO_FONT* debug_font;
 extern ALLEGRO_EVENT current_event;
 extern const ALLEGRO_TRANSFORM identity_transform;
 extern void invert_transform_3D(ALLEGRO_TRANSFORM*);
-
 extern lua_State* const main_lua_state;
+
+/*********************************************/
+/*        Internal Widget Interface          */
+/*********************************************/
 
 // CALLBACK X macro 
 // columns are method,argcnt,offset
@@ -117,6 +123,10 @@ struct widget
 #define call_va(widget,method,...) (widget)->jump_table->method((struct widget_interface*) (widget),__VA_ARGS__)
 #endif
 
+/*********************************************/
+/*           Widget Engine State             */
+/*********************************************/
+
 static enum {
     ENGINE_STATE_IDLE,                  // Idle state.
     ENGINE_STATE_HOVER,                 // A widget is being hovered but the mouse is up.
@@ -127,6 +137,7 @@ static enum {
     ENGINE_STATE_TO_SNAP,               // A widget is getting dragged and is mocing towards the snap.
     ENGINE_STATE_SNAP                   // A widget is getting dragged and is located on the snap.
 } widget_engine_state;
+
 static double transition_timestamp;
 
 static const char* engine_state_str[] = {
@@ -140,54 +151,17 @@ static const char* engine_state_str[] = {
        "Snap"
 };
 
+/*********************************************/
+/*          Widget Queue Methods             */
+/*********************************************/
+
 static struct widget* queue_head;
 static struct widget* queue_tail;
 
-static ALLEGRO_SHADER* offscreen_shader;
-static ALLEGRO_BITMAP* offscreen_bitmap;
-
-static struct widget* last_click;
-static struct widget* current_hover;
-static struct widget* current_drop;
-
-// Drag and Snap Variables
-static struct keyframe drag_release;
-static double drag_offset_x, drag_offset_y; // coordinates system match current_hover (screen or world)
-static double snap_offset_x, snap_offset_y; // coordinates system match snap (screen or world)
-static const double snap_speed = 1000; // px per sec
-static const double drag_threshold = 0.2;
-
-// Prevents current_hover, last_click, and current_drag becoming stale
-static void widget_prevent_stale_pointers(struct widget* const ptr)
-{
-    if (current_hover == ptr)
-    {
-        call(ptr, hover_end);
-
-        widget_engine_state = ENGINE_STATE_IDLE;
-        current_hover = NULL;
-    }
-
-    if (last_click == ptr)
-    {
-        call(ptr,click_off)
-
-        last_click = NULL;
-    }
-
-    if (current_drop == ptr)
-    {
-        call(ptr, drag_end_no_drop)
-
-        widget_engine_state = ENGINE_STATE_IDLE;
-        current_drop = NULL;
-    }
-}
-
 // Pop a widget out of the engine
-static void widget_interface_pop(struct widget_interface* const ptr)
+static void queue_pop(struct widget_interface* const ptr)
 {
-    struct widget* const widget = (struct widget* const) ptr;
+    struct widget* const widget = (struct widget* const)ptr;
 
     if (widget->next)
         widget->next->previous = widget->previous;
@@ -201,7 +175,7 @@ static void widget_interface_pop(struct widget_interface* const ptr)
 }
 
 // Insert the first widget behind the second
-static void widget_interface_insert(struct widget_interface* mover, struct widget_interface* target)
+static void queue_insert(struct widget_interface* mover, struct widget_interface* target)
 {
     // Assumes mover is outside the list.
     // I.e. that mover's next and previous are null.
@@ -219,7 +193,7 @@ static void widget_interface_insert(struct widget_interface* mover, struct widge
         else
         {
             queue_tail = internal_mover;
-            
+
         }
 
         internal_target->previous = internal_mover;
@@ -245,12 +219,59 @@ void widget_interface_move(struct widget_interface* mover, struct widget_interfa
 
     // Only this function is visable to the widget writer.
     // Since poping a widget without calling gc isn't allowed.
-    widget_interface_pop(mover);
-    widget_interface_insert(mover, target);
+    queue_pop(mover);
+    queue_insert(mover, target);
+}
+
+/*********************************************/
+/*      General Widget Engine Methods        */
+/*********************************************/
+
+// Click, Drag, and Drop pointers
+static struct widget* last_click;
+static struct widget* current_hover;
+static struct widget* current_drop;
+
+// Drag and Snap Variables
+static struct keyframe drag_release;
+static double drag_offset_x, drag_offset_y; // coordinates system match current_hover (screen or world)
+static double snap_offset_x, snap_offset_y; // coordinates system match snap (screen or world)
+static const double snap_speed = 1000; // px per sec
+static const double drag_threshold = 0.2;
+
+// Pick (Offscreen drawing) Variables
+static ALLEGRO_SHADER* offscreen_shader;
+static ALLEGRO_BITMAP* offscreen_bitmap;
+
+// Prevents current_hover, last_click, and current_drag becoming stale
+static void prevent_stale_pointers(struct widget* const ptr)
+{
+    if (current_hover == ptr)
+    {
+        call(ptr, hover_end);
+
+        widget_engine_state = ENGINE_STATE_IDLE;
+        current_hover = NULL;
+    }
+
+    if (last_click == ptr)
+    {
+        call(ptr,click_off)
+
+        last_click = NULL;
+    }
+
+    if (current_drop == ptr)
+    {
+        call(ptr, drag_end_no_drop)
+
+        widget_engine_state = ENGINE_STATE_IDLE;
+        current_drop = NULL;
+    }
 }
 
 // Whether the current_hover should be rendered ontop of other widgets.
-static bool widget_engine_hover_on_top()
+static bool hover_on_top()
 {
     return widget_engine_state == ENGINE_STATE_DRAG ||
         widget_engine_state == ENGINE_STATE_SNAP ||
@@ -259,7 +280,7 @@ static bool widget_engine_hover_on_top()
 }
 
 // Draws the given widget.
-static void widget_engine_draw_widget(const struct widget* const widget)
+static void draw_widget(const struct widget* const widget)
 {
     const struct render_interface* const render_interface = widget->render_interface;
     render_interface_predraw(render_interface);
@@ -273,8 +294,34 @@ static void widget_engine_draw_widget(const struct widget* const widget)
 #endif
 }
 
+// Update the transition_timestamp based on how far the widget is to the point.
+static inline void update_transition_timestamp(struct widget* widget, double x, double y)
+{
+    // DEPREICATED BECAUSE I HAVENT THOUGHT ABOUT CORD_SYS LOGIC YET
+    const double dx = widget->render_interface->current.dx - x;
+    const double dy = widget->render_interface->current.dy - y;
+
+    const double offset =  sqrtf(dx * dx + dy * dy)/ snap_speed;
+
+    transition_timestamp = current_timestamp;//fasdf +offset;
+}
+
+// Move the current_hover towards the drag location
+static inline void towards_drag()
+{
+    struct keyframe keyframe = drag_release;
+
+    render_interface_interupt(current_hover->render_interface);
+
+    keyframe.dx = mouse_x - drag_offset_x;
+    keyframe.dy = mouse_y - drag_offset_y;
+    keyframe.timestamp = current_timestamp + 0.1;
+
+    render_interface_push_keyframe(current_hover->render_interface, &keyframe);
+}
+
 // Handle picking mouse inputs using off screen drawing.
-static inline struct widget* widget_engine_pick(int x, int y)
+static inline struct widget* pick(int x, int y)
 {
     ALLEGRO_BITMAP* original_bitmap = al_get_target_bitmap();
 
@@ -290,10 +337,10 @@ static inline struct widget* widget_engine_pick(int x, int y)
     size_t pick_buffer;
     float color_buffer[3];
 
-    const bool hide_hover = widget_engine_hover_on_top();
+    const bool hide_hover = hover_on_top();
 
     if (hide_hover)
-        widget_interface_pop((struct widget_interface*) current_hover);
+        queue_pop((struct widget_interface*)current_hover);
 
     for (struct widget* widget = queue_head; widget; widget = widget->next, picker_index++)
     {
@@ -324,7 +371,7 @@ static inline struct widget* widget_engine_pick(int x, int y)
     if (index == 0)
     {
         if (hide_hover)
-            widget_interface_insert((struct widget_interface*)current_hover, (struct widget_interface*)current_hover->next);
+            queue_insert((struct widget_interface*)current_hover, (struct widget_interface*)current_hover->next);
 
         return NULL;
     }
@@ -335,45 +382,19 @@ static inline struct widget* widget_engine_pick(int x, int y)
         widget = widget->next;
 
     if (hide_hover)
-        widget_interface_insert((struct widget_interface*)current_hover, (struct widget_interface*)current_hover->next);
+        queue_insert((struct widget_interface*)current_hover, (struct widget_interface*)current_hover->next);
 
     return widget;
 }
 
-// Update the transition_timestamp based on how far the widget is to the point.
-static inline void update_transition_timestamp(struct widget* widget, double x, double y)
-{
-    // DEPREICATED BECAUSE I HAVENT THOUGHT ABOUT CORD_SYS LOGIC YET
-    const double dx = widget->render_interface->current.dx - x;
-    const double dy = widget->render_interface->current.dy - y;
-
-    const double offset =  sqrtf(dx * dx + dy * dy)/ snap_speed;
-
-    transition_timestamp = current_timestamp;//fasdf +offset;
-}
-
-// Move the current_hover towards the drag location
-static inline void towards_drag()
-{
-    struct keyframe keyframe = drag_release;
-
-    render_interface_interupt(current_hover->render_interface);
-
-    keyframe.dx = mouse_x - drag_offset_x;
-    keyframe.dy = mouse_y - drag_offset_y;
-    keyframe.timestamp = current_timestamp + 0.1;
-
-    render_interface_push_keyframe(current_hover->render_interface, &keyframe);
-}
-
 // Updates and calls any callbacks for the last_click, current_hover, current_drop pointers
-static inline void widget_engine_update_drag_pointers()
+static inline void update_drag_pointers()
 {
     // What pointer the picker returns depends on if something is being dragged.
     // If nothing is being dragged the pointer is what's being hovered.
     // If something is being dragged the pointer is what's under the dragged widget.
     //  (The widget under the drag is called the drop).
-    struct widget* const new_pointer = widget_engine_pick(mouse_x, mouse_y);
+    struct widget* const new_pointer = pick(mouse_x, mouse_y);
 
     if (current_hover != new_pointer && (
         widget_engine_state == ENGINE_STATE_IDLE ||
@@ -491,19 +512,19 @@ void widget_engine_draw()
 {
     render_interface_global_predraw();
 
-    const bool hide_hover = widget_engine_hover_on_top();
+    const bool hide_hover = hover_on_top();
 
     if (hide_hover)
-        widget_interface_pop((struct widget_interface*)current_hover);
+        queue_pop((struct widget_interface*)current_hover);
 
     // Maybe add a second pass for stencil effect?
     for (struct widget* widget = queue_head; widget; widget = widget->next)
-        widget_engine_draw_widget(widget);
+        draw_widget(widget);
 
     if (hide_hover)
     {
-        widget_interface_insert((struct widget_interface*)current_hover, (struct widget_interface*)current_hover->next);
-        widget_engine_draw_widget(current_hover);
+        queue_insert((struct widget_interface*)current_hover, (struct widget_interface*)current_hover->next);
+        draw_widget(current_hover);
     }
 
 #ifdef WIDGET_DEBUG_DRAW
@@ -526,7 +547,7 @@ void widget_engine_draw()
 // Update the widget engine state
 void widget_engine_update()
 {
-    widget_engine_update_drag_pointers();
+    update_drag_pointers();
 
     if(current_timestamp > transition_timestamp)
         switch (widget_engine_state)
@@ -842,10 +863,10 @@ static int gc(lua_State* L)
     struct widget* const widget = (struct widget*)luaL_checkudata(L, 1, "widget_mt");
 
     call_engine(widget, gc);
-    widget_interface_pop((struct widget_interface* const) widget);
+    queue_pop((struct widget_interface* const) widget);
 
     // Make sure we don't get stale pointers
-    widget_prevent_stale_pointers(widget);
+    prevent_stale_pointers(widget);
 
     return 0;
 }
@@ -918,6 +939,7 @@ static const struct {
 } newindex_aa[] = {
     {"snappable",CALL_NEWINDEX_FUNCT,0,snappable},
     FOR_CALLBACKS(CALLBACK_ENTRY)
+    {NULL,CALL_NEWINDEX_FUNCT,0,NULL}
 };
 
 // Geneal widget index method
@@ -988,19 +1010,6 @@ static int newindex(lua_State* L)
 /*           Widget Engine Inits             */
 /*********************************************/
 
-#define FOR_WIDGETS(DO) \
-	DO(rectangle) \
-    DO(button) \
-    DO(slider) \
-    DO(prototype) \
-    DO(material_test) \
-    DO(dynamic_text_test) \
-    DO(text_entry)
-
-#define EXTERN(widget) extern int widget ## _new(lua_State*);
-
-FOR_WIDGETS(EXTERN)
-
 // Initalize the Widget Engine
 void widget_engine_init(lua_State* L)
 {
@@ -1040,11 +1049,6 @@ void widget_engine_init(lua_State* L)
     offscreen_bitmap = al_create_bitmap(
         al_get_bitmap_width(al_get_target_bitmap()),
         al_get_bitmap_width(al_get_target_bitmap()));
-
-#define LUA_REG_FUNCT(widget) lua_pushcfunction(L, widget ## _new); \
-    lua_setglobal(L, #widget  "_new");
-
-    FOR_WIDGETS(LUA_REG_FUNCT)
 
     // Make a weak global table to contain the widgets
     // And some functions for manipulating them

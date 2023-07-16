@@ -6,7 +6,6 @@
 
 #include "widget_interface.h"
 #include "thread_pool.h"
-#include "hash.h"
 
 #include <allegro5/allegro_font.h>
 #include <allegro5/allegro_opengl.h>
@@ -40,20 +39,20 @@ extern void invert_transform_3D(ALLEGRO_TRANSFORM*);
 
 extern lua_State* const main_lua_state;
 
-// TODO: clean up callbacks, add an argcnt column?
-// Might need to add a lower case and uppercase version to clean code fully
+// CALLBACK X macro 
+// columns are method,argcnt,offset
 #define FOR_CALLBACKS(DO) \
-	DO(right_click,1) \
-	DO(left_click,1) \
-    DO(left_click_end,1) \
-	DO(hover_start,1) \
-	DO(hover_end,1) \
-	DO(click_off,1) \
-	DO(drag_start,1) \
-	DO(drag_end_drop,1) \
-	DO(drag_end_no_drop,2) \
-	DO(drop_start,2) \
-	DO(drop_end,2) \
+	DO(right_click,1,0) \
+	DO(left_click,1,1) \
+    DO(left_click_end,1,2) \
+	DO(hover_start,1,3) \
+	DO(hover_end,1,4) \
+	DO(click_off,1,5) \
+	DO(drag_start,1,6) \
+	DO(drag_end_drop,1,7) \
+	DO(drag_end_no_drop,2,8) \
+	DO(drop_start,2,9) \
+	DO(drop_end,2,10) \
 
 enum WIDGET_UPVALUE
 {
@@ -883,53 +882,43 @@ static int widget_move_lua(lua_State* L)
     return 0;
 }
 
-// Hash data for index and newindex methods
-
-static const char* index_keys[] = {
-    "set_keyframe",
-    "set_keyframes",
-    "destination_keyframe",
-    "current_keyframe",
-    "new_keyframe",
-    "interupt",
-    "enter_loop",
-
-    // placeholders
-    // because the hasher uses the first n characters where n is the number of keys
-    "asdfasdf",
-    "lkjlkiww",
-    "m.,jkh",
-    "fdgsdfgs",
-    "oijsmlkw",
-    ",m.owwdsx",
-
-    NULL
+// Hash data for index and newindex methods 
+// Will turn into a propper hash when scope is stable.
+static const struct {
+    const char* key;
+    const lua_CFunction function;
+    const enum 
+    {
+        CALL_PUSH_CFUNCT,
+        CALL_CALL_FUNCT
+    } call_behaviour;
+} index_aa[] = {
+    {"set_keyframe",set_keyframe,CALL_PUSH_CFUNCT},
+    {"set_keyframes",set_keyframe,CALL_PUSH_CFUNCT},
+    {"destination_keyframe",destination_keyframe,CALL_CALL_FUNCT},
+    {"current_keyframe",current_keyframe,CALL_CALL_FUNCT},
+    {"new_keyframe",new_keyframe,CALL_PUSH_CFUNCT},
+    {"interupt",interupt,CALL_PUSH_CFUNCT},
+    {"enter_loop",enter_loop,CALL_PUSH_CFUNCT},
+    {NULL,NULL,CALL_PUSH_CFUNCT},
 };
+
+#define CALLBACK_ENTRY(callback,_,offset) {#callback,CALL_SET_CALLBACK, offset, NULL},
 
 static const struct {
-    const lua_CFunction function;
-    const uint8_t call_behaviour;
-} index_functions[] = 
-{
-    {set_keyframe,1},
-    {set_keyframes,1},
-    {destination_keyframe,0},
-    {current_keyframe,0},
-    {new_keyframe,1},
-    {interupt,1},
-    {enter_loop,1}
+    const char* key;
+    const enum
+    {
+        CALL_SET_CALLBACK,
+        CALL_NEWINDEX_FUNCT
+    } call_behaviour;
+
+    int callback_offset;
+    int (*funct)(lua_State*);
+} newindex_aa[] = {
+    {"snappable",CALL_NEWINDEX_FUNCT,0,snappable},
+    FOR_CALLBACKS(CALLBACK_ENTRY)
 };
-
-static const struct hash_data* index_hash;
-
-#define NEW_INDEX_KEY(callbacks,...) #callbacks ,
-
-static const char* newindex_keys[] = {
-    FOR_CALLBACKS(NEW_INDEX_KEY)
-    NULL
-};
-
-static const struct hash_data* newindex_hash;
 
 // Geneal widget index method
 static int index(lua_State* L)
@@ -940,16 +929,20 @@ static int index(lua_State* L)
     {
         const char* key = lua_tostring(L, -1);
 
-        const uint8_t hash_val = hash(index_hash, key);
-
-        if (hash_val < 7 && strcmp(index_keys[hash_val], key) == 0)
-            if (index_functions[hash_val].call_behaviour)
+        for (size_t i = 0; index_aa[i].key; i++)
+            if(strcmp(index_aa[i].key, key) == 0)
             {
-                lua_pushcfunction(L, index_functions[hash_val].function);
-                return 1;
+                if(index_aa[i].call_behaviour == CALL_PUSH_CFUNCT)
+                {
+                    lua_pushcfunction(L, index_aa[i].function);
+                    return 1;
+                }
+
+                if (index_aa[i].call_behaviour == CALL_CALL_FUNCT)
+                {
+                    return index_aa[i].function(main_lua_state);
+                }
             }
-            else
-                return index_functions[hash_val].function(main_lua_state);
     }
 
     if (widget->jump_table->index)
@@ -967,22 +960,22 @@ static int newindex(lua_State* L)
     {
         const char* key = lua_tostring(L, -2);
 
-        if (lua_type(L, -1) == LUA_TFUNCTION)
-	    {
-			const uint8_t hash_val = hash(newindex_hash, key);
+        for (size_t i = 0; newindex_aa[i].key; i++)
+            if (strcmp(newindex_aa[i].key, key) == 0)
+            {
+                if (newindex_aa[i].call_behaviour == CALL_SET_CALLBACK
+                    && lua_type(L, -1) == LUA_TFUNCTION)
+                {
+                    int* handle = ((int*)&widget->lua.right_click) + newindex_aa[i].callback_offset;
+                    *handle = luaL_ref(L, LUA_REGISTRYINDEX);
+                    return 0;
+                }
 
-			if (hash_val < 11 && strcmp(newindex_keys[hash_val], key) == 0)
-			{
-				int* handle = ((int*)&widget->lua.right_click) + hash_val;
-				*handle = luaL_ref(L, LUA_REGISTRYINDEX);
-				return 0;
-			}
-		}
-
-        if (strcmp(key, "snappable") == 0)
-        {
-            return snappable(L);
-        }
+                if (newindex_aa[i].call_behaviour == CALL_NEWINDEX_FUNCT)
+                {
+                    return newindex_aa[i].funct(L);
+                }
+            }
     }
 
     if (widget->jump_table->newindex)
@@ -1022,10 +1015,6 @@ void widget_engine_init(lua_State* L)
     // Arbitarly set snap to something nonzero
     snap_offset_x = 5;
     snap_offset_y = 5;  
-
-    // Create hashes for index and newindex
-    index_hash = calc_hash_data(index_keys, NULL);
-    newindex_hash = calc_hash_data(newindex_keys, NULL);
 
     // Build the offscreen shader and bitmap
     offscreen_shader = al_create_shader(ALLEGRO_SHADER_GLSL);

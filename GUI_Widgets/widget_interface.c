@@ -137,7 +137,8 @@ static enum {
     ENGINE_STATE_TO_DRAG,               // A widget is getting dragged and is moving towards the mouse.
     ENGINE_STATE_TO_SNAP,               // A widget is getting dragged and is mocing towards the snap.
     ENGINE_STATE_SNAP,                  // A widget is getting dragged and is located on the snap.
-    ENGINE_STATE_EMPTY_DRAG             // Drag but without a widget underneath. Used to control camera.
+    ENGINE_STATE_EMPTY_DRAG,            // Drag but without a widget underneath. Used to control camera.
+    ENGINE_STATE_LOCKED,                // The widget engine has been locked.
 } widget_engine_state;
 
 static double transition_timestamp;
@@ -151,7 +152,8 @@ static const char* engine_state_str[] = {
        "To Drag",
        "To Snap",
        "Snap",
-       "Empty Drag"
+       "Empty Drag",
+       "Locked"
 };
 
 /*********************************************/
@@ -245,6 +247,9 @@ static const double drag_threshold = 0.2;
 // Pick (Offscreen drawing) Variables
 static ALLEGRO_SHADER* offscreen_shader;
 static ALLEGRO_BITMAP* offscreen_bitmap;
+
+// Miscellaneous 
+static int contex_callback = LUA_REFNIL;
 
 // Prevents current_hover, last_click, and current_drag becoming stale
 static void prevent_stale_pointers(struct widget* const ptr)
@@ -550,6 +555,9 @@ void widget_engine_draw()
 // Update the widget engine state
 void widget_engine_update()
 {
+    if (widget_engine_state == ENGINE_STATE_LOCKED)
+        return;
+
     update_drag_pointers();
 
     if(current_timestamp > transition_timestamp)
@@ -610,9 +618,10 @@ struct work_queue* widget_engine_widget_work()
     struct work_queue* work_queue = work_queue_create();
 
     // Since the update method doesn't change maybe we should have a static queue?
-    for (struct widget* widget = queue_head; widget; widget = widget->next)
-        if (widget->jump_table->update)
-            work_queue_push(work_queue, widget->jump_table->update, widget);
+    if (widget_engine_state != ENGINE_STATE_LOCKED)
+		for (struct widget* widget = queue_head; widget; widget = widget->next)
+			if (widget->jump_table->update)
+				work_queue_push(work_queue, widget->jump_table->update, widget);
 
     return work_queue;
 }
@@ -621,8 +630,9 @@ struct work_queue* widget_engine_widget_work()
 void widget_engine_event_handler()
 {
     // TODO: Incorperate to the threadpool?
-    for (struct widget* widget = queue_head; widget; widget = widget->next)
-        call_engine(widget, event_handler);
+    if(widget_engine_state != ENGINE_STATE_LOCKED)
+		for (struct widget* widget = queue_head; widget; widget = widget->next)
+			call_engine(widget, event_handler);
 
     switch (current_event.type)
     {
@@ -645,6 +655,15 @@ void widget_engine_event_handler()
 					camera_interupt();
 					camera_copy_destination(&drag_release);
 				}
+                else if (current_event.mouse.button == 2 &&
+                    contex_callback != LUA_REFNIL)
+                {
+                    lua_rawgeti(main_lua_state, LUA_REGISTRYINDEX, contex_callback);
+                    lua_pushnumber(main_lua_state, mouse_x);
+                    lua_pushnumber(main_lua_state, mouse_y);
+
+                    lua_pcall(main_lua_state, 2, 0, 0);
+                }
 
             break;
         }
@@ -942,6 +961,33 @@ static int widget_move_lua(lua_State* L)
     return 0;
 }
 
+// Set context menu callback
+static int set_context_menu(lua_State* L)
+{
+    if (lua_type(L, -1) == LUA_TFUNCTION)
+		contex_callback = luaL_ref(L, LUA_REGISTRYINDEX);
+
+    return 0;
+}
+
+// Lock the engine
+static int engine_lock(lua_State* L)
+{
+    if (widget_engine_state == ENGINE_STATE_IDLE)
+        widget_engine_state = ENGINE_STATE_LOCKED;
+
+    return 0;
+}
+
+// Unlock the engine
+static int engine_unlock(lua_State* L)
+{
+    if (widget_engine_state == ENGINE_STATE_LOCKED)
+        widget_engine_state = ENGINE_STATE_IDLE;
+
+    return 0;
+}
+
 // Hash data for index and newindex methods 
 // Will turn into a propper hash when scope is stable.
 static const struct {
@@ -1119,6 +1165,17 @@ void widget_engine_init(lua_State* L)
     luaL_setfuncs(L, garbage_collection, 0);
 
     lua_pop(L, 2);
+
+    // Miscellaneous Lua functions
+
+    lua_pushcfunction(L, set_context_menu);
+    lua_setglobal(L, "contex_menu");
+
+    lua_pushcfunction(L, engine_unlock);
+    lua_setglobal(L, "engine_unlock");
+
+    lua_pushcfunction(L, engine_lock);
+    lua_setglobal(L, "engine_lock");
 }
 
 // Allocate a new widget interface and wire it into the widget engine.

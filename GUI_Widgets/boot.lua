@@ -4,7 +4,6 @@
 
 -- Runs once after all inializations have ran but before the main loop.
 
-
 manager = board_manager_new{
 	snap = true, 
 	highlight = true, 
@@ -14,19 +13,15 @@ manager = board_manager_new{
 
 -- return and expect ids
 function manager:move(piece,zone)
-	print("move",piece,zone)
+	print("move",piece,zone)	
 end
 
 function manager:vaild_moves(piece)
-	local zone = self.pieces[piece].zone
-
-	if zone == nil then
-		return {0,1,2,3,4,5,6,7,8}
-	end
-
 	print("vaild_moves",self,piece,zone)
 
-	local table = {
+	local zone = self.pieces[piece].zone
+
+	local defaults = {
 		[0] = {1,3},
 		[1] = {0,2,4},
 		[2] = {1,5},
@@ -38,9 +33,24 @@ function manager:vaild_moves(piece)
 		[8] = {5,7}
 	}
 
-	local output = table[zone]
+	local output
+	
+	if zone then 
+		output = defaults[zone]
+	else
+		output = {0,1,2,3,4,5,6,7,8}
+	end
 
-	return table[zone]
+	local i = 1
+    while (i <= #output) do
+        if next(manager.zones[output[i]].pieces) then
+			table.remove(output, i)
+        else
+           i = i + 1 
+        end
+    end
+
+	return output
 end
 
 function manager:nonvalid_move(piece,zone)
@@ -61,11 +71,8 @@ for i = 0,2 do
 	end
 end
 
-
 manager:new_piece("id1","checker",{x=410,y=200})
 manager:new_piece("id2","checker",{x=200,y=100})
-
---widgets.move(manager.pieces["id1"],nil)
 
 test_button = button_new{x=1100,y=500,text="Manual Move"}
 
@@ -73,6 +80,17 @@ function test_button.left_click()
 	manager:move("id2",4)
 end
 
+lock_button = button_new{x=1100,y=700,text="Lock"}
+
+function lock_button.left_click()
+-- Not going to work since the engine isn't idle
+-- I will fix after making a more robust state system
+	engine_lock()
+	scheduler.push(function() engine_unlock() end, 1.0)
+end
+
 collectgarbage("collect")
+
+contex_menu(function(x,y) print(x,y,"test") end)
 
 print("Boot Complete")

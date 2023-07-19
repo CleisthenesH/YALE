@@ -15,6 +15,7 @@
 #include "lua/lauxlib.h"
 #include "lua/lualib.h"
 
+#define SCHEDULER_TESTING
 #ifdef SCHEDULER_TESTING
 void stack_dump(lua_State*);
 #endif
@@ -81,7 +82,7 @@ static inline void heap_heapify_down(size_t node)
 	size_t parent, child_left, child_right;
 
 	parent = node;
-	heap_children(0, &child_left, &child_right);
+	heap_children(parent, &child_left, &child_right);
 
 	while (child_right <= used - 1)
 	{
@@ -142,7 +143,10 @@ static inline void heap_remove(size_t node)
 static inline void heap_pop()
 {
 	if (used <= 1)
+	{
+		used--;
 		return;
+	}
 
 	heap_swap(0, --used);
 
@@ -444,6 +448,11 @@ void scheduler_generate_events()
 {
 	const double _current_time = al_current_time();
 
+#ifdef SCHEDULER_TESTING
+	printf("Scheduler_event: time %f %zd\n", _current_time, used);
+	scheduler_dump();
+#endif
+
 	while (heap[0] && heap[0]->timestamp < _current_time)
 	{
 		ALLEGRO_EVENT ev;
@@ -458,4 +467,7 @@ void scheduler_generate_events()
 		heap_pop();
 	}
 
+#ifdef SCHEDULER_TESTING
+	printf("\n");
+#endif
 }

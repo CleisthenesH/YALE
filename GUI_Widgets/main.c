@@ -287,7 +287,6 @@ static inline void process_event()
 
     case ALLEGRO_GET_EVENT_TYPE('T', 'I', 'M', 'E'):
         ((void (*)(void*)) current_event.user.data1)((void*) current_event.user.data2);
-        printf("%lf\n", current_event.any.timestamp);
 
         return;
 

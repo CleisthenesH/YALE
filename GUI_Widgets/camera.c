@@ -7,7 +7,6 @@
 
 static struct tweener* camera_tweener;
 
-
 void camera_global_predraw()
 {
 	al_build_transform(&camera_transform,
@@ -111,7 +110,6 @@ static int push_keyframe(lua_State* L)
 {
 	luaL_checktype(L, -1, LUA_TTABLE);
 
-	tweener_new_point(camera_tweener);
 	struct keyframe keyframe;
 	keyframe_default(&keyframe);
 
@@ -154,15 +152,4 @@ void camera_init()
 
 	lua_setmetatable(main_lua_state, -2);
 	lua_setglobal(main_lua_state, "camera");
-
-	if (0)
-	{
-
-		struct keyframe keyframe;
-		keyframe_default(&keyframe);
-		keyframe.timestamp += 5;
-		keyframe.theta += 1;
-
-		camera_push_keyframe(&keyframe);
-	}
 }

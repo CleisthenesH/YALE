@@ -7,23 +7,6 @@
 
 static struct tweener* camera_tweener;
 
-void camera_init()
-{
-	camera_tweener = tweener_new(5, 0);
-
-	tweener_set(camera_tweener, (double[]) { 0, 0, 1, 1, 0.1 });
-
-	if (0)
-	{
-
-		struct keyframe keyframe;
-		keyframe_default(&keyframe);
-		keyframe.timestamp += 5;
-		keyframe.theta += 1;
-
-		camera_push_keyframe(&keyframe);
-	}
-}
 
 void camera_global_predraw()
 {
@@ -86,4 +69,100 @@ void camera_copy_destination(struct keyframe* const keyframe)
 	keyframe->sx = coords[3];
 	keyframe->sy = coords[4];
 	keyframe->theta = coords[5];
+}
+
+#include "lua/lua.h"
+#include "lua/lualib.h"
+#include "lua/lauxlib.h"
+#include "lua/lualib.h"
+
+extern lua_State* main_lua_state;
+
+static int set_keyframe(lua_State* L)
+{
+	struct widget_interface* const widget = (struct widget_interface*)luaL_checkudata(L, -2, "widget_mt");
+
+	struct keyframe keyframe;
+
+	keyframe_default(&keyframe);
+	lua_tokeyframe(L, &keyframe);
+
+	camera_set_keyframe(&keyframe);
+
+	return 0;
+}
+
+static int current_keyframe(lua_State* L)
+{
+	struct keyframe keyframe = {
+		.x = camera_tweener->current[0],
+		.y = camera_tweener->current[1],
+		.sx = camera_tweener->current[2],
+		.sy = camera_tweener->current[3],
+		.theta = camera_tweener->current[4],
+	};
+
+	lua_pushkeyframe(L, &keyframe);
+
+	return 1;
+}
+
+static int push_keyframe(lua_State* L)
+{
+	luaL_checktype(L, -1, LUA_TTABLE);
+
+	tweener_new_point(camera_tweener);
+	struct keyframe keyframe;
+	keyframe_default(&keyframe);
+
+	lua_tokeyframe(L, &keyframe);
+	camera_push_keyframe(&keyframe);
+
+	return 1;
+}
+
+static int destination_keyframe(lua_State* L)
+{
+	struct keyframe keyframe;
+	camera_copy_destination(&keyframe);
+	lua_pushkeyframe(L, &keyframe);
+
+	return 0;
+}
+
+void camera_init()
+{
+	camera_tweener = tweener_new(5, 0);
+
+	tweener_set(camera_tweener, (double[]) { 0, 0, 1, 1, 0.1 });
+
+	lua_newtable(main_lua_state);
+	lua_newtable(main_lua_state);
+
+	lua_pushvalue(main_lua_state, -1);
+	lua_setfield(main_lua_state, -2, "__index");
+
+	const struct luaL_Reg camera_methods[] = {
+		{"set",set_keyframe},
+		{"current",current_keyframe},
+		{"push",push_keyframe},
+		{"destination",destination_keyframe},
+		{NULL,NULL}
+	};
+
+	luaL_setfuncs(main_lua_state, camera_methods, 0);
+
+	lua_setmetatable(main_lua_state, -2);
+	lua_setglobal(main_lua_state, "camera");
+
+	if (0)
+	{
+
+		struct keyframe keyframe;
+		keyframe_default(&keyframe);
+		keyframe.timestamp += 5;
+		keyframe.theta += 1;
+
+		camera_push_keyframe(&keyframe);
+	}
 }

@@ -15,7 +15,7 @@
 #include "lua/lauxlib.h"
 #include "lua/lualib.h"
 
-#define SCHEDULER_TESTING
+//#define SCHEDULER_TESTING
 #ifdef SCHEDULER_TESTING
 void stack_dump(lua_State*);
 #endif

@@ -85,8 +85,9 @@ lock_button = button_new{x=1100,y=700,text="Lock"}
 function lock_button.left_click()
 -- Not going to work since the engine isn't idle
 -- I will fix after making a more robust state system
-	engine_lock()
-	scheduler.push(function() engine_unlock() end, 1.0)
+	widgets.lock(test_button)
+	camera.push{x=100,y=100,timestamp = 1.0}
+	scheduler.push(function() widgets.unlock() end, 1.0)
 end
 
 collectgarbage("collect")

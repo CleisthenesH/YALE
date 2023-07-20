@@ -438,15 +438,17 @@ static inline void lua_boot_file()
 
 /* System Dependency :
 *       |-------------(Only config.lua )-------------> ALLEGRO
-*       |                                                 |
+*       |                                                |
 *       |         _______________________________________|____________________
 *       |         V             V                     |           |           |
 *       |-> (Scheduler) <- (Thread Pool)              |           |           V
 *  LUA  |                    V       V                |           |   (Resource Manager)
 *       |             (Tweener)    (Particle)         |           |
 *       |                    V                        V           |
-*       |                   (     Render     ) <---- (Material)   |
-*       |                           V                             V
+*       |-----------------> (     Render     ) <---- (Material)   |
+*       |                     V          |                        |
+*       |--------------->  (Camera)      |                        |
+*       |                                V                        V
 *       |---------------------> (            Widget Interface         )
 */
 

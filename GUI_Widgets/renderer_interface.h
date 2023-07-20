@@ -28,8 +28,12 @@ struct keyframe
 	FOR_KEYFRAME_MEMBERS(_KEYFRAME_MEMBER_DECL)
 };
 
+// Keyframe methods
 void keyframe_default(struct keyframe* const);
 void keyframe_build_transform(const struct keyframe* const, ALLEGRO_TRANSFORM* const);
+
+void lua_pushkeyframe(struct lua_State*, const struct keyframe* const);
+void lua_tokeyframe(struct lua_State*, struct keyframe* const);
 
 // An obficated struct for managing all the style information in one place.
 //	It's maing job is to manage a queue of keyframes to output the current keyframe on each frame.
@@ -40,9 +44,9 @@ struct render_interface
 	double half_width, half_height;
 };
 
+// Render Methods
 struct render_interface* render_interface_new(size_t);
 
-// Keyframe methods
 void render_interface_set(struct render_interface* const, struct keyframe* const);
 void render_interface_interupt(struct render_interface* const);
 void render_interface_push_keyframe(struct render_interface* const, struct keyframe*);

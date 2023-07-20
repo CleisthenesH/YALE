@@ -255,3 +255,38 @@ void render_interface_predraw(const struct render_interface* const render_interf
 
 	glDisable(GL_STENCIL_TEST);
 }
+
+#include "lua/lua.h"
+#include "lua/lualib.h"
+#include "lua/lauxlib.h"
+#include "lua/lualib.h"
+
+// Read a transform from the top of the stack to a pointer
+ void lua_tokeyframe(struct lua_State* L, struct keyframe* keyframe)
+{
+	luaL_checktype(L, -1, LUA_TTABLE);
+
+	keyframe_default(keyframe);
+
+#define READ(member,...)     lua_pushstring(L, #member); \
+    if (LUA_TNUMBER == lua_gettable(L, idx--)) keyframe-> ## member = luaL_checknumber(L, -1);
+
+	int idx = -2;
+
+	FOR_KEYFRAME_MEMBERS(READ)
+
+	// Weird blip when using current_timestamp
+	keyframe->timestamp += current_timestamp;
+
+	lua_settop(L, -(KEYFRAME_MEMBER_CNT + 2));
+}
+
+// Write a transform from a pointer to the top of the stack
+void lua_pushkeyframe(struct lua_State* L, const struct keyframe* const keyframe)
+{
+	// optimize for tail call? or is inline enough
+	lua_createtable(L, 0, 8);
+
+#define WRITE(member,...) lua_pushstring(L, #member); lua_pushnumber(L, keyframe-> ## member); lua_settable(L,-(3));
+	FOR_KEYFRAME_MEMBERS(WRITE)
+}

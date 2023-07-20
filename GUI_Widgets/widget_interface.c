@@ -162,6 +162,7 @@ static const char* engine_state_str[] = {
 
 static struct widget* queue_head;
 static struct widget* queue_tail;
+static struct widget* lock;
 
 // Pop a widget out of the engine
 static void queue_pop(struct widget_interface* const ptr)
@@ -177,6 +178,9 @@ static void queue_pop(struct widget_interface* const ptr)
         widget->previous->next = widget->next;
     else
         queue_head = widget->next;
+
+    if (ptr == (struct widget_interface* const) lock)
+        lock = widget->next;
 }
 
 // Insert the first widget behind the second
@@ -193,13 +197,14 @@ static void queue_insert(struct widget_interface* mover, struct widget_interface
     // If the second is null append the first to the head
     if (internal_target)
     {
+        if (internal_target == queue_head)
+            lock = internal_target;
+
         if (internal_target->previous)
             internal_target->previous->next = internal_mover;
         else
-        {
             queue_tail = internal_mover;
 
-        }
 
         internal_target->previous = internal_mover;
     }
@@ -211,7 +216,7 @@ static void queue_insert(struct widget_interface* mover, struct widget_interface
             queue_tail->next = internal_mover;
         else
             queue_head = internal_mover;
-
+ 
         queue_tail = internal_mover;
     }
 }
@@ -350,7 +355,7 @@ static inline struct widget* pick(int x, int y)
     if (hide_hover)
         queue_pop((struct widget_interface*)current_hover);
 
-    for (struct widget* widget = queue_head; widget; widget = widget->next, picker_index++)
+    for (struct widget* widget = lock; widget; widget = widget->next, picker_index++)
     {
         pick_buffer = picker_index;
 
@@ -384,7 +389,7 @@ static inline struct widget* pick(int x, int y)
         return NULL;
     }
 
-    struct widget* widget = queue_head;
+    struct widget* widget = lock;
 
     while (index-- > 1 && widget)
         widget = widget->next;
@@ -619,7 +624,7 @@ struct work_queue* widget_engine_widget_work()
 
     // Since the update method doesn't change maybe we should have a static queue?
     if (widget_engine_state != ENGINE_STATE_LOCKED)
-		for (struct widget* widget = queue_head; widget; widget = widget->next)
+		for (struct widget* widget = lock; widget; widget = widget->next)
 			if (widget->jump_table->update)
 				work_queue_push(work_queue, widget->jump_table->update, widget);
 
@@ -631,7 +636,7 @@ void widget_engine_event_handler()
 {
     // TODO: Incorperate to the threadpool?
     if(widget_engine_state != ENGINE_STATE_LOCKED)
-		for (struct widget* widget = queue_head; widget; widget = widget->next)
+		for (struct widget* widget = lock; widget; widget = widget->next)
 			call_engine(widget, event_handler);
 
     switch (current_event.type)
@@ -779,35 +784,6 @@ struct widget_interface* check_widget(lua_State* L, int idx, const struct widget
     return (widget->jump_table == jump_table) ? (struct widget_interface*)widget : NULL;
 }
 
-// Read a transform from the top of the stack to a pointer
-static void inline read_transform(lua_State* L, struct keyframe* keyframe)
-{
-    luaL_checktype(L, -1, LUA_TTABLE);
-
-    keyframe_default(keyframe);
-
-#define READ(member,...)     lua_pushstring(L, #member); \
-    if (LUA_TNUMBER == lua_gettable(L, idx--)) keyframe-> ## member = luaL_checknumber(L, -1);
-
-    int idx = -2;
-
-    FOR_KEYFRAME_MEMBERS(READ)
-
-    lua_settop(L, -(KEYFRAME_MEMBER_CNT+2));
-}
-
-// Write a transform from a pointer to the top of the stack
-static void inline write_transform(lua_State* L, const struct keyframe* const keyframe)
-{
-    // optimize for tail call? or is inline enough
-    lua_createtable(L, 0, 8);
-
-#define WRITE(member,...) lua_pushstring(L, #member); lua_pushnumber(L, keyframe-> ## member); lua_settable(L,-3);
-    FOR_KEYFRAME_MEMBERS(WRITE)
-
-    return;
-}
-
 // Set the widget keyframe (singular) clears all current keyframes 
 static int set_keyframe(lua_State* L)
 {
@@ -816,7 +792,7 @@ static int set_keyframe(lua_State* L)
     struct keyframe keyframe;
 
     keyframe_default(&keyframe);
-    read_transform(L, &keyframe);
+    lua_tokeyframe(L, &keyframe);
 
     render_interface_set(widget->render_interface, &keyframe);
 
@@ -832,7 +808,7 @@ static int set_keyframes(lua_State* L)
     lua_geti(L, -1, 1);
 
     keyframe_default(&keyframe);
-    read_transform(L, &keyframe);
+    lua_tokeyframe(L, &keyframe);
 
     render_interface_set(widget->render_interface, &keyframe);
     
@@ -843,7 +819,7 @@ static int set_keyframes(lua_State* L)
     for(int i = 3;lua_istable(L,-1);i++)
     {
         keyframe_default(&keyframe);
-        read_transform(L, &keyframe);
+        lua_tokeyframe(L, &keyframe);
 
         lua_settop(L, -2);
 
@@ -859,9 +835,9 @@ static int set_keyframes(lua_State* L)
 static int current_keyframe(lua_State* L)
 {
     struct widget_interface* const widget = (struct widget_interface*)luaL_checkudata(L, -2, "widget_mt");
-    const struct keyframe* const keyframe = &widget->render_interface->current;
+    struct keyframe* const keyframe = &widget->render_interface->current;
 
-    write_transform(L, keyframe);
+    lua_pushkeyframe(L, keyframe);
 
     return 1;
 }
@@ -874,13 +850,13 @@ static int destination_keyframe(lua_State* L)
     struct keyframe keyframe;
     render_interface_copy_destination(widget->render_interface, &keyframe);
 
-    write_transform(L, &keyframe);
+    lua_pushkeyframe(L, &keyframe);
 
     return 1;
 }
 
 // Reads a transform from the stack and appends to the end of its current path
-static int new_keyframe(lua_State* L)
+static int push_keyframe(lua_State* L)
 {
     struct widget_interface* const widget = (struct widget_interface*)luaL_checkudata(L, -2, "widget_mt");
 	luaL_checktype(L, -1, LUA_TTABLE);
@@ -888,7 +864,7 @@ static int new_keyframe(lua_State* L)
     struct keyframe keyframe;
     keyframe_default(&keyframe);
 
-	read_transform(L,&keyframe);
+    lua_tokeyframe(L,&keyframe);
 
     render_interface_push_keyframe(widget->render_interface, &keyframe);
 	return 0;
@@ -973,8 +949,10 @@ static int set_context_menu(lua_State* L)
 // Lock the engine
 static int engine_lock(lua_State* L)
 {
-    if (widget_engine_state == ENGINE_STATE_IDLE)
-        widget_engine_state = ENGINE_STATE_LOCKED;
+    if (LUA_TUSERDATA == lua_type(L, -1))
+        lock = (struct widget*)luaL_checkudata(L, -1, "widget_mt");
+    else
+        lock = NULL;
 
     return 0;
 }
@@ -982,54 +960,33 @@ static int engine_lock(lua_State* L)
 // Unlock the engine
 static int engine_unlock(lua_State* L)
 {
-    if (widget_engine_state == ENGINE_STATE_LOCKED)
-        widget_engine_state = ENGINE_STATE_IDLE;
+    lock = queue_head;
 
     return 0;
 }
 
-// Hash data for index and newindex methods 
-// Will turn into a propper hash when scope is stable.
-static const struct {
-    const char* key;
-    const lua_CFunction function;
-    const enum 
-    {
-        CALL_PUSH_CFUNCT,
-        CALL_CALL_FUNCT
-    } call_behaviour;
-} index_aa[] = {
-    {"set_keyframe",set_keyframe,CALL_PUSH_CFUNCT},
-    {"set_keyframes",set_keyframe,CALL_PUSH_CFUNCT},
-    {"destination_keyframe",destination_keyframe,CALL_CALL_FUNCT},
-    {"current_keyframe",current_keyframe,CALL_CALL_FUNCT},
-    {"new_keyframe",new_keyframe,CALL_PUSH_CFUNCT},
-    {"interupt",interupt,CALL_PUSH_CFUNCT},
-    {"enter_loop",enter_loop,CALL_PUSH_CFUNCT},
-    {NULL,NULL,CALL_PUSH_CFUNCT},
-};
-
-#define CALLBACK_ENTRY(callback,_,offset) {#callback,CALL_SET_CALLBACK, offset, NULL},
-
-static const struct {
-    const char* key;
-    const enum
-    {
-        CALL_SET_CALLBACK,
-        CALL_NEWINDEX_FUNCT
-    } call_behaviour;
-
-    int callback_offset;
-    int (*funct)(lua_State*);
-} newindex_aa[] = {
-    {"snappable",CALL_NEWINDEX_FUNCT,0,snappable},
-    FOR_CALLBACKS(CALLBACK_ENTRY)
-    {NULL,CALL_NEWINDEX_FUNCT,0,NULL}
-};
-
 // Geneal widget index method
 static int index(lua_State* L)
 {
+    static const struct {
+        const char* key;
+        const lua_CFunction function;
+        const enum
+        {
+            CALL_PUSH_CFUNCT,
+            CALL_CALL_FUNCT
+        } call_behaviour;
+    } index_aa[] = {
+        {"set_keyframe",set_keyframe,CALL_PUSH_CFUNCT},
+        {"set_keyframes",set_keyframe,CALL_PUSH_CFUNCT},
+        {"destination_keyframe",destination_keyframe,CALL_CALL_FUNCT},
+        {"current_keyframe",current_keyframe,CALL_CALL_FUNCT},
+        {"push_keyframe",push_keyframe,CALL_PUSH_CFUNCT},
+        {"interupt",interupt,CALL_PUSH_CFUNCT},
+        {"enter_loop",enter_loop,CALL_PUSH_CFUNCT},
+        {NULL,NULL,CALL_PUSH_CFUNCT},
+    };
+
     struct widget* const widget = (struct widget*)luaL_checkudata(L, -2, "widget_mt");
     
     if (lua_type(L, -1) == LUA_TSTRING)
@@ -1061,6 +1018,24 @@ static int index(lua_State* L)
 // Geneal widget newindex method
 static int newindex(lua_State* L)
 {
+#define CALLBACK_ENTRY(callback,_,offset) {#callback,CALL_SET_CALLBACK, offset, NULL},
+
+    const struct {
+        const char* key;
+        const enum
+        {
+            CALL_SET_CALLBACK,
+            CALL_NEWINDEX_FUNCT
+        } call_behaviour;
+
+        int callback_offset;
+        int (*funct)(lua_State*);
+    } newindex_aa[] = {
+        {"snappable",CALL_NEWINDEX_FUNCT,0,snappable},
+        FOR_CALLBACKS(CALLBACK_ENTRY)
+        {NULL,CALL_NEWINDEX_FUNCT,0,NULL}
+    };
+
     struct widget* const widget = (struct widget*)luaL_checkudata(L, -3, "widget_mt");
 
     if (lua_type(L, -2) == LUA_TSTRING)
@@ -1146,8 +1121,14 @@ void widget_engine_init(lua_State* L)
     lua_pushstring(L, "vk");
     lua_setfield(L, -2, "__mode");
 
-    lua_pushcfunction(L, widget_move_lua);
-    lua_setfield(L, -2, "move");
+    const struct luaL_Reg widgets_methods[] = {
+        {"move",widget_move_lua},
+        {"lock",engine_lock},
+        {"unlock",engine_unlock},
+        {NULL,NULL}
+    };
+
+    luaL_setfuncs(L, widgets_methods, 0);
 
     lua_setmetatable(L, -2);
     lua_setglobal(L, "widgets");
@@ -1155,14 +1136,14 @@ void widget_engine_init(lua_State* L)
     // Make the widget meta table
     luaL_newmetatable(L, "widget_mt");
 
-    const struct luaL_Reg garbage_collection[] = {
+    const struct luaL_Reg meta_methods[] = {
         {"__gc",gc},
         {"__newindex",newindex},
         {"__index",index},
         {NULL,NULL}
     };
 
-    luaL_setfuncs(L, garbage_collection, 0);
+    luaL_setfuncs(L, meta_methods, 0);
 
     lua_pop(L, 2);
 
@@ -1170,12 +1151,6 @@ void widget_engine_init(lua_State* L)
 
     lua_pushcfunction(L, set_context_menu);
     lua_setglobal(L, "contex_menu");
-
-    lua_pushcfunction(L, engine_unlock);
-    lua_setglobal(L, "engine_unlock");
-
-    lua_pushcfunction(L, engine_lock);
-    lua_setglobal(L, "engine_lock");
 }
 
 // Allocate a new widget interface and wire it into the widget engine.
@@ -1248,7 +1223,10 @@ struct widget_interface* widget_interface_new(
     if (queue_tail)
         queue_tail->next = widget;
     else
+    {
         queue_head = widget;
+        lock = widget;
+    }
 
     queue_tail = widget;
 

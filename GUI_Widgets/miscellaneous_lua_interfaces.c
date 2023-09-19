@@ -14,7 +14,6 @@ extern double delta_timestamp;
 	DO(rectangle) \
     DO(button) \
     DO(slider) \
-    DO(prototype) \
     DO(material_test) \
     DO(dynamic_text_test) \
     DO(text_entry)

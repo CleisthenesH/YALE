@@ -6,7 +6,6 @@
 
 #include "widget_interface.h"
 
-#include "card_render_data.h"
 #include "material.h"
 
 #include <allegro5/allegro5.h>

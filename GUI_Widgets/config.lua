@@ -6,5 +6,6 @@
 -- Will be used to config things like display size/ thread pool size.
 
 --boot_file = "material_test.lua"
+--boot_file = "piece_manager.lua"
 
 print("Config Complete")

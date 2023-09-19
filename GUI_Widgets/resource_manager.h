@@ -11,5 +11,4 @@
 
 ALLEGRO_FONT* resource_manager_font(enum font_id);
 ALLEGRO_BITMAP* resource_manager_icon(enum icon_id);
-ALLEGRO_BITMAP* resource_manager_character_art(enum character_art_id);
-
+ALLEGRO_BITMAP* resource_manager_tile(enum tile_id);

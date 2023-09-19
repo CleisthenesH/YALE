@@ -4,9 +4,6 @@
     <Filter Include="scripts">
       <UniqueIdentifier>{d1104b60-9157-4fa5-816f-82d8815d0850}</UniqueIdentifier>
     </Filter>
-    <Filter Include="card_render_data">
-      <UniqueIdentifier>{2d770f8d-1bd9-4935-8868-94a8c536b14e}</UniqueIdentifier>
-    </Filter>
     <Filter Include="scripts\examples">
       <UniqueIdentifier>{290690d1-8945-427a-abef-45b8ae9a30a2}</UniqueIdentifier>
     </Filter>
@@ -57,6 +54,9 @@
     </Filter>
     <Filter Include="particles">
       <UniqueIdentifier>{80cfc549-80e2-4d07-942b-1382a6bc7a94}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="board_manager\tile_and_meeple">
+      <UniqueIdentifier>{a84e4f5c-3dfd-4472-9eee-d19bcf026ef7}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -185,14 +185,8 @@
     <ClCompile Include="resource_manager.c">
       <Filter>core\resource_manager</Filter>
     </ClCompile>
-    <ClCompile Include="card_render_data.c">
-      <Filter>card_render_data</Filter>
-    </ClCompile>
     <ClCompile Include="widget_style_sheet.c">
       <Filter>widgets</Filter>
-    </ClCompile>
-    <ClCompile Include="prototype_widget.c">
-      <Filter>widgets\test_widgets</Filter>
     </ClCompile>
     <ClCompile Include="rectangle.c">
       <Filter>widgets\test_widgets</Filter>
@@ -229,6 +223,12 @@
     </ClCompile>
     <ClCompile Include="miscellaneous_lua_interfaces.c">
       <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="tile.c">
+      <Filter>board_manager\tile_and_meeple</Filter>
+    </ClCompile>
+    <ClCompile Include="meeple.c">
+      <Filter>board_manager\tile_and_meeple</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -336,9 +336,6 @@
     </ClInclude>
     <ClInclude Include="resource_manager_ids.h">
       <Filter>core\resource_manager</Filter>
-    </ClInclude>
-    <ClInclude Include="card_render_data.h">
-      <Filter>card_render_data</Filter>
     </ClInclude>
     <ClInclude Include="widget_style_sheet.h">
       <Filter>widgets</Filter>

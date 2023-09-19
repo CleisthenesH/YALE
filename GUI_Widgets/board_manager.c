@@ -13,6 +13,9 @@ static const struct widget_jump_table zone_to_widget_table;
 extern struct piece* checker_new(lua_State*);
 extern struct zone* square_new(lua_State*); 
 
+extern struct piece* meeple_new(lua_State*);
+extern struct zone* tile_new(lua_State*); 
+
 // State Management
 
 // Return the zones to the default state
@@ -580,6 +583,9 @@ static inline struct zone* zone_factory(lua_State* const L, const char* type)
 	if (strcmp(type, "square") == 0)
 		return square_new(L);
 
+	if (strcmp(type, "tile") == 0)
+		return tile_new(L);
+
 	return NULL;
 }
 
@@ -633,6 +639,9 @@ static inline struct piece* piece_factory(lua_State* const L, const char* type)
 {
 	if (strcmp(type, "checker") == 0)
 		return checker_new(L);
+
+	if (strcmp(type, "meeple") == 0)
+		return meeple_new(L);
 
 	return NULL;
 }

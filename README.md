@@ -169,7 +169,7 @@ Allegro (5.2) [Website](https://liballeg.org/)
 ## Art
 Emily Huo (Font) [itch.io](https://emhuo.itch.io/)
 
-Corax Digital Art (Character Art) [Link Tree](https://linktr.ee/coraxdigitalart)
+bizinbarstome (Tile Art) [itch.io](https://bizinbarstome.itch.io/)
 
 Game-Icons (Icons) [Website](https://game-icons.net)
 

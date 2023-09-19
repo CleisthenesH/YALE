@@ -56,7 +56,7 @@ static const char* const font_names[] =
 
 static ALLEGRO_FONT* font_table[FONT_ID_COUNT];
 static ALLEGRO_BITMAP* icon_table[ICON_ID_COUNT] = {NULL};
-static ALLEGRO_BITMAP* character_art_table[CHARACTER_ART_ID_COUNT] = {NULL};
+static ALLEGRO_BITMAP* tile_table[TILE_CNT] = {NULL};
 
 // Turns the bitmap and lua file uploaded by Emily Huo to itch.io into a ALLEGRO_FONT
 // Currently ignores kerling and xoffset
@@ -250,15 +250,15 @@ ALLEGRO_BITMAP* resource_manager_icon(enum icon_id id)
 	return icon_table[id];
 }
 
-ALLEGRO_BITMAP* resource_manager_character_art(enum character_art_id id)
+ALLEGRO_BITMAP* resource_manager_tile(enum tile_id id)
 {
-	if (!character_art_table[id])
+	if (!tile_table[id])
 	{
 		char file_name_buffer[256];
-		sprintf_s(file_name_buffer, 256, "res/character_art/%d.png", id);
+		sprintf_s(file_name_buffer, 256, "res/tiles/%d.png", id);
 
-		character_art_table[id] = al_load_bitmap(file_name_buffer);
+		tile_table[id] = al_load_bitmap(file_name_buffer);
 	}
 
-	return character_art_table[id];
+	return tile_table[id];
 }

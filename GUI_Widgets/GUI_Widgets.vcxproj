@@ -185,7 +185,6 @@
   <ItemGroup>
     <ClInclude Include="board_manager.h" />
     <ClInclude Include="camera.h" />
-    <ClInclude Include="card_render_data.h" />
     <ClInclude Include="dynamic_text.h" />
     <ClInclude Include="hash.h" />
     <ClInclude Include="lua\lapi.h" />
@@ -232,7 +231,6 @@
     <ClCompile Include="board_manager.c" />
     <ClCompile Include="button.c" />
     <ClCompile Include="camera.c" />
-    <ClCompile Include="card_render_data.c" />
     <ClCompile Include="checker.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</ExcludedFromBuild>
@@ -242,6 +240,7 @@
     <ClCompile Include="dynamic_text.c" />
     <ClCompile Include="material.c" />
     <ClCompile Include="material_test.c" />
+    <ClCompile Include="meeple.c" />
     <ClCompile Include="miscellaneous_lua_interfaces.c" />
     <ClCompile Include="particle.c" />
     <ClCompile Include="dynamic_text_test.c" />
@@ -285,10 +284,10 @@
     <ClCompile Include="rectangle.c" />
     <ClCompile Include="slider.c" />
     <ClCompile Include="renderer_interface.c" />
-    <ClCompile Include="prototype_widget.c" />
     <ClCompile Include="text_entry.c" />
     <ClCompile Include="thread_pool.c" />
     <ClCompile Include="miscellaneous.c" />
+    <ClCompile Include="tile.c" />
     <ClCompile Include="tweener.c" />
     <ClCompile Include="widget_interface.c" />
     <ClCompile Include="widget_style_sheet.c" />

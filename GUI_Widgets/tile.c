@@ -58,7 +58,7 @@ struct zone* tile_new(lua_State* L)
 		.color = al_map_rgb(0x00,0xAA,0xFF),
 	};
 
-	struct zone* zone = zone_new(L, tile, &tile_table);
+	struct zone* zone = zone_new(tile, &tile_table);
 
 	zone->widget_interface->render_interface->half_width = 50;
 	zone->widget_interface->render_interface->half_height = 50;

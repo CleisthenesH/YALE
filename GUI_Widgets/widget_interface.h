@@ -36,8 +36,8 @@ struct widget_jump_table
 	void (*drop_start)(struct widget_interface* const, struct widget_interface* const);
 	void (*drop_end)(struct widget_interface* const, struct widget_interface* const);
 
-	int (*index)(lua_State* L);
-	int (*newindex)(lua_State* L);
+	int (*index)();
+	int (*newindex)();
 };
 
 struct widget_interface
@@ -51,11 +51,10 @@ struct widget_interface
 };
 
 struct widget_interface* widget_interface_new(
-	lua_State* L,
 	const void* const upcast,
 	const struct widget_jump_table* const jump_table);
 
-struct widget_interface* check_widget(lua_State*, int , const struct widget_jump_table* const );
+struct widget_interface* check_widget(int , const struct widget_jump_table* const );
 	
 void widget_screen_to_local(const struct widget_interface* const, double*, double*);
 

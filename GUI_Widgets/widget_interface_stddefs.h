@@ -47,7 +47,7 @@ if (!WIDGET_TYPE) return 0; \
 *WIDGET_TYPE = (struct WIDGET_TYPE)
 
 #define _WG_NEW_HEADER(type) \
-.widget_interface = widget_interface_new(L, type, &type ## _jump_table_entry)
+.widget_interface = widget_interface_new(type, &type ## _jump_table_entry)
 #define _WG_NEW_HEADER_EXPANSION_BIND(type) _WG_NEW_HEADER(type)
 #define WG_NEW_HEADER _WG_NEW_HEADER_EXPANSION_BIND(WIDGET_TYPE)
 

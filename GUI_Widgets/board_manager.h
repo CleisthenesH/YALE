@@ -89,5 +89,5 @@ struct piece_jump_table
 	void (*mask)(const struct piece* const);
 };
 
-struct piece* piece_new(lua_State* L, void* upcast, const struct piece_jump_table* const jump_table);
-struct zone* zone_new(lua_State* L, void* upcast, const struct zone_jump_table* const jump_table);
+struct piece* piece_new(void* upcast, const struct piece_jump_table* const jump_table);
+struct zone* zone_new(void* upcast, const struct zone_jump_table* const jump_table);

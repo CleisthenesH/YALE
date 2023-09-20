@@ -58,7 +58,7 @@ struct piece* meeple_new(lua_State* L)
 		.color = al_map_rgb(0x00,0x00,0xFF),
 	};
 
-	struct piece* piece = piece_new(L, meeple, &meeple_table);
+	struct piece* piece = piece_new(meeple, &meeple_table);
 
 	piece->widget_interface->render_interface->half_width = 50;
 	piece->widget_interface->render_interface->half_height = 50;

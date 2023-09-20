@@ -60,7 +60,7 @@ struct piece* checker_new(lua_State* L)
 		foil = material_new(MATERIAL_ID_RADIAL_RGB, SELECTION_ID_FULL);
 	}
 
-	struct piece* piece = piece_new(L, NULL, &checker_table);
+	struct piece* piece = piece_new(NULL, &checker_table);
 
 	piece->widget_interface->render_interface->half_width = 50;
 	piece->widget_interface->render_interface->half_height = 50;

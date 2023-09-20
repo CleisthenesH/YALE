@@ -778,9 +778,9 @@ void widget_engine_event_handler()
 /*********************************************/
 
 // Check that the data at the given index is a widget and has the given jumptable.
-struct widget_interface* check_widget(lua_State* L, int idx, const struct widget_jump_table* const jump_table)
+struct widget_interface* check_widget(int idx, const struct widget_jump_table* const jump_table)
 {
-    const struct widget* const widget = (struct widget*)luaL_checkudata(L, idx, "widget_mt");
+    const struct widget* const widget = (struct widget*)luaL_checkudata(main_lua_state, idx, "widget_mt");
     return (widget->jump_table == jump_table) ? (struct widget_interface*)widget : NULL;
 }
 
@@ -1071,7 +1071,7 @@ static int newindex(lua_State* L)
 /*********************************************/
 
 // Initalize the Widget Engine
-void widget_engine_init(lua_State* L)
+void widget_engine_init()
 {
     // Set empty pointers to NULL
     queue_head = NULL;
@@ -1112,14 +1112,14 @@ void widget_engine_init(lua_State* L)
 
     // Make a weak global table to contain the widgets
     // And some functions for manipulating them
-    lua_newtable(L);
-    lua_newtable(L);
+    lua_newtable(main_lua_state);
+    lua_newtable(main_lua_state);
 
-    lua_pushvalue(L, -1);
-    lua_setfield(L, -2, "__index");
+    lua_pushvalue(main_lua_state, -1);
+    lua_setfield(main_lua_state, -2, "__index");
 
-    lua_pushstring(L, "vk");
-    lua_setfield(L, -2, "__mode");
+    lua_pushstring(main_lua_state, "vk");
+    lua_setfield(main_lua_state, -2, "__mode");
 
     const struct luaL_Reg widgets_methods[] = {
         {"move",widget_move_lua},
@@ -1128,13 +1128,13 @@ void widget_engine_init(lua_State* L)
         {NULL,NULL}
     };
 
-    luaL_setfuncs(L, widgets_methods, 0);
+    luaL_setfuncs(main_lua_state, widgets_methods, 0);
 
-    lua_setmetatable(L, -2);
-    lua_setglobal(L, "widgets");
+    lua_setmetatable(main_lua_state, -2);
+    lua_setglobal(main_lua_state, "widgets");
 
     // Make the widget meta table
-    luaL_newmetatable(L, "widget_mt");
+    luaL_newmetatable(main_lua_state, "widget_mt");
 
     const struct luaL_Reg meta_methods[] = {
         {"__gc",gc},
@@ -1143,26 +1143,25 @@ void widget_engine_init(lua_State* L)
         {NULL,NULL}
     };
 
-    luaL_setfuncs(L, meta_methods, 0);
+    luaL_setfuncs(main_lua_state, meta_methods, 0);
 
-    lua_pop(L, 2);
+    lua_pop(main_lua_state, 2);
 
     // Miscellaneous Lua functions
 
-    lua_pushcfunction(L, set_context_menu);
-    lua_setglobal(L, "contex_menu");
+    lua_pushcfunction(main_lua_state, set_context_menu);
+    lua_setglobal(main_lua_state, "contex_menu");
 }
 
 // Allocate a new widget interface and wire it into the widget engine.
 // Consumes a table, if given
 struct widget_interface* widget_interface_new(
-    lua_State* L,
     void* upcast,
     const struct widget_jump_table* jump_table)
 {
     const size_t widget_size = sizeof(struct widget);
 
-    struct widget* const widget = L ? lua_newuserdatauv(L, widget_size, (int)jump_table->uservalues) : malloc(widget_size);
+    struct widget* const widget = lua_newuserdatauv(main_lua_state, widget_size, (int)jump_table->uservalues);
 
     if (!widget)
         return NULL;
@@ -1185,38 +1184,38 @@ struct widget_interface* widget_interface_new(
     };
 
     // Set Metatable
-    luaL_getmetatable(L, "widget_mt");
-    lua_setmetatable(L, -2);
+    luaL_getmetatable(main_lua_state, "widget_mt");
+    lua_setmetatable(main_lua_state, -2);
 
-    lua_getglobal(L, "widgets");
-    lua_pushlightuserdata(L, widget);
-    lua_pushvalue(L, -3);
+    lua_getglobal(main_lua_state, "widgets");
+    lua_pushlightuserdata(main_lua_state, widget);
+    lua_pushvalue(main_lua_state, -3);
 
-    lua_settable(L, -3);
-    lua_pop(L, 1);
+    lua_settable(main_lua_state, -3);
+    lua_pop(main_lua_state, 1);
 
     // If a table is avalible, treat it like a init table
-    if (LUA_TTABLE == lua_type(L, -2))
+    if (LUA_TTABLE == lua_type(main_lua_state, -2))
     {
         // Put the table on top and the udata widget bellow it
-        lua_rotate(L, -2, 1);
+        lua_rotate(main_lua_state, -2, 1);
 
         // Process keyframes
-        set_keyframe(L);
+        set_keyframe(main_lua_state);
 
         // Read Width
-        lua_getfield(L, -1, "width");
+        lua_getfield(main_lua_state, -1, "width");
 
-        if (lua_isnumber(L, -1))
-            widget->render_interface->half_width = 0.5 * luaL_checknumber(L, -1);
+        if (lua_isnumber(main_lua_state, -1))
+            widget->render_interface->half_width = 0.5 * luaL_checknumber(main_lua_state, -1);
   
         // Read Height
-        lua_getfield(L, -2, "height");
+        lua_getfield(main_lua_state, -2, "height");
 
-        if (lua_isnumber(L, -1))
-            widget->render_interface->half_height = 0.5 * luaL_checknumber(L, -1);
+        if (lua_isnumber(main_lua_state, -1))
+            widget->render_interface->half_height = 0.5 * luaL_checknumber(main_lua_state, -1);
 
-        lua_pop(L, 3);
+        lua_pop(main_lua_state, 3);
     }
 
     // Wire the widget into the queue

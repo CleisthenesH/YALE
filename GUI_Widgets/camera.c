@@ -132,7 +132,7 @@ void camera_init()
 {
 	camera_tweener = tweener_new(5, 0);
 
-	tweener_set(camera_tweener, (double[]) { 0, 0, 1, 1, 0.1 });
+	tweener_set(camera_tweener, (double[]) { 0, 0, 1, 1, 0 });
 
 	lua_newtable(main_lua_state);
 	lua_newtable(main_lua_state);

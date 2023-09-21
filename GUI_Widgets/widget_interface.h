@@ -54,7 +54,8 @@ struct widget_interface* widget_interface_new(
 	const void* const upcast,
 	const struct widget_jump_table* const jump_table);
 
-struct widget_interface* check_widget(int , const struct widget_jump_table* const );
+struct widget_interface* check_widget_lua(int , const struct widget_jump_table* const );
+struct widget_interface* check_widget(struct widget_interface*, const struct widget_jump_table* const);
 	
 void widget_screen_to_local(const struct widget_interface* const, double*, double*);
 

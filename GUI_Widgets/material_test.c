@@ -77,7 +77,7 @@ int material_test_new(lua_State* L)
 
 	*handle = (struct material_test)
 	{
-		.widget_interface = widget_interface_new(L,handle,&material_test_table_entry),
+		.widget_interface = widget_interface_new(handle,&material_test_table_entry),
 		.material = material_new(material_id, selection_id),
 		.material_id = material_id,
 		.selection_id = selection_id

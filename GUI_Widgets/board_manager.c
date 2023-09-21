@@ -27,7 +27,7 @@ static void default_zones( int manager_indx)
 
 	while(lua_next(main_lua_state, -2) != 0)
 	{
-		struct widget_interface* const widget = check_widget(-1, &zone_to_widget_table);
+		struct widget_interface* const widget = check_widget_lua(-1, &zone_to_widget_table);
 
 		if (!widget)
 		{
@@ -98,10 +98,12 @@ static void call_valid_moves(struct piece* piece)
 		{
 			lua_gettable(main_lua_state, -3);
 
-			struct widget_interface* const widget = check_widget(-1, &zone_to_widget_table);
+			struct widget_interface* const widget = check_widget_lua(-1, &zone_to_widget_table);
 
 			if (!widget)
 			{
+				const int failed_idx = lua_tointeger(main_lua_state, -2);
+				printf("Error calling vaild_moves function, unable resolve zone id at index %d.\n",failed_idx);
 				lua_pop(main_lua_state, 1);
 				continue;
 			}
@@ -135,7 +137,6 @@ static inline void remove_piece(struct zone* const zone, struct piece* const pie
 {
 	size_t i;
 
-	//TODO: this can be optimized
 	for (i = 0; i < zone->used; i++)
 		if (zone->pieces[i] == piece)
 			break;
@@ -143,7 +144,8 @@ static inline void remove_piece(struct zone* const zone, struct piece* const pie
 	for (size_t j = i + 1; j < zone->used; j++)
 		zone->pieces[j - 1] = zone->pieces[j];
 
-	zone->pieces[zone->used--] = NULL;
+	// Will error if used==0, but the function shouldn't be called.
+	zone->pieces[--zone->used] = NULL;
 
 	piece->zone = NULL;
 }
@@ -256,23 +258,23 @@ static void default_state(struct board_manager* manager)
 }
 
 // Process a manual move from lua
-static int manual_move()
+static int manual_move(lua_State* L)
 {
 	// Process the ids on the stack into widgets
-	lua_getiuservalue(main_lua_state, -3, MANAGER_UVALUE_PIECES);
-	lua_getiuservalue(main_lua_state, -4, MANAGER_UVALUE_ZONES);
-	lua_remove(main_lua_state, -5);
-	lua_rotate(main_lua_state, -4, 2);
-	lua_gettable(main_lua_state, -3);
-	lua_insert(main_lua_state, -2);
-	lua_gettable(main_lua_state, -4);
+	lua_getiuservalue(L, -3, MANAGER_UVALUE_PIECES);
+	lua_getiuservalue(L, -4, MANAGER_UVALUE_ZONES);
+	lua_remove(L, -5);
+	lua_rotate(L, -4, 2);
+	lua_gettable(L, -3);
+	lua_insert(L, -2);
+	lua_gettable(L, -4);
 
 	// Grab the widgets from the stack
-	struct widget_interface* zone = check_widget(-2, &zone_to_widget_table);
-	struct widget_interface* piece = check_widget( - 1, &piece_to_widget_table);
+	struct widget_interface* zone = check_widget_lua(-2, &zone_to_widget_table);
+	struct widget_interface* piece = check_widget_lua( - 1, &piece_to_widget_table);
 
 	// Ballance stack
-	lua_pop(main_lua_state, 4);
+	lua_pop(L, 4);
 
 	// If the piece exists move it
 	if (piece)
@@ -349,8 +351,13 @@ static void zone_drop_end(struct widget_interface* const zone_widget, struct wid
 	zone->nominated = false;
 }
 
-static void zone_drag_end_drop(struct widget_interface* const zone_widget, struct widget_interface* const piece_widget)
+static void zone_drag_end_drop(struct widget_interface* const zone_widget, struct widget_interface*  piece_widget)
 {
+	//Check that the object being dropped is a piece.
+	piece_widget = check_widget(piece_widget, &piece_to_widget_table);
+
+	if (!piece_widget)
+		return;
 
 	// Check that the drop is a valid move
 	struct zone* const zone = zone_widget->upcast;
@@ -372,7 +379,7 @@ static void zone_drag_end_drop(struct widget_interface* const zone_widget, struc
 static int zone_new_index()
 {
 
-	struct widget_interface* const widget = check_widget(-3, &zone_to_widget_table);
+	struct widget_interface* const widget = check_widget_lua(-3, &zone_to_widget_table);
 	struct zone* const zone = widget->upcast;
 
 	if (lua_type(main_lua_state, -2) == LUA_TSTRING)
@@ -390,7 +397,7 @@ static int zone_new_index()
 
 static int zone_index()
 {
-	struct widget_interface* const widget = check_widget(-2, &zone_to_widget_table);
+	struct widget_interface* const widget = check_widget_lua(-2, &zone_to_widget_table);
 	struct zone* const zone = widget->upcast;
 
 	if (lua_type(main_lua_state, -1) == LUA_TSTRING)
@@ -507,7 +514,7 @@ static void piece_drag_end_drop(struct widget_interface* const droppedon_widget,
 
 static int piece_index()
 {
-	struct widget_interface* const widget = check_widget(-2, &piece_to_widget_table);
+	struct widget_interface* const widget = check_widget_lua(-2, &piece_to_widget_table);
 	struct piece* const piece = widget->upcast;
 
 	if (lua_type(main_lua_state, -1) == LUA_TSTRING)
@@ -541,7 +548,7 @@ static int piece_index()
 
 static int piece_new_index()
 {
-	struct widget_interface* const widget = check_widget(-3, &piece_to_widget_table);
+	struct widget_interface* const widget = check_widget_lua(-3, &piece_to_widget_table);
 	struct piece* const piece = widget->upcast;
 
 	if (lua_type(main_lua_state, -2) == LUA_TSTRING)

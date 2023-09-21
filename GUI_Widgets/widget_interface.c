@@ -14,7 +14,7 @@
 #include <math.h>
 
 // Debug Macro Flags
-#define WIDGET_DEBUG_DRAW
+//#define WIDGET_DEBUG_DRAW
 //#define WIDGET_EVENT_LOG
 
 #ifdef WIDGET_DEBUG_DRAW
@@ -516,6 +516,12 @@ void widget_screen_to_local(const struct widget_interface* const widget, double*
     *y = _y;
 }
 
+// Check that a widget has the right jumptable
+struct widget_interface* check_widget(struct widget_interface* widget, const struct widget_jump_table* const jump_table)
+{
+    return (((struct widget*)widget)->jump_table == jump_table) ? (struct widget_interface*) widget : NULL;
+}
+
 /*********************************************/
 /*            Big Four Callbacks             */
 /*********************************************/
@@ -778,10 +784,13 @@ void widget_engine_event_handler()
 /*********************************************/
 
 // Check that the data at the given index is a widget and has the given jumptable.
-struct widget_interface* check_widget(int idx, const struct widget_jump_table* const jump_table)
+struct widget_interface* check_widget_lua(int idx, const struct widget_jump_table* const jump_table)
 {
-    const struct widget* const widget = (struct widget*)luaL_checkudata(main_lua_state, idx, "widget_mt");
-    return (widget->jump_table == jump_table) ? (struct widget_interface*)widget : NULL;
+    if (lua_type(main_lua_state, idx) != LUA_TUSERDATA)
+        return NULL;
+
+    struct widget_interface* widget = (struct widget_interface*)luaL_checkudata(main_lua_state, idx, "widget_mt");
+    return widget? check_widget(widget, jump_table) : NULL;
 }
 
 // Set the widget keyframe (singular) clears all current keyframes 

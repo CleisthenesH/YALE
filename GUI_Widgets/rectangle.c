@@ -8,6 +8,8 @@
 #include <allegro5/allegro_font.h>
 #include <allegro5/allegro_opengl.h>
 
+extern lua_State* main_lua_state;
+
 struct rectangle
 {
 	struct widget_interface* widget_interface;
@@ -140,21 +142,22 @@ static void write_color(lua_State* L, ALLEGRO_COLOR* color)
 	return;
 }
 
-static int newindex(lua_State* L)
+static int newindex()
 {
-	struct widget_interface* const widget = check_widget(L, -3, &rectangle_jump_table_entry);
+
+	struct widget_interface* const widget = check_widget_lua(-3, &rectangle_jump_table_entry);
 	struct rectangle* const rectangle = widget->upcast;
 
 	if (!widget)
 		return 0;
 
-	if (lua_type(L, -2) == LUA_TSTRING)
+	if (lua_type(main_lua_state, -2) == LUA_TSTRING)
 	{
-		const char* key = lua_tostring(L, -2);
+		const char* key = lua_tostring(main_lua_state, -2);
 
 		if (strcmp(key, "color") == 0)
 		{
-			read_color(L, &rectangle->color);
+			read_color(main_lua_state, &rectangle->color);
 
 			return 0;
 		}
@@ -163,21 +166,21 @@ static int newindex(lua_State* L)
 	return 0;
 }
 
-static int index(lua_State* L)
+static int index()
 {
-	struct widget_interface* const widget = check_widget(L, -2, &rectangle_jump_table_entry);
+	struct widget_interface* const widget = check_widget_lua(-2, &rectangle_jump_table_entry);
 	struct rectangle* const rectangle = widget->upcast;
 
 	if (!widget)
 		return 0;
 
-	if (lua_type(L, -1) == LUA_TSTRING)
+	if (lua_type(main_lua_state, -1) == LUA_TSTRING)
 	{
-		const char* key = lua_tostring(L, -1);
+		const char* key = lua_tostring(main_lua_state, -1);
 
 		if (strcmp(key, "color") == 0)
 		{
-			write_color(L, &rectangle->color);
+			write_color(main_lua_state, &rectangle->color);
 
 			return 1;
 		}
@@ -212,7 +215,7 @@ int rectangle_new(lua_State* L)
 		.height = 32,
 		.width = 100,
 		.cnt = 0,
-		.widget_interface = widget_interface_new(L,rectangle,&rectangle_jump_table_entry)
+		.widget_interface = widget_interface_new(rectangle,&rectangle_jump_table_entry)
 	};
 
 	return 1;

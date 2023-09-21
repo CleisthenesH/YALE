@@ -68,7 +68,7 @@ int dynamic_text_test_new(lua_State* L)
 	*handle = (struct dynamic_text_test)
 	{
 		.particle_bin = particle_bin_new(1),
-		.widget_interface = widget_interface_new(L,handle,&dynamic_text_test_table_entry)
+		.widget_interface = widget_interface_new(handle,&dynamic_text_test_table_entry)
 	};
 
 	dynamic_text_new(handle->particle_bin,

@@ -4,7 +4,7 @@
 
 // Some quick and easy compile options
 #define EASY_BACKGROUND
-#define EASY_FPS
+// #define EASY_FPS
 
 #include <stdio.h>
 #include <stdlib.h>

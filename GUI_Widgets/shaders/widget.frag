@@ -19,15 +19,14 @@ bool alpha_test_func(float x, int op, float compare);
 
 void main()
 {
-  vec4 c;
   if (al_use_tex)
-    c = varying_color * texture2D(al_tex, varying_texcoord);
-  else
-    c = varying_color;
-  if (!al_alpha_test || alpha_test_func(c.a, al_alpha_func, al_alpha_test_val))
-    gl_FragColor = c;
-  else
-    discard;
+  {
+    vec4 c = texture2D(al_tex, varying_texcoord);
+     if (al_alpha_test && !alpha_test_func(c.a, al_alpha_func, al_alpha_test_val))
+         discard;
+  }
+
+    gl_FragColor = varying_color;
 }
 
 bool alpha_test_func(float x, int op, float compare)

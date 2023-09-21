@@ -17,6 +17,7 @@ end
 
 function manager:vaild_moves(piece)
 	print("vaild_moves",self,piece)
+	return {0,1,104,101}
 end
 
 function manager:nonvalid_move(piece,zone)
@@ -31,17 +32,17 @@ end
 
 axial_to_world(1,2)
 
-for q = -1, 1 do
-	for r = -1,1 do	
-		if q ~= r then
-		local dx, dy = axial_to_world(q,r)
-		print(q,r,dx,dy)
-		manager:new_zone(q+10*r,"tile",{x=300+dx,y=300+dy,camera = 1})
+for q = -2, 2 do
+	for r = -2,2 do	
+		if math.abs(q+r) < 3 then
+			local dx, dy = axial_to_world(q,r)
+			manager:new_zone(q+100*r,"tile",{x=300+dx,y=300+dy,camera = 1})
 		end
 	end
 end
 
 manager:new_piece("meeple","meeple",{x=410,y=200})
+manager:move("meeple",101)
 
 collectgarbage("collect")
 

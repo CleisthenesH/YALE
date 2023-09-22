@@ -10,6 +10,42 @@ manager = board_manager_new{
 	transition = true,
 }
 
+function hash_cord(q,r)
+	return q+100*r
+end
+
+function unhash_cord(hash)
+	local q = hash % 100
+	
+	if q > 50 then
+		q = q- 100
+	end
+
+	local r = (hash - q)//100
+
+	if r > 50 then
+		r = r-100
+	end
+
+	return q,r
+end
+
+function get_neighbours(piece)
+	local q,r = unhash_cord( manager.pieces[piece].zone)
+
+	local output = {}
+
+	for dq = -1, 1 do
+		for dr = -1, 1 do
+			if math.abs(dr+dq) <= 1 and math.abs(q+dq+r+dr) < 4 then
+				output[#output+1] = hash_cord(q+dq,r+dr)
+			end
+		end
+	end
+
+	return output
+end
+
 -- return and expect ids
 function manager:move(piece,zone)
 	print("move",piece,zone)	
@@ -17,7 +53,7 @@ end
 
 function manager:vaild_moves(piece)
 	print("vaild_moves",self,piece)
-	return {0,1,104,101}
+	return get_neighbours(piece)
 end
 
 function manager:nonvalid_move(piece,zone)
@@ -32,11 +68,16 @@ end
 
 axial_to_world(1,2)
 
-for q = -2, 2 do
-	for r = -2,2 do	
-		if math.abs(q+r) < 3 then
+for q = -3,3 do
+	for r = -3,3 do	
+		if math.abs(q+r) < 4 then
 			local dx, dy = axial_to_world(q,r)
-			manager:new_zone(q+100*r,"tile",{x=300+dx,y=300+dy,camera = 1})
+			manager:new_zone(q+100*r,"tile",{
+				x=300+dx,y=300+dy,
+				camera = 1,
+				team =  q < 0 
+				and "red" 
+				or "blue"})
 		end
 	end
 end

@@ -4175,7 +4175,7 @@ enum font_id
 
 enum tile_id
 {
-	TILE_BRIDGE,
+	TILE_BRIDGE = 1,
 	TILE_CAMP,
 	TILE_CASTLE,
 	TILE_CITY,

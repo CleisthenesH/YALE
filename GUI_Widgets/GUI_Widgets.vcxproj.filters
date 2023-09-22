@@ -361,6 +361,9 @@
     <ClInclude Include="camera.h">
       <Filter>core\renderer\components</Filter>
     </ClInclude>
+    <ClInclude Include="meeple_tile_utility.h">
+      <Filter>board_manager\tile_and_meeple</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

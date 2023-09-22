@@ -222,6 +222,7 @@
     <ClInclude Include="renderer_interface.h" />
     <ClInclude Include="scheduler.h" />
     <ClInclude Include="thread_pool.h" />
+    <ClInclude Include="meeple_tile_utility.h" />
     <ClInclude Include="tweener.h" />
     <ClInclude Include="widget_interface.h" />
     <ClInclude Include="widget_interface_stddefs.h" />

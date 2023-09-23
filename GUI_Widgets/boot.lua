@@ -77,7 +77,8 @@ for q = -3,3 do
 				camera = 1,
 				team =  q < 0 
 				and "red" 
-				or "blue"})
+				or "blue",
+				tile = "hills"})
 		end
 	end
 end

@@ -30,8 +30,8 @@ function unhash_cord(hash)
 	return q,r
 end
 
-function get_neighbours(piece)
-	local q,r = unhash_cord( manager.pieces[piece].zone)
+function get_neighbours(zone)
+	local q,r = unhash_cord(zone)
 
 	local output = {}
 
@@ -51,9 +51,11 @@ function manager:move(piece,zone)
 	print("move",piece,zone)	
 end
 
-function manager:vaild_moves(piece)
-	print("vaild_moves",self,piece)
-	return get_neighbours(piece)
+function manager:vaild_moves(piece,zone)
+	print("vaild_moves",self,piece,zone)
+	manager.zones[zone].tile = "camp"
+
+	return get_neighbours(zone)
 end
 
 function manager:nonvalid_move(piece,zone)

@@ -6,6 +6,36 @@
 #include "resource_manager.h"
 #include "meeple_tile_utility.h"
 
+extern lua_State* main_lua_state;
+
+const char* tile_to_string[] = {
+	"empty",
+	"bridge",
+	"camp",
+	"castle",
+	"city",
+	"dungeon",
+	"farm",
+	"fort",
+	"hills",
+	"lake",
+	"mine",
+	"monolith",
+	"mountains",
+	"oak",
+	"oaks",
+	"pine",
+	"pines",
+	"poi",
+	"quest",
+	"ruins",
+	"shipwreck",
+	"skull",
+	"swamp",
+	"tower",
+	"town"
+};
+
 struct tile
 {
 	enum TEAMS team;
@@ -67,12 +97,7 @@ static void mask(const struct zone* const zone)
 		0);
 }
 
-static struct zone_jump_table tile_table =
-{
-	.draw = draw,
-	.mask = mask,
-	.gc = gc,
-};
+
 
 // 
 static void lua_toteam(lua_State* L, int idx, struct tile* tile)
@@ -94,40 +119,14 @@ static void lua_toteam(lua_State* L, int idx, struct tile* tile)
 // 
 static void lua_toid(lua_State* L, int idx, struct tile* tile)
 {
-	const char* lookup[] = {
-		"empty",
-		"bridge",
-		"camp",
-		"castle",
-		"city",
-		"dungeon",
-		"farm",
-		"fort",
-		"hills",
-		"lake",
-		"mine",
-		"monolith",
-		"mountains",
-		"oak",
-		"oaks",
-		"pine",
-		"pines",
-		"poi",
-		"quest",
-		"ruins",
-		"shipwreck",
-		"skull",
-		"swamp",
-		"tower",
-		"town"
-	};
+
 
 	if (lua_type(L, -1) == LUA_TSTRING)
 	{
 		const char* tile_id = luaL_tolstring(L, idx, NULL);
 
 		for (size_t i = 0; i<TILE_CNT; i++)
-			if (strcmp(tile_id, lookup[i]) == 0)
+			if (strcmp(tile_id, tile_to_string[i]) == 0)
 			{
 				tile->id = i;
 				break;
@@ -137,6 +136,64 @@ static void lua_toid(lua_State* L, int idx, struct tile* tile)
 	}
 
 }
+
+int index(struct zone* const zone)
+{
+	struct tile* const tile = (struct tile* const)zone->upcast;
+
+	if (lua_type(main_lua_state, -1) == LUA_TSTRING)
+	{
+		const char* key = luaL_checkstring(main_lua_state, -1);
+
+		if (strcmp(key, "team") == 0)
+		{
+			if(tile->team == TEAM_RED)
+				lua_pushstring(main_lua_state, "red");
+			else if (tile->team == TEAM_BLUE)
+				lua_pushstring(main_lua_state, "blue");
+			else
+				lua_pushstring(main_lua_state, "none");
+
+			return 1;
+		}else if (strcmp(key, "tile") == 0)
+		{
+			lua_pushstring(main_lua_state, tile_to_string[tile->id]);
+			return 1;
+		}
+	}
+}
+
+int newindex(struct zone* const zone)
+{
+	struct tile* const tile = (struct tile* const)zone->upcast;
+
+	if (lua_type(main_lua_state, -1) == LUA_TSTRING)
+	{
+		const char* key = luaL_checkstring(main_lua_state, -2);
+
+		if (strcmp(key, "team") == 0)
+		{
+			lua_toteam(main_lua_state, -1, tile);
+			lua_pop(main_lua_state, 2);
+			return 0;
+		}
+		else if (strcmp(key, "tile") == 0)
+		{
+			lua_toid(main_lua_state, -1, tile);
+			lua_pop(main_lua_state, 2);
+			return 0;
+		}
+	}
+}
+
+static struct zone_jump_table tile_table =
+{
+	.draw = draw,
+	.mask = mask,
+	.gc = gc,
+	.index = index,
+	.newindex = newindex
+};
 
 struct zone* tile_new(lua_State* L)
 {
@@ -155,8 +212,6 @@ struct zone* tile_new(lua_State* L)
 	{
 		lua_getfield(L, -1, "team");
 		lua_toteam(L, -1, tile);
-
-		stack_dump(L);
 
 		lua_getfield(L, -2, "tile");
 		lua_toid(L, -1, tile);

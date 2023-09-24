@@ -76,7 +76,7 @@ static void call_valid_moves(struct piece* piece)
 	default_zones(-2);
 	
 	// Prepare the stack for function call:
-	// ..., function, manager, piece ID
+	// ..., function, manager, piece ID, zone ID
 	lua_pushvalue(main_lua_state, -2);
 
 	lua_rawgetp(main_lua_state, -4, piece->widget_interface);
@@ -84,8 +84,19 @@ static void call_valid_moves(struct piece* piece)
 
 	lua_remove(main_lua_state, -2);
 
+	if (piece->zone)
+	{
+		lua_rawgetp(main_lua_state, -5, piece->zone->widget_interface);
+		lua_getiuservalue(main_lua_state, -1, ZONE_UVALUE_ID);
+		lua_remove(main_lua_state, -2);
+	}
+	else
+	{
+		lua_pushnil(main_lua_state);
+	}
+
 	// Call the valid move function
-	lua_call(main_lua_state, 2, 1);
+	lua_call(main_lua_state, 3, 1);
 
 	// A table of vaild zones should be returned
 	if (lua_istable(main_lua_state, -1))
@@ -392,6 +403,10 @@ static int zone_new_index()
 			return 0;
 		}
 	}
+
+	if (zone->jump_table->newindex)
+		return zone->jump_table->newindex(zone);
+
 	return 0;
 }
 
@@ -416,6 +431,9 @@ static int zone_index()
 			return 1;
 		}
 	}
+
+	if (zone->jump_table->index)
+		return zone->jump_table->index(zone);
 
 	return 0;
 }
@@ -543,6 +561,9 @@ static int piece_index()
 		}
 	}
 
+	if (piece->jump_table->index)
+		return piece->jump_table->index(piece);
+
 	return 0;
 }
 
@@ -561,6 +582,9 @@ static int piece_new_index()
 			return 0;
 		}
 	}
+
+	if (piece->jump_table->newindex)
+		return piece->jump_table->newindex(piece);
 
 	return 0;
 }

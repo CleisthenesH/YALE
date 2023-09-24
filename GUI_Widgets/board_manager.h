@@ -80,6 +80,9 @@ struct zone_jump_table
 
 	void (*remove_piece)(struct zone* const, struct piece* const);
 	void (*append_piece)(struct zone* const, struct piece* const);
+
+	int (*index)(struct zone* const);
+	int (*newindex)(struct zone* const);
 };
 
 struct piece_jump_table
@@ -87,6 +90,9 @@ struct piece_jump_table
 	void (*gc)(struct piece* const);
 	void (*draw)(const struct piece* const);
 	void (*mask)(const struct piece* const);
+
+	int (*index)(struct piece* const);
+	int (*newindex)(struct piece* const);
 };
 
 struct piece* piece_new(void* upcast, const struct piece_jump_table* const jump_table);
